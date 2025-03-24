@@ -75,8 +75,8 @@
                     </div>
                 </div>
             </div>
-            <div class="stat-card-footer">
-                <a href="{{ route('admin.vehicles.index') }}" class="stat-card-link">Manage Fleet <i
+            <div class=" stat-card-footer">
+                <a href="{{ route('admin.cars.index') }}" class="stat-card-link">Manage Fleet <i
                         class="fas fa-arrow-right"></i></a>
             </div>
         </div>
@@ -169,6 +169,7 @@
                                                 @elseif($booking->status == 'pending')
                                                     <span class="badge badge-warning">Pending</span>
                                                 @elseif($booking->status == 'cancelled')
+
                                                     <span class="badge badge-danger">Cancelled</span>
                                                 @elseif($booking->status == 'completed')
                                                     <span class="badge badge-primary">Completed</span>
@@ -181,6 +182,7 @@
                                     <tr>
                                         <td colspan="5" class="text-center">No recent bookings found</td>
                                     </tr>
+
                                 @endif
                             </tbody>
                         </table>
@@ -189,182 +191,185 @@
                 <div class="card-footer">
                     <a href="{{ route('admin.bookings.index') }}" class="btn btn-sm btn-outline-primary">View All
                         Bookings</a>
+                    </di v>
+                    </di v>
                 </div>
-            </div>
-        </div>
 
-        <div class="col-md-5">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title">Recent Activity</h5>
-                </div>
-                <div class="card-body">
-                    <div class="activity-feed">
-                        @if(isset($recentActivities) && count($recentActivities) > 0)
-                            @foreach($recentActivities as $activity)
-                                <div class="activity-item">
-                                    <div class="activity-icon">
-                                        @if($activity->type == 'booking')
-                                            <i class="fas fa-book"></i>
-                                        @elseif($activity->type == 'customer')
-                                            <i class="fas fa-user"></i>
-                                        @elseif($activity->type == 'vehicle')
-                                            <i class="fas fa-car"></i>
-                                        @elseif($activity->type == 'admin')
-                                            <i class="fas fa-user-shield"></i>
-                                        @else
-                                            <i class="fas fa-bell"></i>
-                                        @endif
+                <div class="col-            md-5">
+                    <div class="card        ">
+                        <div class="card    -header">
+                            <h5 class="card-title">Recent Activity</h5>
+
+                        </div>
+                        <div class="card-body">
+
+                            <div class="activity    -feed">
+                                @if(isset($recentActivities) && count($recentActivities) > 0)
+                                    @foreach($recentActivities as $activity)
+                                        <div class="activity-item">
+                                            <div class="activity-icon">
+                                                @if($activity->type == 'booking')
+                                                    <i class="fas fa-book"></i>
+                                                @elseif($activity->type == 'customer')
+                                                    <i class="fas fa-user"></i>
+                                                @elseif($activity->type == 'vehicle')
+                                                    <i class="fas fa-car"></i>
+                                                @elseif($activity->type == 'admin')
+                                                    <i class="fas fa-user-shield"></i>
+                                                @else
+                                                    <i class="fas fa-bell"></i>
+                                                @endif
+                                            </div>
+                                            <div class="activity-content">
+                                                <div class="activity-title">{{ $activity->title }}</div>
+                                                <div class="activity-time">{{ $activity->created_at->diffForHumans() }}</div>
+                                                <div class="activity-text">{{ $activity->description }}</div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <div class="tex t-ce nter py-3">
+                                        <p class="text-muted ">No recent activities found</p>
                                     </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">{{ $activity->title }}</div>
-                                        <div class="activity-time">{{ $activity->created_at->diffForHumans() }}</div>
-                                        <div class="activity-text">{{ $activity->description }}</div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="text-center py-3">
-                                <p class="text-muted">No recent activities found</p>
+                                @endif
+                                </di v>
                             </div>
-                        @endif
+                            <div class="card-footer">
+                                <a href="{{ route('admin.activities.index') }}" class="btn btn-sm btn-outline-primary">View
+                                    All
+                                    Activities</a>
+                                </di v>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="card-footer">
-                    <a href="{{ route('admin.activities.index') }}" class="btn btn-sm btn-outline-primary">View All
-                        Activities</a>
-                </div>
-            </div>
-        </div>
-    </div>
 @endsection
 
-@push('js')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Revenue Chart
-        document.addEventListener('DOMContentLoaded', function () {
-            // Default empty data for charts
-            const defaultMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const defaultChartData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-            const defaultSourceLabels = ['Website', 'Phone', 'Walk-in', 'Partner', 'Other'];
-            const defaultSourceData = [0, 0, 0, 0, 0];
+                @push('js')
+                                <script src="https://cdn.jsdeliv                r.net/npm/chart.js"></script>
+                                <script>
+                                    // Revenue Chart
+                                    document.addEven                tListener('DOMContentLoaded', function () {
+                                        // Defau                lt empty data for charts
+                                        const de                    faultMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                        const defaul                tChartData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                                        const defaultSou                rceLabels = ['Website', 'Phone', 'Walk-in', 'Partner', 'Other'];
+                                        const defaul                tSourceData = [0, 0, 0, 0, 0];
 
-            // Initialize Revenue Chart
-            const revenueChartEl = document.getElementById('revenueChart').getContext('2d');
-            const revenueChart = new Chart(revenueChartEl, {
-                type: 'line',
-                data: {
-                    labels: defaultMonthLabels,
-                    datasets: [{
-                        label: 'Revenue',
-                        backgroundColor: 'rgba(0, 160, 227, 0.1)',
-                        borderColor: '#00A0E3',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#00A0E3',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#00A0E3',
-                        data: defaultChartData,
-                        tension: 0.3,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function (value) {
-                                    return '$' + value;
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return '$' + context.raw;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+                                        // Initialize Re                venue Chart
+                                        const revenueChartEl = document.getElementById('revenueChart').getContext('2d');
+                                        const re                                venueChart = new Chart(revenueChartEl, {
+                                            type: 'line',
+                                            data: {
+                                                labe                                ls: defaultMonthLabels,
+                                                datasets: [{
+                                                    labe                                l: 'Revenue',
+                                                    back                                groundColor: 'rgba(0, 160, 227, 0.1)',
+                                                    bord                                erColor: '#00A0E3',
+                                                    bord                                erWidth: 2,
+                                                    pointBackgroundColor: '#00A0E3',
+                                                    pointBorderColor: '#fff',
+                                                    pointHoverBackgroundColor: '#fff',
+                                                    pointHoverBorderColor: '#00A0E3',
+                                                    data: defaultChartData,
+                                                    tension: 0.3,
+                                                    fill: true
+                                                }]
+                                            },
+                                            options: {
+                                                resp                                onsive: true,
+                                                maintainAspectRatio: false,
+                                                scales: {
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        ticks: {
+                                                            callback: function (value) {
+                                                                return '$' + value;
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                plugins: {
+                                                    legend: {
+                                                        display: false
+                                                    },
+                                                    tooltip: {
+                                                        callbacks: {
+                                                            label: function (context) {
+                                                                return '$' + context.raw;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        });
 
-            // Booking Sources Chart
-            const bookingSourcesChartEl = document.getElementById('bookingSourcesChart').getContext('2d');
-            const bookingSourcesChart = new Chart(bookingSourcesChartEl, {
-                type: 'doughnut',
-                data: {
-                    labels: defaultSourceLabels,
-                    datasets: [{
-                        data: defaultSourceData,
-                        backgroundColor: [
-                            '#00A0E3',
-                            '#FF9D2E',
-                            '#2ECC71',
-                            '#F39C12',
-                            '#E74C3C'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
+                                                                // Booking Sources Chart
+                                            cons                    t bookingSourcesChartEl = document.getElementById('bookingSourcesChart').getContext('2d');
+                                            cons                    t bookingSourcesChart = new Chart(bookingSourcesChartEl, {
+                                            type: 'doughnut',
+                                            data: {
+                                                labels: defaultSourceLabels,
+                                                datasets: [{
+                                                    data: defaultSourceData,
+                                                    backgroundColor: [
+                                                        '#00A0E3',
+                                                        '#FF9D2E',
+                                                        '#2ECC71',
+                                                        '#F39C12',
+                                                        '#E74C3C'
+                                                    ],
+                                                    borderWidth: 0
+                                                }]
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        position: 'bottom'
+                                                    }
+                                                },
+                                                cutout: '70%'
+                                            }
+                                        });
 
-            // Handle chart period change
-            document.getElementById('revenue-chart-period').addEventListener('change', function (e) {
-                const period = e.target.value;
+                                        // Handle chart period change
+                                        document.getElementById('revenue-chart-period').addEventListener('change', function (e) {
+                                            const period = e.target.value;
 
-                // In a real implementation, this would fetch data from the server
-                // Since the backend data is commented out, we'll just update with dummy data
+                                            // In a real implementation, this would fetch data from the server
+                                            // Since the backend data is commented out, we'll just update with dummy data
 
-                let labels = [];
-                let data = [];
+                                            let labels = [];
+                                            let data = [];
 
-                if (period === 'week') {
-                    labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                    data = [0, 0, 0, 0, 0, 0, 0];
-                } else if (period === 'month') {
-                    labels = defaultMonthLabels;
-                    data = defaultChartData;
-                } else if (period === 'year') {
-                    const currentYear = new Date().getFullYear();
-                    labels = [currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
-                    data = [0, 0, 0, 0, 0];
-                }
+                                            if (period === 'week') {
+                                                labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                                                data = [0, 0, 0, 0, 0, 0, 0];
+                                            } else if (period === 'month') {
+                                                labels = defaultMonthLabels;
+                                                data = defaultChartData;
+                                            } else if (period === 'year') {
+                                                const currentYear = new Date().getFullYear();
+                                                labels = [currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
+                                                data = [0, 0, 0, 0, 0];
+                                            }
 
-                revenueChart.data.labels = labels;
-                revenueChart.data.datasets[0].data = data;
-                revenueChart.update();
+                                            revenueChart.data.labels = labels;
+                                            revenueChart.data.datasets[0].data = data;
+                                            revenueChart.update();
 
-                // In production, this would be the API call:
-                /*
-                fetch(`/admin/dashboard/chart-data?period=${period}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        revenueChart.data.labels = data.labels;
-                        revenueChart.data.datasets[0].data = data.data;
-                        revenueChart.update();
-                    });
-                */
-            });
-        });
-    </script>
-@endpush
+                                            // In production, this would be the API call:
+                                            /*
+                                            fetch(`/admin/dashboard/chart-data?period=${period}`)
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                    revenueChart.data.labels = data.labels;
+                                                    revenueChart.data.datasets[0].data = data.data;
+                                                    revenueChart.update();
+                                                });
+                                            */
+                                        });
+                                });
+                    </script>
+                @endpush

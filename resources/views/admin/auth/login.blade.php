@@ -4,9 +4,9 @@
         /* Premium Login Design */
         :root {
             /* Color system */
-            --brand-primary: #2D3FE0;        /* Royal blue */
-            --brand-secondary: #131B4D;      /* Dark blue */
-            --brand-accent: #FF7D3B;         /* Coral orange - used sparingly */
+            --brand-primary: #2D3FE0;
+            --brand-secondary: #131B4D;
+            --brand-accent: #FF7D3B;
             --surface-light: #ffffff;
             --surface-dark: #131B4D;
             --text-primary: #25265E;
@@ -52,13 +52,16 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
         /* Global reset */
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        html, body {
+        html,
+        body {
             height: 100%;
         }
 
@@ -100,7 +103,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 15% 50%, rgba(45, 63, 224, 0.03) 0%, transparent 25%),
                 radial-gradient(circle at 85% 30%, rgba(45, 63, 224, 0.02) 0%, transparent 30%);
         }
@@ -245,7 +248,7 @@
             transition: color var(--transition-normal);
         }
 
-        .form-control:focus + .form-icon {
+        .form-control:focus+.form-icon {
             color: var(--brand-primary);
         }
 
@@ -453,6 +456,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -489,7 +493,7 @@
         <div class="login-container">
             <div class="login-card">
                 <div class="login-header">
-                    <img src="{{ asset('img/logo.png') }}" alt="BATI Car Rental">
+                    <img src="{{ asset('site/img/logo.png') }}" alt="BATI Car Rental">
                     <h4>Welcome Back</h4>
                     <p>Sign in to access your admin dashboard</p>
                 </div>
@@ -501,27 +505,27 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('admin.login') }}">
+                    <form method="POST" action="{{ route('admin.login') }}" id="loginForm">
                         @csrf
                         <div class="form-group">
                             <label for="email" class="form-label">Email Address</label>
                             <div class="form-control-wrapper">
-                                <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                    id="email" name="email" value="{{ old('email') }}" 
-                                    placeholder="Enter your email" required autofocus>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror" id="email"
+                                    name="email" value="{{ old('email') }}" placeholder="Enter your email" required
+                                    autofocus>
                                 <i class="fas fa-envelope form-icon"></i>
                             </div>
                             @error('email')
                                 <span class="error-feedback">{{ $message }}</span>
                             @enderror
+                            <div id="email-error" class="error-feedback" style="display: none;"></div>
                         </div>
 
                         <div class="form-group">
                             <label for="password" class="form-label">Password</label>
                             <div class="form-control-wrapper">
-                                <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                    id="password" name="password" 
-                                    placeholder="Enter your password" required>
+                                <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                    id="password" name="password" placeholder="Enter your password" required>
                                 <i class="fas fa-lock form-icon"></i>
                                 <button type="button" class="password-toggle" tabindex="-1">
                                     <i class="fas fa-eye"></i>
@@ -530,15 +534,15 @@
                             @error('password')
                                 <span class="error-feedback">{{ $message }}</span>
                             @enderror
+                            <div id="password-error" class="error-feedback" style="display: none;"></div>
                         </div>
 
                         <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="remember" 
-                                name="remember" {{ old('remember') ? 'checked' : '' }}>
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
                             <label class="form-check-label" for="remember">Remember me for 30 days</label>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="loginButton">
                             <span>
                                 <i class="fas fa-sign-in-alt"></i>
                                 Sign in to Dashboard
@@ -553,14 +557,16 @@
             </div>
         </div>
     </div>
+@endsection
 
+@push('js')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Password visibility toggle
             const togglePassword = document.querySelector('.password-toggle');
             const passwordInput = document.querySelector('#password');
 
-            togglePassword.addEventListener('click', function() {
+            togglePassword.addEventListener('click', function () {
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
 
@@ -568,6 +574,86 @@
                 this.querySelector('i').classList.toggle('fa-eye');
                 this.querySelector('i').classList.toggle('fa-eye-slash');
             });
+
+            // Real-time validation with AJAX
+            const loginForm = document.getElementById('loginForm');
+            const loginButton = document.getElementById('loginButton');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const emailError = document.getElementById('email-error');
+            const passwordError = document.getElementById('password-error');
+
+            loginForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // Disable login button and show loading state
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i> Signing in...</span>';
+
+                // Clear previous errors
+                emailError.style.display = 'none';
+                passwordError.style.display = 'none';
+
+                // Get form data
+                const formData = new FormData(loginForm);
+
+                // AJAX validation before submitting
+                fetch('{{ route('admin.login') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Form is valid, submit it normally
+                            loginForm.submit();
+                        } else if (data.errors) {
+                            // Show validation errors
+                            if (data.errors.email) {
+                                emailError.textContent = data.errors.email[0];
+                                emailError.style.display = 'block';
+                            }
+
+                            if (data.errors.password) {
+                                passwordError.textContent = data.errors.password[0];
+                                passwordError.style.display = 'block';
+                            }
+
+                            // Re-enable login button
+                            loginButton.disabled = false;
+                            loginButton.innerHTML = '<span><i class="fas fa-sign-in-alt"></i> Sign in to Dashboard</span>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+
+                        // Re-enable login button
+                        loginButton.disabled = false;
+                        loginButton.innerHTML = '<span><i class="fas fa-sign-in-alt"></i> Sign in to Dashboard</span>';
+
+                        // Show error toast with SweetAlert2
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error',
+                            text: 'Could not connect to the server. Please try again.',
+                            position: 'top-end',
+                            timer: 3000,
+                            timerProgressBar: true,
+                            toast: true,
+                            showConfirmButton: false,
+                            iconColor: '#EF4444',
+                            customClass: {
+                                popup: 'swal2-toast colored-toast',
+                                title: 'swal2-title-error'
+                            }
+                        });
+                    });
+            });
         });
     </script>
-@endsection
+@endpush

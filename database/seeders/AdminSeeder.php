@@ -18,6 +18,7 @@ class AdminSeeder extends Seeder
     {
         // Create permissions
         $permissions = [
+            // Existing admin/role permissions
             'manage admins',
             'view admins',
             'create admins',
@@ -28,8 +29,84 @@ class AdminSeeder extends Seeder
             'create roles',
             'edit roles',
             'delete roles',
+            'manage permissions',
+            'view permissions',
+            'create permissions',
+            'edit permissions',
+            'delete permissions',
             'manage settings',
             'access dashboard',
+            
+            // Vehicle management permissions
+            'view categories',
+            'create categories',
+            'edit categories',
+            'delete categories',
+            'view cars',
+            'create cars',
+            'edit cars',
+            'delete cars',
+            'manage categories',
+            'manage cars',
+            'manage brands',    
+            'view brands',
+            'create brands',
+            'edit brands',
+            'delete brands',
+            'manage vehicles',
+            'view vehicles',
+            
+            // Booking permissions
+            'manage bookings',
+            'view bookings',
+            'create bookings',
+            'edit bookings',
+            'delete bookings',
+            'update booking status',
+            'update payment status',
+            'export bookings',
+            'view booking calendar',
+            'view booking reports',
+            
+            // Customer permissions
+            'manage customers',
+            'view customers',
+            'create customers',
+            'edit customers',
+            'delete customers',
+            
+            // Blog management permissions
+            'manage blog categories',
+            'view blog categories',
+            'create blog categories',
+            'edit blog categories',
+            'delete blog categories',
+            'manage blog posts',
+            'view blog posts',
+            'create blog posts',
+            'edit blog posts',
+            'delete blog posts',
+            'manage blog tags',
+            'view blog tags',
+            'create blog tags',
+            'edit blog tags',
+            'delete blog tags',
+            'manage blog comments',
+            'view blog comments',
+            'create blog comments',
+            'edit blog comments',
+            'delete blog comments',
+            
+            // Report permissions
+            'manage reports',
+            'view reports',
+            'export reports',
+
+            // Activity Log permissions
+            'manage activities',
+            'view activities',
+            'delete activities',
+            'clear activities'
         ];
 
         foreach ($permissions as $permission) {
@@ -46,12 +123,31 @@ class AdminSeeder extends Seeder
             'view admins',
             'view roles',
             'manage settings',
+            'manage bookings',
+            'view bookings',
+            'create bookings',
+            'edit bookings',
+            'update booking status',
+            'update payment status',
+            'export bookings',
+            'view booking calendar',
+            'view booking reports',
+            'view customers',
+            'view cars',
+            'view categories',
+            'view brands',
         ]);
 
         $managerRole = Role::create(['name' => 'Manager', 'guard_name' => 'admin']);
         $managerRole->givePermissionTo([
             'access dashboard',
             'view admins',
+            'view bookings',
+            'create bookings',
+            'update booking status',
+            'view booking calendar',
+            'view customers',
+            'view cars',
         ]);
 
         // Create super admin

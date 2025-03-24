@@ -7,225 +7,227 @@
 @section('og_title', 'Premium Car Rental Services | Cental')
 @section('og_description', 'Choose from our fleet of luxury vehicles. Get 15% off your rental today with free pick-up and 24/7 road assistance.')
 @section('og_image', asset('site/img/carousel-1.jpg'))
-    @section('content')
 
-        <!-- Carousel Start -->
-        <div class="header-carousel">
-            <div id="carouselId" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
-                <ol class="carousel-indicators">
-                    <li data-bs-target="#carouselId" data-bs-slide-to="0" class="active" aria-current="true"
-                        aria-label="First slide"></li>
-                    <li data-bs-target="#carouselId" data-bs-slide-to="1" aria-label="Second slide"></li>
-                </ol>
-                <div class="carousel-inner" role="listbox">
-                    <div class="carousel-item active">
-                        <img src="{{asset('site/img/carousel-2.jpg')}}" class="img-fluid w-100" alt="First slide" />
-                        <div class="carousel-caption">
-                            <div class="container py-4">
-                                <div class="row g-5">
-                                    <div class="col-lg-6 fadeInLeft animated" data-animation="fadeInLeft" data-delay="1s"
-                                        style="animation-delay: 1s;">
-                                        <div class="bg-secondary rounded p-5">
-                                            <h4 class="text-white mb-4">CONTINUE CAR RESERVATION</h4>
-                                            <form>
-                                                <div class="row g-3">
-                                                    <div class="col-12">
-                                                        <select class="form-select" aria-label="Default select example">
-                                                            <option selected>Select Your Car type</option>
-                                                            <option value="1">VW Golf VII</option>
-                                                            <option value="2">Audi A1 S-Line</option>
-                                                            <option value="3">Toyota Camry</option>
-                                                            <option value="4">BMW 320 ModernLine</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-map-marker-alt"></span> <span
-                                                                    class="ms-1">Pick Up</span>
-                                                            </div>
-                                                            <input class="form-control" type="text"
-                                                                placeholder="Enter a City or Airport"
-                                                                aria-label="Enter a City or Airport">
+@section('content')
+
+    <!-- Carousel Start -->
+    <div class="header-carousel">
+        <div id="carouselId" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
+            <ol class="carousel-indicators">
+                <li data-bs-target="#carouselId" data-bs-slide-to="0" class="active" aria-current="true"
+                    aria-label="First slide"></li>
+                <li data-bs-target="#carouselId" data-bs-slide-to="1" aria-label="Second slide"></li>
+            </ol>
+            <div class="carousel-inner" role="listbox">
+                <div class="carousel-item active">
+                    <img src="{{asset('site/img/carousel-2.jpg')}}" class="img-fluid w-100" alt="First slide" />
+                    <div class="carousel-caption">
+                        <div class="container py-4">
+                            <div class="row g-5">
+                                <div class="col-lg-6 fadeInLeft animated" data-animation="fadeInLeft" data-delay="1s"
+                                    style="animation-delay: 1s;">
+                                    <div class="bg-secondary rounded p-5">
+                                        <h4 class="text-white mb-4">CONTINUE CAR RESERVATION</h4>
+                                        <form action="{{ route('search.process') }}" method="POST">
+                                            @csrf
+                                            <div class="row g-3">
+                                                <div class="col-12">
+                                                    <select class="form-select" name="car_type"
+                                                        aria-label="Select your car type">
+                                                        <option selected>Select Your Car type</option>
+                                                        @foreach($featuredCars as $car)
+                                                            <option value="{{ $car->id }}">{{ $car->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-map-marker-alt"></span> <span
+                                                                class="ms-1">Pick Up</span>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <a href="#" class="text-start text-white d-block mb-2">Need a
-                                                            different drop-off location?</a>
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-map-marker-alt"></span><span
-                                                                    class="ms-1">Drop off</span>
-                                                            </div>
-                                                            <input class="form-control" type="text"
-                                                                placeholder="Enter a City or Airport"
-                                                                aria-label="Enter a City or Airport">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-calendar-alt"></span><span class="ms-1">Pick
-                                                                    Up</span>
-                                                            </div>
-                                                            <input class="form-control" type="date">
-                                                            <select class="form-select ms-3"
-                                                                aria-label="Default select example">
-                                                                <option selected>12:00AM</option>
-                                                                <option value="1">1:00AM</option>
-                                                                <option value="2">2:00AM</option>
-                                                                <option value="3">3:00AM</option>
-                                                                <option value="4">4:00AM</option>
-                                                                <option value="5">5:00AM</option>
-                                                                <option value="6">6:00AM</option>
-                                                                <option value="7">7:00AM</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-calendar-alt"></span><span class="ms-1">Drop
-                                                                    off</span>
-                                                            </div>
-                                                            <input class="form-control" type="date">
-                                                            <select class="form-select ms-3"
-                                                                aria-label="Default select example">
-                                                                <option selected>12:00AM</option>
-                                                                <option value="1">1:00AM</option>
-                                                                <option value="2">2:00AM</option>
-                                                                <option value="3">3:00AM</option>
-                                                                <option value="4">4:00AM</option>
-                                                                <option value="5">5:00AM</option>
-                                                                <option value="6">6:00AM</option>
-                                                                <option value="7">7:00AM</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <button class="btn btn-light w-100 py-2">Book Now</button>
+                                                        <input class="form-control" type="text" name="pickup_location"
+                                                            placeholder="Enter a City or Airport"
+                                                            aria-label="Enter a City or Airport">
                                                     </div>
                                                 </div>
-                                            </form>
-                                        </div>
+                                                <div class="col-12">
+                                                    <a href="#" class="text-start text-white d-block mb-2">Need a
+                                                        different drop-off location?</a>
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-map-marker-alt"></span><span
+                                                                class="ms-1">Drop off</span>
+                                                        </div>
+                                                        <input class="form-control" type="text" name="dropoff_location"
+                                                            placeholder="Enter a City or Airport"
+                                                            aria-label="Enter a City or Airport">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-calendar-alt"></span><span class="ms-1">Pick
+                                                                Up</span>
+                                                        </div>
+                                                        <input class="form-control" type="date" name="pickup_date">
+                                                        <select class="form-select ms-3" name="pickup_time"
+                                                            aria-label="Default select example">
+                                                            <option selected>12:00AM</option>
+                                                            <option value="1:00AM">1:00AM</option>
+                                                            <option value="2:00AM">2:00AM</option>
+                                                            <option value="3:00AM">3:00AM</option>
+                                                            <option value="4:00AM">4:00AM</option>
+                                                            <option value="5:00AM">5:00AM</option>
+                                                            <option value="6:00AM">6:00AM</option>
+                                                            <option value="7:00AM">7:00AM</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-calendar-alt"></span><span class="ms-1">Drop
+                                                                off</span>
+                                                        </div>
+                                                        <input class="form-control" type="date" name="dropoff_date">
+                                                        <select class="form-select ms-3" name="dropoff_time"
+                                                            aria-label="Default select example">
+                                                            <option selected>12:00AM</option>
+                                                            <option value="1:00AM">1:00AM</option>
+                                                            <option value="2:00AM">2:00AM</option>
+                                                            <option value="3:00AM">3:00AM</option>
+                                                            <option value="4:00AM">4:00AM</option>
+                                                            <option value="5:00AM">5:00AM</option>
+                                                            <option value="6:00AM">6:00AM</option>
+                                                            <option value="7:00AM">7:00AM</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-light w-100 py-2">Book Now</button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <div class="col-lg-6 d-none d-lg-flex fadeInRight animated" data-animation="fadeInRight"
-                                        data-delay="1s" style="animation-delay: 1s;">
-                                        <div class="text-start">
-                                            <h1 class="display-5 text-white">Get 15% off your rental Plan your trip now</h1>
-                                            <p>Treat yourself in USA</p>
-                                        </div>
+                                </div>
+                                <div class="col-lg-6 d-none d-lg-flex fadeInRight animated" data-animation="fadeInRight"
+                                    data-delay="1s" style="animation-delay: 1s;">
+                                    <div class="text-start">
+                                        <h1 class="display-5 text-white">Get 15% off your rental Plan your trip now</h1>
+                                        <p>Treat yourself in USA</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="carousel-item">
-                        <img src="{{asset('site/img/carousel-1.jpg')}}" class="img-fluid w-100" alt="First slide" />
-                        <div class="carousel-caption">
-                            <div class="container py-4">
-                                <div class="row g-5">
-                                    <div class="col-lg-6 fadeInLeft animated" data-animation="fadeInLeft" data-delay="1s"
-                                        style="animation-delay: 1s;">
-                                        <div class="bg-secondary rounded p-5">
-                                            <h4 class="text-white mb-4">CONTINUE CAR RESERVATION</h4>
-                                            <form>
-                                                <div class="row g-3">
-                                                    <div class="col-12">
-                                                        <select class="form-select" aria-label="Default select example">
-                                                            <option selected>Select Your Car type</option>
-                                                            <option value="1">VW Golf VII</option>
-                                                            <option value="2">Audi A1 S-Line</option>
-                                                            <option value="3">Toyota Camry</option>
-                                                            <option value="4">BMW 320 ModernLine</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-map-marker-alt"></span><span
-                                                                    class="ms-1">Pick Up</span>
-                                                            </div>
-                                                            <input class="form-control" type="text"
-                                                                placeholder="Enter a City or Airport"
-                                                                aria-label="Enter a City or Airport">
+                </div>
+                <div class="carousel-item">
+                    <img src="{{asset('site/img/carousel-1.jpg')}}" class="img-fluid w-100" alt="First slide" />
+                    <div class="carousel-caption">
+                        <div class="container py-4">
+                            <div class="row g-5">
+                                <div class="col-lg-6 fadeInLeft animated" data-animation="fadeInLeft" data-delay="1s"
+                                    style="animation-delay: 1s;">
+                                    <div class="bg-secondary rounded p-5">
+                                        <h4 class="text-white mb-4">CONTINUE CAR RESERVATION</h4>
+                                        <form action="{{ route('search.process') }}" method="POST">
+                                            @csrf
+                                            <div class="row g-3">
+                                                <div class="col-12">
+                                                    <select class="form-select" name="car_type"
+                                                        aria-label="Select your car type">
+                                                        <option selected>Select Your Car type</option>
+                                                        @foreach($featuredCars as $car)
+                                                            <option value="{{ $car->id }}">{{ $car->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-map-marker-alt"></span><span
+                                                                class="ms-1">Pick Up</span>
                                                         </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <a href="#" class="text-start text-white d-block mb-2">Need a
-                                                            different drop-off location?</a>
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-map-marker-alt"></span><span
-                                                                    class="ms-1">Drop off</span>
-                                                            </div>
-                                                            <input class="form-control" type="text"
-                                                                placeholder="Enter a City or Airport"
-                                                                aria-label="Enter a City or Airport">
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-calendar-alt"></span><span class="ms-1">Pick
-                                                                    Up</span>
-                                                            </div>
-                                                            <input class="form-control" type="date">
-                                                            <select class="form-select ms-3"
-                                                                aria-label="Default select example">
-                                                                <option selected>12:00AM</option>
-                                                                <option value="1">1:00AM</option>
-                                                                <option value="2">2:00AM</option>
-                                                                <option value="3">3:00AM</option>
-                                                                <option value="4">4:00AM</option>
-                                                                <option value="5">5:00AM</option>
-                                                                <option value="6">6:00AM</option>
-                                                                <option value="7">7:00AM</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="input-group">
-                                                            <div
-                                                                class="d-flex align-items-center bg-light text-body rounded-start p-2">
-                                                                <span class="fas fa-calendar-alt"></span><span class="ms-1">Drop
-                                                                    off</span>
-                                                            </div>
-                                                            <input class="form-control" type="date">
-                                                            <select class="form-select ms-3"
-                                                                aria-label="Default select example">
-                                                                <option selected>12:00AM</option>
-                                                                <option value="1">1:00AM</option>
-                                                                <option value="2">2:00AM</option>
-                                                                <option value="3">3:00AM</option>
-                                                                <option value="4">4:00AM</option>
-                                                                <option value="5">5:00AM</option>
-                                                                <option value="6">6:00AM</option>
-                                                                <option value="7">7:00AM</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <button class="btn btn-light w-100 py-2">Book Now</button>
+                                                        <input class="form-control" type="text" name="pickup_location"
+                                                            placeholder="Enter a City or Airport"
+                                                            aria-label="Enter a City or Airport">
                                                     </div>
                                                 </div>
-                                            </form>
-                                        </div>
+                                                <div class="col-12">
+                                                    <a href="#" class="text-start text-white d-block mb-2">Need a
+                                                        different drop-off location?</a>
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-map-marker-alt"></span><span
+                                                                class="ms-1">Drop off</span>
+                                                        </div>
+                                                        <input class="form-control" type="text" name="dropoff_location"
+                                                            placeholder="Enter a City or Airport"
+                                                            aria-label="Enter a City or Airport">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-calendar-alt"></span><span class="ms-1">Pick
+                                                                Up</span>
+                                                        </div>
+                                                        <input class="form-control" type="date" name="pickup_date">
+                                                        <select class="form-select ms-3" name="pickup_time"
+                                                            aria-label="Default select example">
+                                                            <option selected>12:00AM</option>
+                                                            <option value="1:00AM">1:00AM</option>
+                                                            <option value="2:00AM">2:00AM</option>
+                                                            <option value="3:00AM">3:00AM</option>
+                                                            <option value="4:00AM">4:00AM</option>
+                                                            <option value="5:00AM">5:00AM</option>
+                                                            <option value="6:00AM">6:00AM</option>
+                                                            <option value="7:00AM">7:00AM</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="input-group">
+                                                        <div
+                                                            class="d-flex align-items-center bg-light text-body rounded-start p-2">
+                                                            <span class="fas fa-calendar-alt"></span><span class="ms-1">Drop
+                                                                off</span>
+                                                        </div>
+                                                        <input class="form-control" type="date" name="dropoff_date">
+                                                        <select class="form-select ms-3" name="dropoff_time"
+                                                            aria-label="Default select example">
+                                                            <option selected>12:00AM</option>
+                                                            <option value="1:00AM">1:00AM</option>
+                                                            <option value="2:00AM">2:00AM</option>
+                                                            <option value="3:00AM">3:00AM</option>
+                                                            <option value="4:00AM">4:00AM</option>
+                                                            <option value="5:00AM">5:00AM</option>
+                                                            <option value="6:00AM">6:00AM</option>
+                                                            <option value="7:00AM">7:00AM</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-light w-100 py-2">Book Now</button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <div class="col-lg-6 d-none d-lg-flex fadeInRight animated" data-animation="fadeInRight"
-                                        data-delay="1s" style="animation-delay: 1s;">
-                                        <div class="text-start">
-                                            <h1 class="display-5 text-white">Get 15% off your rental! Choose Your Model
-                                            </h1>
-                                            <p>Treat yourself in USA</p>
-                                        </div>
+                                </div>
+                                <div class="col-lg-6 d-none d-lg-flex fadeInRight animated" data-animation="fadeInRight"
+                                    data-delay="1s" style="animation-delay: 1s;">
+                                    <div class="text-start">
+                                        <h1 class="display-5 text-white">Get 15% off your rental! Choose Your Model
+                                        </h1>
+                                        <p>Treat yourself in USA</p>
                                     </div>
                                 </div>
                             </div>
@@ -234,75 +236,75 @@
                 </div>
             </div>
         </div>
-        <!-- Carousel End -->
+    </div>
+    <!-- Carousel End -->
 
-        <!-- Features Start -->
-        <div class="container-fluid feature py-5">
-            <div class="container py-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize mb-3">Cental <span class="text-primary">Features</span></h1>
-                    <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                        asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                        modi quisquam quia distinctio,
-                    </p>
-                </div>
-                <div class="row g-4 align-items-center">
-                    <div class="col-xl-4">
-                        <div class="row gy-4 gx-0">
-                            <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <span class="fa fa-trophy fa-2x"></span>
-                                    </div>
-                                    <div class="ms-4">
-                                        <h5 class="mb-3">First Class services</h5>
-                                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                                            Consectetur, in illum aperiam ullam magni eligendi?</p>
-                                    </div>
+    <!-- Features Start -->
+    <div class="container-fluid feature py-5">
+        <div class="container py-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize mb-3">Cental <span class="text-primary">Features</span></h1>
+                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
+                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
+                    modi quisquam quia distinctio,
+                </p>
+            </div>
+            <div class="row g-4 align-items-center">
+                <div class="col-xl-4">
+                    <div class="row gy-4 gx-0">
+                        <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <span class="fa fa-trophy fa-2x"></span>
+                                </div>
+                                <div class="ms-4">
+                                    <h5 class="mb-3">First Class services</h5>
+                                    <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                                        Consectetur, in illum aperiam ullam magni eligendi?</p>
                                 </div>
                             </div>
-                            <div class="col-12 wow fadeInUp" data-wow-delay="0.3s">
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <span class="fa fa-road fa-2x"></span>
-                                    </div>
-                                    <div class="ms-4">
-                                        <h5 class="mb-3">24/7 road assistance</h5>
-                                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                                            Consectetur, in illum aperiam ullam magni eligendi?</p>
-                                    </div>
+                        </div>
+                        <div class="col-12 wow fadeInUp" data-wow-delay="0.3s">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <span class="fa fa-road fa-2x"></span>
+                                </div>
+                                <div class="ms-4">
+                                    <h5 class="mb-3">24/7 road assistance</h5>
+                                    <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                                        Consectetur, in illum aperiam ullam magni eligendi?</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-12 col-xl-4 wow fadeInUp" data-wow-delay="0.2s">
-                        <img src="{{asset('site/img/features-img.png')}}" class="img-fluid w-100" style="object-fit: cover;"
-                            alt="Img">
-                    </div>
-                    <div class="col-xl-4">
-                        <div class="row gy-4 gx-0">
-                            <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">
-                                <div class="feature-item justify-content-end">
-                                    <div class="text-end me-4">
-                                        <h5 class="mb-3">Quality at Minimum</h5>
-                                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                                            Consectetur, in illum aperiam ullam magni eligendi?</p>
-                                    </div>
-                                    <div class="feature-icon">
-                                        <span class="fa fa-tag fa-2x"></span>
-                                    </div>
+                </div>
+                <div class="col-lg-12 col-xl-4 wow fadeInUp" data-wow-delay="0.2s">
+                    <img src="{{asset('site/img/features-img.png')}}" class="img-fluid w-100" style="object-fit: cover;"
+                        alt="Img">
+                </div>
+                <div class="col-xl-4">
+                    <div class="row gy-4 gx-0">
+                        <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">
+                            <div class="feature-item justify-content-end">
+                                <div class="text-end me-4">
+                                    <h5 class="mb-3">Quality at Minimum</h5>
+                                    <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                                        Consectetur, in illum aperiam ullam magni eligendi?</p>
+                                </div>
+                                <div class="feature-icon">
+                                    <span class="fa fa-tag fa-2x"></span>
                                 </div>
                             </div>
-                            <div class="col-12 wow fadeInUp" data-wow-delay="0.3s">
-                                <div class="feature-item justify-content-end">
-                                    <div class="text-end me-4">
-                                        <h5 class="mb-3">Free Pick-Up & Drop-Off</h5>
-                                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                                            Consectetur, in illum aperiam ullam magni eligendi?</p>
-                                    </div>
-                                    <div class="feature-icon">
-                                        <span class="fa fa-map-pin fa-2x"></span>
-                                    </div>
+                        </div>
+                        <div class="col-12 wow fadeInUp" data-wow-delay="0.3s">
+                            <div class="feature-item justify-content-end">
+                                <div class="text-end me-4">
+                                    <h5 class="mb-3">Free Pick-Up & Drop-Off</h5>
+                                    <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                                        Consectetur, in illum aperiam ullam magni eligendi?</p>
+                                </div>
+                                <div class="feature-icon">
+                                    <span class="fa fa-map-pin fa-2x"></span>
                                 </div>
                             </div>
                         </div>
@@ -310,785 +312,558 @@
                 </div>
             </div>
         </div>
-        <!-- Features End -->
+    </div>
+    <!-- Features End -->
 
-        <!-- About Start -->
-        <div class="container-fluid overflow-hidden about py-5">
-            <div class="container py-5">
-                <div class="row g-5">
-                    <div class="col-xl-6 wow fadeInLeft" data-wow-delay="0.2s">
-                        <div class="about-item">
-                            <div class="pb-5">
-                                <h1 class="display-5 text-capitalize">Cental <span class="text-primary">About</span></h1>
-                                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo
-                                    expedita asperiores commodi accusantium at cum harum, excepturi, quia tempora
-                                    cupiditate! Adipisci facilis modi quisquam quia distinctio,
-                                </p>
-                            </div>
-                            <div class="row g-4">
-                                <div class="col-lg-6">
-                                    <div class="about-item-inner border p-4">
-                                        <div class="about-icon mb-4">
-                                            <img src="{{asset('site/img/about-icon-1.png')}}" class="img-fluid w-50 h-50"
-                                                alt="Icon">
-                                        </div>
-                                        <h5 class="mb-3">Our Vision</h5>
-                                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
-                                    </div>
-                                </div>
-                                <div class="col-lg-6">
-                                    <div class="about-item-inner border p-4">
-                                        <div class="about-icon mb-4">
-                                            <img src="{{asset('site/img/about-icon-2.png')}}" class="img-fluid h-50 w-50"
-                                                alt="Icon">
-                                        </div>
-                                        <h5 class="mb-3">Our Mision</h5>
-                                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <p class="text-item my-4">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Beatae,
-                                aliquam ipsum. Sed suscipit dolorem libero sequi aut natus debitis reprehenderit facilis
-                                quaerat similique, est at in eum. Quo, obcaecati in!
+    <!-- About Start -->
+    <div class="container-fluid overflow-hidden about py-5">
+        <div class="container py-5">
+            <div class="row g-5">
+                <div class="col-xl-6 wow fadeInLeft" data-wow-delay="0.2s">
+                    <div class="about-item">
+                        <div class="pb-5">
+                            <h1 class="display-5 text-capitalize">Cental <span class="text-primary">About</span></h1>
+                            <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo
+                                expedita asperiores commodi accusantium at cum harum, excepturi, quia tempora
+                                cupiditate! Adipisci facilis modi quisquam quia distinctio,
                             </p>
-                            <div class="row g-4">
-                                <div class="col-lg-6">
-                                    <div class="text-center rounded bg-secondary p-4">
-                                        <h1 class="display-6 text-white">17</h1>
-                                        <h5 class="text-light mb-0">Years Of Experience</h5>
+                        </div>
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="about-item-inner border p-4">
+                                    <div class="about-icon mb-4">
+                                        <img src="{{asset('site/img/about-icon-1.png')}}" class="img-fluid w-50 h-50"
+                                            alt="Icon">
                                     </div>
+                                    <h5 class="mb-3">Our Vision</h5>
+                                    <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
                                 </div>
-                                <div class="col-lg-6">
-                                    <div class="rounded">
-                                        <p class="mb-2"><i class="fa fa-check-circle text-primary me-1"></i> Morbi tristique
-                                            senectus</p>
-                                        <p class="mb-2"><i class="fa fa-check-circle text-primary me-1"></i> A scelerisque
-                                            purus</p>
-                                        <p class="mb-2"><i class="fa fa-check-circle text-primary me-1"></i> Dictumst
-                                            vestibulum</p>
-                                        <p class="mb-0"><i class="fa fa-check-circle text-primary me-1"></i> dio aenean sed
-                                            adipiscing</p>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="about-item-inner border p-4">
+                                    <div class="about-icon mb-4">
+                                        <img src="{{asset('site/img/about-icon-2.png')}}" class="img-fluid h-50 w-50"
+                                            alt="Icon">
                                     </div>
+                                    <h5 class="mb-3">Our Mision</h5>
+                                    <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
                                 </div>
-                                <div class="col-lg-5 d-flex align-items-center">
-                                    <a href="#" class="btn btn-primary rounded py-3 px-5">More About Us</a>
+                            </div>
+                        </div>
+                        <p class="text-item my-4">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Beatae,
+                            aliquam ipsum. Sed suscipit dolorem libero sequi aut natus debitis reprehenderit facilis
+                            quaerat similique, est at in eum. Quo, obcaecati in!
+                        </p>
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="text-center rounded bg-secondary p-4">
+                                    <h1 class="display-6 text-white">17</h1>
+                                    <h5 class="text-light mb-0">Years Of Experience</h5>
                                 </div>
-                                <div class="col-lg-7">
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{asset('site/img/attachment-img.jpg')}}"
-                                            class="img-fluid rounded-circle border border-4 border-secondary"
-                                            style="width: 100px; height: 100px;" alt="Image">
-                                        <div class="ms-4">
-                                            <h4>William Burgess</h4>
-                                            <p class="mb-0">Carveo Founder</p>
-                                        </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="rounded">
+                                    <p class="mb-2"><i class="fa fa-check-circle text-primary me-1"></i> Morbi tristique
+                                        senectus</p>
+                                    <p class="mb-2"><i class="fa fa-check-circle text-primary me-1"></i> A scelerisque
+                                        purus</p>
+                                    <p class="mb-2"><i class="fa fa-check-circle text-primary me-1"></i> Dictumst
+                                        vestibulum</p>
+                                    <p class="mb-0"><i class="fa fa-check-circle text-primary me-1"></i> dio aenean sed
+                                        adipiscing</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 d-flex align-items-center">
+                                <a href="{{ route('about') }}" class="btn btn-primary rounded py-3 px-5">More About Us</a>
+                            </div>
+                            <div class="col-lg-7">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{asset('site/img/attachment-img.jpg')}}"
+                                        class="img-fluid rounded-circle border border-4 border-secondary"
+                                        style="width: 100px; height: 100px;" alt="Image">
+                                    <div class="ms-4">
+                                        <h4>William Burgess</h4>
+                                        <p class="mb-0">Carveo Founder</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-6 wow fadeInRight" data-wow-delay="0.2s">
-                        <div class="about-img">
-                            <div class="img-1">
-                                <img src="{{asset('site/img/about-img.jpg')}}" class="img-fluid rounded h-100 w-100" alt="">
-                            </div>
-                            <div class="img-2">
-                                <img src="{{asset('site/img/about-img-1.jpg')}}" class="img-fluid rounded w-100" alt="">
-                            </div>
+                </div>
+                <div class="col-xl-6 wow fadeInRight" data-wow-delay="0.2s">
+                    <div class="about-img">
+                        <div class="img-1">
+                            <img src="{{asset('site/img/about-img.jpg')}}" class="img-fluid rounded h-100 w-100" alt="">
+                        </div>
+                        <div class="img-2">
+                            <img src="{{asset('site/img/about-img-1.jpg')}}" class="img-fluid rounded w-100" alt="">
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- About End -->
+    </div>
+    <!-- About End -->
 
-        <!-- Fact Counter -->
-        <div class="container-fluid counter bg-secondary py-5">
-            <div class="container py-5">
-                <div class="row g-5">
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.1s">
-                        <div class="counter-item text-center">
-                            <div class="counter-item-icon mx-auto">
-                                <i class="fas fa-thumbs-up fa-2x"></i>
-                            </div>
-                            <div class="counter-counting my-3">
-                                <span class="text-white fs-2 fw-bold" data-toggle="counter-up">829</span>
-                                <span class="h1 fw-bold text-white">+</span>
-                            </div>
-                            <h4 class="text-white mb-0">Happy Clients</h4>
+    <!-- Fact Counter -->
+    <div class="container-fluid counter bg-secondary py-5">
+        <div class="container py-5">
+            <div class="row g-5">
+                <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="counter-item text-center">
+                        <div class="counter-item-icon mx-auto">
+                            <i class="fas fa-thumbs-up fa-2x"></i>
                         </div>
+                        <div class="counter-counting my-3">
+                            <span class="text-white fs-2 fw-bold"
+                                data-toggle="counter-up">{{ $stats['happy_clients'] }}</span>
+                            <span class="h1 fw-bold text-white">+</span>
+                        </div>
+                        <h4 class="text-white mb-0">Happy Clients</h4>
                     </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="counter-item text-center">
-                            <div class="counter-item-icon mx-auto">
-                                <i class="fas fa-car-alt fa-2x"></i>
-                            </div>
-                            <div class="counter-counting my-3">
-                                <span class="text-white fs-2 fw-bold" data-toggle="counter-up">56</span>
-                                <span class="h1 fw-bold text-white">+</span>
-                            </div>
-                            <h4 class="text-white mb-0">Number of Cars</h4>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.3s">
+                    <div class="counter-item text-center">
+                        <div class="counter-item-icon mx-auto">
+                            <i class="fas fa-car-alt fa-2x"></i>
                         </div>
+                        <div class="counter-counting my-3">
+                            <span class="text-white fs-2 fw-bold" data-toggle="counter-up">{{ $stats['cars_count'] }}</span>
+                            <span class="h1 fw-bold text-white">+</span>
+                        </div>
+                        <h4 class="text-white mb-0">Number of Cars</h4>
                     </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="counter-item text-center">
-                            <div class="counter-item-icon mx-auto">
-                                <i class="fas fa-building fa-2x"></i>
-                            </div>
-                            <div class="counter-counting my-3">
-                                <span class="text-white fs-2 fw-bold" data-toggle="counter-up">127</span>
-                                <span class="h1 fw-bold text-white">+</span>
-                            </div>
-                            <h4 class="text-white mb-0">Car Center</h4>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.5s">
+                    <div class="counter-item text-center">
+                        <div class="counter-item-icon mx-auto">
+                            <i class="fas fa-building fa-2x"></i>
                         </div>
+                        <div class="counter-counting my-3">
+                            <span class="text-white fs-2 fw-bold"
+                                data-toggle="counter-up">{{ $stats['car_centers'] }}</span>
+                            <span class="h1 fw-bold text-white">+</span>
+                        </div>
+                        <h4 class="text-white mb-0">Car Center</h4>
                     </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.7s">
-                        <div class="counter-item text-center">
-                            <div class="counter-item-icon mx-auto">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                            <div class="counter-counting my-3">
-                                <span class="text-white fs-2 fw-bold" data-toggle="counter-up">589</span>
-                                <span class="h1 fw-bold text-white">+</span>
-                            </div>
-                            <h4 class="text-white mb-0">Total kilometers</h4>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.7s">
+                    <div class="counter-item text-center">
+                        <div class="counter-item-icon mx-auto">
+                            <i class="fas fa-clock fa-2x"></i>
                         </div>
+                        <div class="counter-counting my-3">
+                            <span class="text-white fs-2 fw-bold"
+                                data-toggle="counter-up">{{ $stats['total_kilometers'] }}</span>
+                            <span class="h1 fw-bold text-white">+</span>
+                        </div>
+                        <h4 class="text-white mb-0">Total kilometers</h4>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Fact Counter -->
+    </div>
+    <!-- Fact Counter -->
 
-        <!-- Services Start -->
-        <div class="container-fluid service py-5">
-            <div class="container py-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize mb-3">Cental <span class="text-primary">Services</span></h1>
-                    <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                        asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                        modi quisquam quia distinctio,
-                    </p>
+    <!-- Services Start -->
+    <div class="container-fluid service py-5">
+        <div class="container py-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize mb-3">Cental <span class="text-primary">Services</span></h1>
+                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
+                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
+                    modi quisquam quia distinctio,
+                </p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="service-item p-4">
+                        <div class="service-icon mb-4">
+                            <i class="fa fa-phone-alt fa-2x"></i>
+                        </div>
+                        <h5 class="mb-3">Phone Reservation</h5>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
+                            quasi quibusdam ipsa perferendis iusto?</p>
+                    </div>
                 </div>
-                <div class="row g-4">
-                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
-                        <div class="service-item p-4">
-                            <div class="service-icon mb-4">
-                                <i class="fa fa-phone-alt fa-2x"></i>
-                            </div>
-                            <h5 class="mb-3">Phone Reservation</h5>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
-                                quasi quibusdam ipsa perferendis iusto?</p>
+                <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
+                    <div class="service-item p-4">
+                        <div class="service-icon mb-4">
+                            <i class="fa fa-money-bill-alt fa-2x"></i>
                         </div>
+                        <h5 class="mb-3">Special Rates</h5>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
+                            quasi quibusdam ipsa perferendis iusto?</p>
                     </div>
-                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="service-item p-4">
-                            <div class="service-icon mb-4">
-                                <i class="fa fa-money-bill-alt fa-2x"></i>
-                            </div>
-                            <h5 class="mb-3">Special Rates</h5>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
-                                quasi quibusdam ipsa perferendis iusto?</p>
+                </div>
+                <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
+                    <div class="service-item p-4">
+                        <div class="service-icon mb-4">
+                            <i class="fa fa-road fa-2x"></i>
                         </div>
+                        <h5 class="mb-3">One Way Rental</h5>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
+                            quasi quibusdam ipsa perferendis iusto?</p>
                     </div>
-                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="service-item p-4">
-                            <div class="service-icon mb-4">
-                                <i class="fa fa-road fa-2x"></i>
-                            </div>
-                            <h5 class="mb-3">One Way Rental</h5>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
-                                quasi quibusdam ipsa perferendis iusto?</p>
+                </div>
+                <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="service-item p-4">
+                        <div class="service-icon mb-4">
+                            <i class="fa fa-umbrella fa-2x"></i>
                         </div>
+                        <h5 class="mb-3">Life Insurance</h5>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
+                            quasi quibusdam ipsa perferendis iusto?</p>
                     </div>
-                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
-                        <div class="service-item p-4">
-                            <div class="service-icon mb-4">
-                                <i class="fa fa-umbrella fa-2x"></i>
-                            </div>
-                            <h5 class="mb-3">Life Insurance</h5>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
-                                quasi quibusdam ipsa perferendis iusto?</p>
+                </div>
+                <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
+                    <div class="service-item p-4">
+                        <div class="service-icon mb-4">
+                            <i class="fa fa-building fa-2x"></i>
                         </div>
+                        <h5 class="mb-3">City to City</h5>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
+                            quasi quibusdam ipsa perferendis iusto?</p>
                     </div>
-                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="service-item p-4">
-                            <div class="service-icon mb-4">
-                                <i class="fa fa-building fa-2x"></i>
-                            </div>
-                            <h5 class="mb-3">City to City</h5>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
-                                quasi quibusdam ipsa perferendis iusto?</p>
+                </div>
+                <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
+                    <div class="service-item p-4">
+                        <div class="service-icon mb-4">
+                            <i class="fa fa-car-alt fa-2x"></i>
                         </div>
-                    </div>
-                    <div class="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="service-item p-4">
-                            <div class="service-icon mb-4">
-                                <i class="fa fa-car-alt fa-2x"></i>
-                            </div>
-                            <h5 class="mb-3">Free Rides</h5>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
-                                quasi quibusdam ipsa perferendis iusto?</p>
-                        </div>
+                        <h5 class="mb-3">Free Rides</h5>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Reprehenderit ipsam
+                            quasi quibusdam ipsa perferendis iusto?</p>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Services End -->
+    </div>
+    <!-- Services End -->
 
-        <!-- Car categories Start -->
-        <div class="container-fluid categories pb-5">
-            <div class="container pb-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize mb-3">Vehicle <span class="text-primary">Categories</span></h1>
-                    <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                        asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                        modi quisquam quia distinctio,
-                    </p>
-                </div>
-                <div class="categories-carousel owl-carousel wow fadeInUp" data-wow-delay="0.1s">
+    <!-- Car categories Start -->
+    <div class="container-fluid categories pb-5">
+        <div class="container pb-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize mb-3">Vehicle <span class="text-primary">Categories</span></h1>
+                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
+                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
+                    modi quisquam quia distinctio,
+                </p>
+            </div>
+            <div class="categories-carousel owl-carousel wow fadeInUp" data-wow-delay="0.1s">
+                @foreach($featuredCars as $car)
                     <div class="categories-item p-4">
                         <div class="categories-item-inner">
                             <div class="categories-img rounded-top">
-                                <img src="{{asset('site/img/car-1.png')}}" class="img-fluid w-100 rounded-top" alt="">
+                                <img src="{{ Storage::url($car->main_image) }}" class="img-fluid w-100 rounded-top"
+                                    alt="{{ $car->name }}">
                             </div>
                             <div class="categories-content rounded-bottom p-4">
-                                <h4>Mercedes Benz R3</h4>
+                                <h4>{{ $car->name }}</h4>
                                 <div class="categories-review mb-4">
-                                    <div class="me-3">4.5 Review</div>
+                                    <div class="me-3">{{ number_format($car->rating, 1) }} Review</div>
                                     <div class="d-flex justify-content-center text-secondary">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star text-body"></i>
+                                        @for($i = 1; $i <= 5; $i++)
+                                            @if($i <= floor($car->rating))
+                                                <i class="fas fa-star"></i>
+                                            @else
+                                                <i class="fas fa-star text-body"></i>
+                                            @endif
+                                        @endfor
                                     </div>
                                 </div>
                                 <div class="mb-4">
-                                    <h4 class="bg-white text-primary rounded-pill py-2 px-4 mb-0">$99:00/Day</h4>
+                                    <h4 class="bg-white text-primary rounded-pill py-2 px-4 mb-0">
+                                        {{ number_format($car->price_per_day, 2) }} MAD/Day
+                                    </h4>
                                 </div>
                                 <div class="row gy-2 gx-0 text-center mb-4">
                                     <div class="col-4 border-end border-white">
-                                        <i class="fa fa-users text-dark"></i> <span class="text-body ms-1">4 Seat</span>
+                                        <i class="fa fa-users text-dark"></i> <span class="text-body ms-1">{{ $car->seats }}
+                                            Seat</span>
                                     </div>
                                     <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">AT/MT</span>
+                                        <i class="fa fa-car text-dark"></i> <span
+                                            class="text-body ms-1">{{ strtoupper($car->transmission) }}</span>
                                     </div>
                                     <div class="col-4">
-                                        <i class="fa fa-gas-pump text-dark"></i> <span class="text-body ms-1">Petrol</span>
+                                        <i class="fa fa-gas-pump text-dark"></i> <span
+                                            class="text-body ms-1">{{ ucfirst($car->fuel_type) }}</span>
                                     </div>
                                     <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">2015</span>
+                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">2023</span>
                                     </div>
                                     <div class="col-4 border-end border-white">
                                         <i class="fa fa-cogs text-dark"></i> <span class="text-body ms-1">AUTO</span>
                                     </div>
                                     <div class="col-4">
-                                        <i class="fa fa-road text-dark"></i> <span class="text-body ms-1">27K</span>
+                                        <i class="fa fa-road text-dark"></i> <span
+                                            class="text-body ms-1">{{ $car->mileage ?? '0' }}K</span>
                                     </div>
                                 </div>
-                                <a href="#" class="btn btn-primary rounded-pill d-flex justify-content-center py-3">Book
+                                <a href="{{ route('cars.show', $car->slug) }}"
+                                    class="btn btn-primary rounded-pill d-flex justify-content-center py-3">Book
                                     Now</a>
                             </div>
                         </div>
                     </div>
-                    <div class="categories-item p-4">
-                        <div class="categories-item-inner">
-                            <div class="categories-img rounded-top">
-                                <img src="{{asset('site/img/car-2.png')}}" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="categories-content rounded-bottom p-4">
-                                <h4>Toyota Corolla Cross</h4>
-                                <div class="categories-review mb-4">
-                                    <div class="me-3">3.5 Review</div>
-                                    <div class="d-flex justify-content-center text-secondary">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star text-body"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-4">
-                                    <h4 class="bg-white text-primary rounded-pill py-2 px-4 mb-0">$128:00/Day</h4>
-                                </div>
-                                <div class="row gy-2 gx-0 text-center mb-4">
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-users text-dark"></i> <span class="text-body ms-1">4 Seat</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">AT/MT</span>
-                                    </div>
-                                    <div class="col-4">
-                                        <i class="fa fa-gas-pump text-dark"></i> <span class="text-body ms-1">Petrol</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">2015</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-cogs text-dark"></i> <span class="text-body ms-1">AUTO</span>
-                                    </div>
-                                    <div class="col-4">
-                                        <i class="fa fa-road text-dark"></i> <span class="text-body ms-1">27K</span>
-                                    </div>
-                                </div>
-                                <a href="#" class="btn btn-primary rounded-pill d-flex justify-content-center py-3">Book
-                                    Now</a>
-                            </div>
-                        </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    <!-- Car categories End -->
+
+    <!-- Car Steps Start -->
+    <div class="container-fluid steps py-5">
+        <div class="container py-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize text-white mb-3">Cental<span class="text-primary"> Process</span>
+                </h1>
+                <p class="mb-0 text-white">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo
+                    expedita asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci
+                    facilis modi quisquam quia distinctio,
+                </p>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="steps-item p-4 mb-4">
+                        <h4>Come In Contact</h4>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, dolorem!</p>
+                        <div class="setps-number">01.</div>
                     </div>
-                    <div class="categories-item p-4">
-                        <div class="categories-item-inner">
-                            <div class="categories-img rounded-top">
-                                <img src="{{asset('site/img/car-3.png')}}" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="categories-content rounded-bottom p-4">
-                                <h4>Tesla Model S Plaid</h4>
-                                <div class="categories-review mb-4">
-                                    <div class="me-3">3.8 Review</div>
-                                    <div class="d-flex justify-content-center text-secondary">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star text-body"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-4">
-                                    <h4 class="bg-white text-primary rounded-pill py-2 px-4 mb-0">$170:00/Day</h4>
-                                </div>
-                                <div class="row gy-2 gx-0 text-center mb-4">
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-users text-dark"></i> <span class="text-body ms-1">4 Seat</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">AT/MT</span>
-                                    </div>
-                                    <div class="col-4">
-                                        <i class="fa fa-gas-pump text-dark"></i> <span class="text-body ms-1">Petrol</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">2015</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-cogs text-dark"></i> <span class="text-body ms-1">AUTO</span>
-                                    </div>
-                                    <div class="col-4">
-                                        <i class="fa fa-road text-dark"></i> <span class="text-body ms-1">27K</span>
-                                    </div>
-                                </div>
-                                <a href="#" class="btn btn-primary rounded-pill d-flex justify-content-center py-3">Book
-                                    Now</a>
-                            </div>
-                        </div>
+                </div>
+                <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
+                    <div class="steps-item p-4 mb-4">
+                        <h4>Choose A Car</h4>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, dolorem!</p>
+                        <div class="setps-number">02.</div>
                     </div>
-                    <div class="categories-item p-4">
-                        <div class="categories-item-inner">
-                            <div class="categories-img rounded-top">
-                                <img src="{{asset('site/img/car-4.png')}}" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="categories-content rounded-bottom p-4">
-                                <h4>Hyundai Kona Electric</h4>
-                                <div class="categories-review mb-4">
-                                    <div class="me-3">4.8 Review</div>
-                                    <div class="d-flex justify-content-center text-secondary">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                    </div>
-                                </div>
-                                <div class="mb-4">
-                                    <h4 class="bg-white text-primary rounded-pill py-2 px-4 mb-0">$187:00/Day</h4>
-                                </div>
-                                <div class="row gy-2 gx-0 text-center mb-4">
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-users text-dark"></i> <span class="text-body ms-1">4 Seat</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">AT/MT</span>
-                                    </div>
-                                    <div class="col-4">
-                                        <i class="fa fa-gas-pump text-dark"></i> <span class="text-body ms-1">Petrol</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-car text-dark"></i> <span class="text-body ms-1">2015</span>
-                                    </div>
-                                    <div class="col-4 border-end border-white">
-                                        <i class="fa fa-cogs text-dark"></i> <span class="text-body ms-1">AUTO</span>
-                                    </div>
-                                    <div class="col-4">
-                                        <i class="fa fa-road text-dark"></i> <span class="text-body ms-1">27K</span>
-                                    </div>
-                                </div>
-                                <a href="#" class="btn btn-primary rounded-pill d-flex justify-content-center py-3">Book
-                                    Now</a>
-                            </div>
-                        </div>
+                </div>
+                <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
+                    <div class="steps-item p-4 mb-4">
+                        <h4>Enjoy Driving</h4>
+                        <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, dolorem!</p>
+                        <div class="setps-number">03.</div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Car categories End -->
+    </div>
+    <!-- Car Steps End -->
 
-        <!-- Car Steps Start -->
-        <div class="container-fluid steps py-5">
-            <div class="container py-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize text-white mb-3">Cental<span class="text-primary"> Process</span>
-                    </h1>
-                    <p class="mb-0 text-white">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo
-                        expedita asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci
-                        facilis modi quisquam quia distinctio,
-                    </p>
-                </div>
-                <div class="row g-4">
-                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
-                        <div class="steps-item p-4 mb-4">
-                            <h4>Come In Contact</h4>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, dolorem!</p>
-                            <div class="setps-number">01.</div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="steps-item p-4 mb-4">
-                            <h4>Choose A Car</h4>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, dolorem!</p>
-                            <div class="setps-number">02.</div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="steps-item p-4 mb-4">
-                            <h4>Enjoy Driving</h4>
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad, dolorem!</p>
-                            <div class="setps-number">03.</div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Blog Start -->
+    <div class="container-fluid blog py-5">
+        <div class="container py-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize mb-3">Cental<span class="text-primary"> Blog & News</span></h1>
+                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
+                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
+                    modi quisquam quia distinctio,
+                </p>
             </div>
-        </div>
-        <!-- Car Steps End -->
-
-        <!-- Blog Start -->
-        <div class="container-fluid blog py-5">
-            <div class="container py-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize mb-3">Cental<span class="text-primary"> Blog & News</span></h1>
-                    <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                        asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                        modi quisquam quia distinctio,
-                    </p>
-                </div>
-                <div class="row g-4">
-                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
+            <div class="row g-4">
+                @foreach($latestPosts as $index => $post)
+                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="{{ 0.1 + $index * 0.2 }}s">
                         <div class="blog-item">
                             <div class="blog-img">
-                                <img src="{{asset('site/img/blog-1.jpg')}}" class="img-fluid rounded-top w-100" alt="Image">
+                                @if(isset($post->featured_image_url))
+                                    <img src="{{ $post->featured_image_url }}" class="img-fluid rounded-top w-100" alt="Image">
+                                @elseif(isset($post->featured_image))
+                                    <img src="{{ Storage::url($post->featured_image) }}" class="img-fluid rounded-top w-100"
+                                        alt="Image">
+                                @else
+                                    <img src="{{ asset('site/img/blog-' . ($index + 1) . '.jpg') }}"
+                                        class="img-fluid rounded-top w-100" alt="Image">
+                                @endif
                             </div>
                             <div class="blog-content rounded-bottom p-4">
-                                <div class="blog-date">30 Dec 2025</div>
+                                <div class="blog-date">
+                                    @if(isset($post->published_at) && $post->published_at instanceof \Carbon\Carbon)
+                                        {{ $post->published_at->format('d M Y') }}
+                                    @elseif(isset($post->published_at))
+                                        {{ \Carbon\Carbon::parse($post->published_at)->format('d M Y') }}
+                                    @else
+                                        {{ now()->format('d M Y') }}
+                                    @endif
+                                </div>
                                 <div class="blog-comment my-3">
                                     <div class="small"><span class="fa fa-user text-primary"></span><span
-                                            class="ms-2">Martin.C</span></div>
-                                    <div class="small"><span class="fa fa-comment-alt text-primary"></span><span class="ms-2">6
+                                            class="ms-2">{{ $post->author->name ?? $post->author ?? 'Admin' }}</span></div>
+                                    <div class="small"><span class="fa fa-comment-alt text-primary"></span><span class="ms-2">
+                                            {{ isset($post->allComments) ? $post->allComments->count() : ($post->comments_count ?? 0) }}
                                             Comments</span></div>
                                 </div>
-                                <a href="#" class="h4 d-block mb-3">Rental Cars how to check driving fines?</a>
-                                <p class="mb-3">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Eius libero soluta
-                                    impedit eligendi? Quibusdam, laudantium.</p>
-                                <a href="#" class="">Read More <i class="fa fa-arrow-right"></i></a>
+                                <a href="{{ isset($post->url) ? $post->url : (isset($post->slug) ? url('blogs/' . $post->slug) : '#') }}"
+                                    class="h4 d-block mb-3">
+                                    {{ $post->title }}
+                                </a>
+                                <p class="mb-3">
+                                    @if(isset($post->excerpt))
+                                        {{ $post->excerpt }}
+                                    @elseif(isset($post->content))
+                                        {{ \Illuminate\Support\Str::limit(strip_tags($post->content), 100) }}
+                                    @else
+                                        Lorem ipsum dolor sit amet consectetur adipisicing elit. Eius libero soluta impedit
+                                        eligendi?
+                                    @endif
+                                </p>
+                                <a href="{{ isset($post->url) ? $post->url : (isset($post->slug) ? url('blogs/' . $post->slug) : '#') }}"
+                                    class="">Read More <i class="fa fa-arrow-right"></i></a>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="blog-item">
-                            <div class="blog-img">
-                                <img src="{{asset('site/img/blog-2.jpg')}}" class="img-fluid rounded-top w-100" alt="Image">
-                            </div>
-                            <div class="blog-content rounded-bottom p-4">
-                                <div class="blog-date">25 Dec 2025</div>
-                                <div class="blog-comment my-3">
-                                    <div class="small"><span class="fa fa-user text-primary"></span><span
-                                            class="ms-2">Martin.C</span></div>
-                                    <div class="small"><span class="fa fa-comment-alt text-primary"></span><span class="ms-2">6
-                                            Comments</span></div>
-                                </div>
-                                <a href="#" class="h4 d-block mb-3">Rental cost of sport and other cars</a>
-                                <p class="mb-3">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Eius libero soluta
-                                    impedit eligendi? Quibusdam, laudantium.</p>
-                                <a href="#" class="">Read More <i class="fa fa-arrow-right"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="blog-item">
-                            <div class="blog-img">
-                                <img src="{{asset('site/img/blog-3.jpg')}}" class="img-fluid rounded-top w-100" alt="Image">
-                            </div>
-                            <div class="blog-content rounded-bottom p-4">
-                                <div class="blog-date">27 Dec 2025</div>
-                                <div class="blog-comment my-3">
-                                    <div class="small"><span class="fa fa-user text-primary"></span><span
-                                            class="ms-2">Martin.C</span></div>
-                                    <div class="small"><span class="fa fa-comment-alt text-primary"></span><span class="ms-2">6
-                                            Comments</span></div>
-                                </div>
-                                <a href="#" class="h4 d-block mb-3">Document required for car rental</a>
-                                <p class="mb-3">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Eius libero soluta
-                                    impedit eligendi? Quibusdam, laudantium.</p>
-                                <a href="#" class="">Read More <i class="fa fa-arrow-right"></i></a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
         </div>
-        <!-- Blog End -->
+    </div>
+    <!-- Blog End -->
 
-        <!-- Banner Start -->
-        <div class="container-fluid banner pb-5 wow zoomInDown" data-wow-delay="0.1s">
-            <div class="container pb-5">
-                <div class="banner-item rounded">
-                    <img src="{{asset('site/img/banner-1.jpg')}}" class="img-fluid rounded w-100" alt="">
-                    <div class="banner-content">
-                        <h2 class="text-primary">Rent Your Car</h2>
-                        <h1 class="text-white">Interested in Renting?</h1>
-                        <p class="text-white">Don't hesitate and send us a message.</p>
-                        <div class="banner-btn">
-                            <a href="#" class="btn btn-secondary rounded-pill py-3 px-4 px-md-5 me-2">WhatchApp</a>
-                            <a href="#" class="btn btn-primary rounded-pill py-3 px-4 px-md-5 ms-2">Contact Us</a>
+    <!-- Banner Start -->
+    @include('site.includes.banner')
+    <!-- Banner End -->
+
+    <!-- Team Start -->
+    <div class="container-fluid team pb-5">
+        <div class="container pb-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize mb-3">Customer<span class="text-primary"> Suport</span> Center</h1>
+                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
+                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
+                    modi quisquam quia distinctio,
+                </p>
+            </div>
+            <div class="row g-4">
+                @for($i = 1; $i <= 4; $i++)
+                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="{{ 0.1 + ($i - 1) * 0.2 }}s">
+                        <div class="team-item p-4 pt-0">
+                            <div class="team-img">
+                                <img src="{{asset('site/img/team-' . $i . '.jpg')}}" class="img-fluid rounded w-100"
+                                    alt="Team Member">
+                            </div>
+                            <div class="team-content pt-4">
+                                <h4>MARTIN DOE</h4>
+                                <p>Profession</p>
+                                <div class="team-icon d-flex justify-content-center">
+                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
+                                            class="fab fa-facebook-f"></i></a>
+                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
+                                            class="fab fa-twitter"></i></a>
+                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
+                                            class="fab fa-instagram"></i></a>
+                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
+                                            class="fab fa-linkedin-in"></i></a>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endfor
             </div>
         </div>
-        <!-- Banner End -->
+    </div>
+    <!-- Team End -->
 
-        <!-- Team Start -->
-        <div class="container-fluid team pb-5">
-            <div class="container pb-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize mb-3">Customer<span class="text-primary"> Suport</span> Center</h1>
-                    <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                        asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                        modi quisquam quia distinctio,
-                    </p>
-                </div>
-                <div class="row g-4">
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.1s">
-                        <div class="team-item p-4 pt-0">
-                            <div class="team-img">
-                                <img src="{{asset('site/img/team-1.jpg')}}" class="img-fluid rounded w-100" alt="Image">
-                            </div>
-                            <div class="team-content pt-4">
-                                <h4>MARTIN DOE</h4>
-                                <p>Profession</p>
-                                <div class="team-icon d-flex justify-content-center">
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-facebook-f"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-twitter"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-instagram"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-linkedin-in"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="team-item p-4 pt-0">
-                            <div class="team-img">
-                                <img src="{{asset('site/img/team-2.jpg')}}" class="img-fluid rounded w-100" alt="Image">
-                            </div>
-                            <div class="team-content pt-4">
-                                <h4>MARTIN DOE</h4>
-                                <p>Profession</p>
-                                <div class="team-icon d-flex justify-content-center">
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-facebook-f"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-twitter"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-instagram"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-linkedin-in"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="team-item p-4 pt-0">
-                            <div class="team-img">
-                                <img src="{{asset('site/img/team-3.jpg')}}" class="img-fluid rounded w-100" alt="Image">
-                            </div>
-                            <div class="team-content pt-4">
-                                <h4>MARTIN DOE</h4>
-                                <p>Profession</p>
-                                <div class="team-icon d-flex justify-content-center">
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-facebook-f"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-twitter"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-instagram"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-linkedin-in"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.7s">
-                        <div class="team-item p-4 pt-0">
-                            <div class="team-img">
-                                <img src="{{asset('site/img/team-4.jpg')}}" class="img-fluid rounded w-100" alt="Image">
-                            </div>
-                            <div class="team-content pt-4">
-                                <h4>MARTIN DOE</h4>
-                                <p>Profession</p>
-                                <div class="team-icon d-flex justify-content-center">
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-facebook-f"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-twitter"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-instagram"></i></a>
-                                    <a class="btn btn-square btn-light rounded-circle mx-1" href=""><i
-                                            class="fab fa-linkedin-in"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Testimonial Start -->
+    <div class="container-fluid testimonial pb-5">
+        <div class="container pb-5">
+            <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                <h1 class="display-5 text-capitalize mb-3">Our Clients<span class="text-primary"> Riviews</span></h1>
+                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
+                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
+                    modi quisquam quia distinctio,
+                </p>
             </div>
-        </div>
-        <!-- Team End -->
-
-        <!-- Testimonial Start -->
-        <div class="container-fluid testimonial pb-5">
-            <div class="container pb-5">
-                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                    <h1 class="display-5 text-capitalize mb-3">Our Clients<span class="text-primary"> Riviews</span></h1>
-                    <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                        asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                        modi quisquam quia distinctio,
-                    </p>
-                </div>
-                <div class="owl-carousel testimonial-carousel wow fadeInUp" data-wow-delay="0.1s">
+            <div class="owl-carousel testimonial-carousel wow fadeInUp" data-wow-delay="0.1s">
+                @foreach($latestReviews as $review)
                     <div class="testimonial-item">
                         <div class="testimonial-quote"><i class="fa fa-quote-right fa-2x"></i>
                         </div>
                         <div class="testimonial-inner p-4">
-                            <img src="{{asset('site/img/testimonial-1.jpg')}}" class="img-fluid" alt="">
+                            <img src="{{ asset('site/img/testimonial-' . ($loop->index + 1) . '.jpg') }}" class="img-fluid"
+                                alt="">
                             <div class="ms-4">
-                                <h4>Person Name</h4>
-                                <p>Profession</p>
+                                <h4>{{ $review->user_name }}</h4>
+                                <p>Customer</p>
                                 <div class="d-flex text-primary">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star text-body"></i>
+                                    @for($i = 1; $i <= 5; $i++)
+                                        @if($i <= $review->rating)
+                                            <i class="fas fa-star"></i>
+                                        @else
+                                            <i class="fas fa-star text-body"></i>
+                                        @endif
+                                    @endfor
                                 </div>
                             </div>
                         </div>
                         <div class="border-top rounded-bottom p-4">
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab
-                                repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.</p>
+                            <p class="mb-0">{{ $review->content }}</p>
                         </div>
                     </div>
-                    <div class="testimonial-item">
-                        <div class="testimonial-quote"><i class="fa fa-quote-right fa-2x"></i>
-                        </div>
-                        <div class="testimonial-inner p-4">
-                            <img src="{{asset('site/img/testimonial-2.jpg')}}" class="img-fluid" alt="">
-                            <div class="ms-4">
-                                <h4>Person Name</h4>
-                                <p>Profession</p>
-                                <div class="d-flex text-primary">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star text-body"></i>
-                                    <i class="fas fa-star text-body"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="border-top rounded-bottom p-4">
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab
-                                repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.</p>
-                        </div>
-                    </div>
-                    <div class="testimonial-item">
-                        <div class="testimonial-quote"><i class="fa fa-quote-right fa-2x"></i>
-                        </div>
-                        <div class="testimonial-inner p-4">
-                            <img src="{{asset('site/img/testimonial-3.jpg')}}" class="img-fluid" alt="">
-                            <div class="ms-4">
-                                <h4>Person Name</h4>
-                                <p>Profession</p>
-                                <div class="d-flex text-primary">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star text-body"></i>
-                                    <i class="fas fa-star text-body"></i>
-                                    <i class="fas fa-star text-body"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="border-top rounded-bottom p-4">
-                            <p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab
-                                repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.</p>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
         </div>
-        <!-- Testimonial End -->
+    </div>
+    <!-- Testimonial End -->
 
-        <!-- Structured Data for Car Rental Service -->
-        <script type="application/ld+json">
-            {
-              "@context": "https://schema.org",
-              "@type": "CarRentalBusiness",
-              "name": "Cental Car Rental",
-              "image": "{{asset('site/img/carousel-1.jpg')}}",
-              "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "123 Main Street",
-                "addressLocality": "New York",
-                "addressRegion": "NY",
-                "postalCode": "10001",
-                "addressCountry": "US"
-              },
-              "geo": {
-                "@type": "GeoCoordinates",
-                "latitude": "40.7128",
-                "longitude": "-74.0060"
-              },
-              "url": "{{url('/')}}",
-              "telephone": "+1-234-567-8901",
-              "openingHoursSpecification": [
-                {
-                  "@type": "OpeningHoursSpecification",
-                  "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                  "opens": "08:00",
-                  "closes": "18:00"
-                },
-                {
-                  "@type": "OpeningHoursSpecification",
-                  "dayOfWeek": ["Saturday"],
-                  "opens": "09:00",
-                  "closes": "16:00"
-                }
-              ],
-              "priceRange": "$99 - $187",
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.5",
-                "reviewCount": "829"
-              }
-            }
-            </script>
-    @endsection
+    <!-- Structured Data for Car Rental Service -->
+    <script type="application/ld+json">
+                                                {
+                                                  "@context": "https://schema.org",
+                                                  "@type": "CarRentalBusiness",
+                                                  "name": "Cental Car Rental",
+                                                  "image": "{{asset('site/img/carousel-1.jpg')}}",
+                                                  "address": {
+                                                    "@type": "PostalAddress",
+                                                    "streetAddress": "123 Main Street",
+                                                    "addressLocality": "New York",
+                                                    "addressRegion": "NY",
+                                                    "postalCode": "10001",
+                                                    "addressCountry": "US"
+                                                  },
+                                                  "geo": {
+                                                    "@type": "GeoCoordinates",
+                                                    "latitude": "40.7128",
+                                                    "longitude": "-74.0060"
+                                                  },
+                                                  "url": "{{url('/')}}",
+                                                  "telephone": "+1-234-567-8901",
+                                                  "openingHoursSpecification": [
+                                                    {
+                                                      "@type": "OpeningHoursSpecification",
+                                                      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                                                      "opens": "08:00",
+                                                      "closes": "18:00"
+                                                    },
+                                                    {
+                                                      "@type": "OpeningHoursSpecification",
+                                                      "dayOfWeek": ["Saturday"],
+                                                      "opens": "09:00",
+                                                      "closes": "16:00"
+                                                    }
+                                                  ],
+                                                  "priceRange": "$99 - $187",
+                                                  "aggregateRating": {
+                                                    "@type": "AggregateRating",
+                                                    "ratingValue": "4.5",
+                                                    "reviewCount": "{{ $stats['happy_clients'] }}"
+                                                  }
+                                                }
+                                                </script>
+    <script type="application/ld+json">
+                                                    {
+                                                        "@context": "https://schema.org",
+                                                        "@type": "Service",
+                                                        "serviceType": "Car Rental",
+                                                        "provider": {
+                                                            "@type": "Organization",
+                                                            "name": "Cental Car Rental"
+                                                        },
+                                                        "areaServed": "USA",
+                                                        "offers": {
+                                                            "@type": "Offer",
+                                                            "priceCurrency": "USD",
+                                                            "priceRange": "$99 - $187"
+                                                        }
+                                                    }
+                                                    </script>
 @endsection

@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Booking;
-use App\Models\Customer;
-use App\Models\Vehicle;
+use App\Models\Car;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +18,11 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        // User must have permission to access dashboard
+        if (!auth()->guard('admin')->user()->can('access dashboard')) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         // Date ranges
         $today = Carbon::today();
         $startOfMonth = Carbon::now()->startOfMonth();
@@ -26,155 +31,223 @@ class DashboardController extends Controller
         $startOfPreviousMonth = $previousMonth->startOfMonth();
         $endOfPreviousMonth = $previousMonth->endOfMonth();
 
-        // Total bookings with trend
-      /*  $totalBookings = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
-        $previousMonthBookings = Booking::whereBetween('created_at', [$startOfPreviousMonth, $endOfPreviousMonth])->count();
-        $bookingTrend = $previousMonthBookings > 0 
-            ? round((($totalBookings - $previousMonthBookings) / $previousMonthBookings) * 100) 
-            : 100;
-
-        // Total revenue with trend
-        $totalRevenue = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->where('status', 'confirmed')
-            ->sum('total_amount');
-        $previousMonthRevenue = Booking::whereBetween('created_at', [$startOfPreviousMonth, $endOfPreviousMonth])
-            ->where('status', 'confirmed')
-            ->sum('total_amount');
-        $revenueTrend = $previousMonthRevenue > 0 
-            ? round((($totalRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100) 
-            : 100;
+        // Recent activities with user relationship
+        $recentActivities = Activity::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->each(function($activity) {
+                $activity->created_at_diff = $activity->created_at->diffForHumans();
+            });
+            
+        // Activity statistics for dashboard cards
+        $activityStats = [
+            'totalToday' => Activity::whereDate('created_at', $today)->count(),
+            'totalMonth' => Activity::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count(),
+            'loginCount' => Activity::where('type', 'login')
+                ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                ->count(),
+            'uniqueUsers' => Activity::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                ->where('user_type', 'App\\Models\\Admin')
+                ->distinct('user_id')
+                ->count('user_id')
+        ];
 
         // Vehicle statistics
-        $totalVehicles = Vehicle::count();
-        $availableVehicles = Vehicle::where('status', 'available')->count();
-
-        // Customer statistics
-        $activeCustomers = Customer::where('status', 'active')->count();
-        $newCustomers = Customer::where('status', 'active')
-            ->where('created_at', '>=', $startOfMonth)
-            ->count();
-
-        // Recent bookings
-        $recentBookings = Booking::with(['customer', 'vehicle'])
-            ->select(
-                'bookings.*', 
-                'customers.name as customer_name', 
-                'vehicles.model as vehicle_name'
-            )
-            ->join('customers', 'bookings.customer_id', '=', 'customers.id')
-            ->join('vehicles', 'bookings.vehicle_id', '=', 'vehicles.id')
+        $totalVehicles = Car::count();
+        $availableVehicles = Car::where('is_available', true)->count();
+        
+        // Booking statistics
+        $activeBookings = Booking::whereIn('status', ['pending', 'confirmed'])->count();
+        $thisMonthBookings = Booking::whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
+        $completedBookings = Booking::where('status', 'completed')->count();
+        $totalBookings = Booking::count();
+        
+        // Calculate revenue
+        $totalRevenue = Booking::where('status', 'completed')
+            ->orWhere('status', 'confirmed')
+            ->sum('total_amount');
+        
+        $thisMonthRevenue = Booking::where(function($query) {
+                $query->where('status', 'completed')
+                    ->orWhere('status', 'confirmed');
+            })
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->sum('total_amount');
+            
+        // Get recent bookings with car relationship
+        $recentBookings = Booking::with(['car', 'user'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
-            ->get();*/
-
-        // Recent activity
-        $recentActivities = Activity::orderBy('created_at', 'desc')
-            ->limit(5)
             ->get();
-
-        // Revenue chart data
-       // $revenueChart = $this->getRevenueChartData('month');
-
-        // Booking sources data
-        //$bookingSources = $this->getBookingSourcesData();
+            
+        // Get activity types distribution
+        $activityTypes = Activity::select('type', DB::raw('COUNT(*) as count'))
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->groupBy('type')
+            ->orderBy('count', 'desc')
+            ->get();
+            
+        // Get browser statistics
+        $browserStats = Activity::select(
+                DB::raw('COALESCE(JSON_EXTRACT(properties, "$.browser"), "Unknown") as browser'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->groupBy('browser')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'browser' => str_replace('"', '', $item->browser),
+                    'count' => $item->count
+                ];
+            });
+            
+        // Get location statistics
+        $locationStats = Activity::select(
+                DB::raw('COALESCE(JSON_EXTRACT(properties, "$.location"), "Unknown") as location'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->groupBy('location')
+            ->orderBy('count', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'location' => str_replace('"', '', $item->location),
+                    'count' => $item->count
+                ];
+            });
 
         return view('admin.dashboard', compact(
-            //'totalBookings',
-            //'bookingTrend',
-            //'totalRevenue',
-            //'revenueTrend',
-            //'totalVehicles',
-            //'availableVehicles',
-            //'activeCustomers',
-           // 'newCustomers',
-            //'recentBookings',
             'recentActivities',
-            //'revenueChart',
-            //'bookingSources'
+            'activityStats',
+            'activityTypes',
+            'totalVehicles',
+            'availableVehicles',
+            'activeBookings',
+            'thisMonthBookings',
+            'completedBookings',
+            'totalBookings',
+            'totalRevenue',
+            'thisMonthRevenue',
+            'recentBookings',
+            'browserStats',
+            'locationStats'
         ));
     }
-
-    /**
-     * Get revenue chart data
-     */
-    /*private function getRevenueChartData($period = 'month')
-    {
-        $labels = [];
-        $data = [];
-
-        if ($period === 'week') {
-            // Last 7 days data
-            $startDate = Carbon::now()->subDays(6);
-            $endDate = Carbon::now();
-
-            for ($date = $startDate; $date->lte($endDate); $date->addDay()) {
-                $labels[] = $date->format('D');
-                $data[] = Booking::whereDate('created_at', $date->format('Y-m-d'))
-                    ->where('status', 'confirmed')
-                    ->sum('total_amount');
-            }
-        } elseif ($period === 'month') {
-            // Monthly data for the current year
-            $currentYear = Carbon::now()->year;
-            $startDate = Carbon::createFromDate($currentYear, 1, 1);
-            $endDate = Carbon::createFromDate($currentYear, 12, 31);
-
-            for ($month = 1; $month <= 12; $month++) {
-                $labels[] = Carbon::createFromDate($currentYear, $month, 1)->format('M');
-                $data[] = Booking::whereYear('created_at', $currentYear)
-                    ->whereMonth('created_at', $month)
-                    ->where('status', 'confirmed')
-                    ->sum('total_amount');
-            }
-        } else {
-            // Yearly data for the past 5 years
-            $currentYear = Carbon::now()->year;
-            $startYear = $currentYear - 4;
-
-            for ($year = $startYear; $year <= $currentYear; $year++) {
-                $labels[] = (string) $year;
-                $data[] = Booking::whereYear('created_at', $year)
-                    ->where('status', 'confirmed')
-                    ->sum('total_amount');
-            }
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data
-        ];
-    }*/
-
-    /**
-     * Get booking sources data
-     */
-    /*private function getBookingSourcesData()
-    {
-        $sources = DB::table('bookings')
-            ->select('source', DB::raw('count(*) as total'))
-            ->groupBy('source')
-            ->get();
-
-        $labels = [];
-        $data = [];
-
-        foreach ($sources as $source) {
-            $labels[] = ucfirst($source->source);
-            $data[] = $source->total;
-        }
-
-        return [
-            'labels' => $labels,
-            'data' => $data
-        ];
-    }*/
 
     /**
      * Get chart data for AJAX requests
      */
     public function getChartData(Request $request)
     {
+        // User must have permission to access dashboard
+        if (!auth()->guard('admin')->user()->can('access dashboard')) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         $period = $request->input('period', 'month');
-        return response()->json($this->getRevenueChartData($period));
+        $data = [];
+        $labels = [];
+        $revenueData = [];
+        $bookingData = [];
+        
+        // Current date for reference
+        $now = Carbon::now();
+        
+        if ($period === 'week') {
+            // Last 7 days data
+            $startDate = Carbon::now()->subDays(6);
+            
+            for ($i = 0; $i < 7; $i++) {
+                $date = clone $startDate;
+                $date->addDays($i);
+                $labels[] = $date->format('D');
+                
+                // Activity counts
+                $activityCount = Activity::whereDate('created_at', $date->format('Y-m-d'))->count();
+                $data[] = $activityCount;
+                
+                // Revenue data
+                $dailyRevenue = Booking::whereDate('created_at', $date->format('Y-m-d'))
+                    ->where(function($query) {
+                        $query->where('status', 'completed')
+                            ->orWhere('status', 'confirmed');
+                    })
+                    ->sum('total_amount');
+                $revenueData[] = round($dailyRevenue, 2);
+                
+                // Booking counts
+                $bookingCount = Booking::whereDate('created_at', $date->format('Y-m-d'))->count();
+                $bookingData[] = $bookingCount;
+            }
+        } elseif ($period === 'month') {
+            // Last 30 days data
+            $startDate = Carbon::now()->subDays(29);
+            
+            for ($i = 0; $i < 30; $i++) {
+                $date = clone $startDate;
+                $date->addDays($i);
+                $labels[] = $date->format('j'); // Day of month without leading zeros
+                
+                // Activity counts
+                $activityCount = Activity::whereDate('created_at', $date->format('Y-m-d'))->count();
+                $data[] = $activityCount;
+                
+                // Revenue data
+                $dailyRevenue = Booking::whereDate('created_at', $date->format('Y-m-d'))
+                    ->where(function($query) {
+                        $query->where('status', 'completed')
+                            ->orWhere('status', 'confirmed');
+                    })
+                    ->sum('total_amount');
+                $revenueData[] = round($dailyRevenue, 2);
+                
+                // Booking counts
+                $bookingCount = Booking::whereDate('created_at', $date->format('Y-m-d'))->count();
+                $bookingData[] = $bookingCount;
+            }
+        } else {
+            // Monthly data for the current year
+            $year = Carbon::now()->year;
+            
+            for ($month = 1; $month <= 12; $month++) {
+                $date = Carbon::createFromDate($year, $month, 1);
+                $labels[] = $date->format('M');
+                
+                // Activity counts
+                $activityCount = Activity::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->count();
+                $data[] = $activityCount;
+                
+                // Revenue data
+                $monthlyRevenue = Booking::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->where(function($query) {
+                        $query->where('status', 'completed')
+                            ->orWhere('status', 'confirmed');
+                    })
+                    ->sum('total_amount');
+                $revenueData[] = round($monthlyRevenue, 2);
+                
+                // Booking counts
+                $bookingCount = Booking::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->count();
+                $bookingData[] = $bookingCount;
+            }
+        }
+        
+        return response()->json([
+            'labels' => $labels,
+            'data' => $data,
+            'revenueData' => $revenueData,
+            'bookingData' => $bookingData
+        ]);
     }
 }

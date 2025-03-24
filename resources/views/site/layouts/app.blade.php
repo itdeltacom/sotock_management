@@ -67,6 +67,7 @@
 
     <!-- Template Stylesheet -->
     <link href="{{asset('site/css/style.css')}}" rel="stylesheet">
+    @stack('styles')
 </head>
 
 <body>
@@ -99,6 +100,7 @@
 
     <!-- Template Javascript -->
     <script src="{{asset('site/js/main.js')}}"></script>
+    @stack('scripts')
 </body>
 
 </html>

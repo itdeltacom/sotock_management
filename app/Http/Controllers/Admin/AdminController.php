@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\Facades\DataTables;
 
 class AdminController extends Controller
 {
@@ -17,17 +19,42 @@ class AdminController extends Controller
      */
     public function index()
     {
-        $admins = Admin::with('roles')->paginate(10);
-        return view('admin.admins.index', compact('admins'));
+        $roles = Role::all();
+        return view('admin.admins.index', compact('roles'));
     }
 
     /**
-     * Show the form for creating a new admin.
+     * Get admin data for DataTables.
      */
-    public function create()
+    public function data()
     {
-        $roles = Role::all();
-        return view('admin.admins.create', compact('roles'));
+        $admins = Admin::with('roles')->get();
+        
+        return DataTables::of($admins)
+            ->addColumn('roles', function (Admin $admin) {
+                return $admin->roles->pluck('name')->toArray();
+            })
+            ->addColumn('action', function (Admin $admin) {
+                $actions = '';
+                
+                // Only show edit button if user has permission
+                if (Auth::guard('admin')->user()->can('edit admins')) {
+                    $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="'.$admin->id.'">
+                        <i class="fas fa-edit"></i>
+                    </button> ';
+                }
+                
+                // Only show delete button if user has permission and not editing themselves
+                if (Auth::guard('admin')->user()->can('delete admins') && Auth::guard('admin')->id() !== $admin->id) {
+                    $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="'.$admin->id.'">
+                        <i class="fas fa-trash"></i>
+                    </button>';
+                }
+                
+                return $actions;
+            })
+            ->rawColumns(['action'])
+            ->make(true);
     }
 
     /**
@@ -35,7 +62,8 @@ class AdminController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        // Validate input
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:admins',
             'password' => 'required|string|min:8|confirmed',
@@ -46,6 +74,13 @@ class AdminController extends Controller
             'roles' => 'required|array',
             'is_active' => 'boolean',
         ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $data = $request->except(['password', 'password_confirmation', 'profile_image', 'roles']);
         $data['password'] = Hash::make($request->password);
@@ -58,20 +93,27 @@ class AdminController extends Controller
         
         $admin = Admin::create($data);
         
-        // Assign roles
-        $admin->assignRole($request->roles);
+        // Important fix: Get the actual role objects to avoid the "role named 1" error
+        $roleIds = $request->roles;
+        $roles = Role::whereIn('id', $roleIds)->get();
         
-        return redirect()->route('admin.admins.index')
-            ->with('success', 'Admin created successfully.');
-    }
-
-    /**
-     * Display the specified admin.
-     */
-    public function show(Admin $admin)
-    {
-        $admin->load('roles', 'permissions');
-        return view('admin.admins.show', compact('admin'));
+        // Assign roles using the collection of role objects
+        $admin->assignRole($roles);
+        
+        // Log activity if spatie activity-log package is installed
+        if (method_exists(app(), 'activity')) {
+            activity()
+                ->causedBy(Auth::guard('admin')->user())
+                ->performedOn($admin)
+                ->withProperties(['admin_id' => $admin->id, 'admin_email' => $admin->email])
+                ->log('Created admin user');
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin created successfully.',
+            'admin' => $admin
+        ]);
     }
 
     /**
@@ -79,9 +121,23 @@ class AdminController extends Controller
      */
     public function edit(Admin $admin)
     {
-        $roles = Role::all();
         $admin->load('roles');
-        return view('admin.admins.edit', compact('admin', 'roles'));
+        $roles = $admin->roles->pluck('id')->toArray();
+        
+        return response()->json([
+            'success' => true,
+            'admin' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'phone' => $admin->phone,
+                'position' => $admin->position,
+                'department' => $admin->department,
+                'is_active' => $admin->is_active,
+                'profile_image' => $admin->profile_image,
+                'roles' => $roles,
+            ]
+        ]);
     }
 
     /**
@@ -89,7 +145,8 @@ class AdminController extends Controller
      */
     public function update(Request $request, Admin $admin)
     {
-        $request->validate([
+        // Validate input
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:admins,email,' . $admin->id,
             'phone' => 'nullable|string|max:20',
@@ -98,15 +155,26 @@ class AdminController extends Controller
             'profile_image' => 'nullable|image|max:2048',
             'roles' => 'required|array',
             'is_active' => 'boolean',
-        ]);
+        ];
+        
+        // If password is provided, validate it
+        if ($request->filled('password')) {
+            $rules['password'] = 'required|string|min:8|confirmed';
+        }
+        
+        $validator = Validator::make($request->all(), $rules);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-        $data = $request->except(['password', 'password_confirmation', 'profile_image', 'roles']);
+        $data = $request->except(['password', 'password_confirmation', 'profile_image', 'roles', '_method']);
         
         // Update password if provided
         if ($request->filled('password')) {
-            $request->validate([
-                'password' => 'required|string|min:8|confirmed',
-            ]);
             $data['password'] = Hash::make($request->password);
         }
         
@@ -123,11 +191,27 @@ class AdminController extends Controller
         
         $admin->update($data);
         
-        // Sync roles
-        $admin->syncRoles($request->roles);
+        // Important fix: Get the actual role objects to avoid the "role named 1" error
+        $roleIds = $request->roles;
+        $roles = Role::whereIn('id', $roleIds)->get();
         
-        return redirect()->route('admin.admins.index')
-            ->with('success', 'Admin updated successfully.');
+        // Sync roles using the collection of role objects
+        $admin->syncRoles($roles);
+        
+        // Log activity if spatie activity-log package is installed
+        if (method_exists(app(), 'activity')) {
+            activity()
+                ->causedBy(Auth::guard('admin')->user())
+                ->performedOn($admin)
+                ->withProperties(['admin_id' => $admin->id, 'admin_email' => $admin->email])
+                ->log('Updated admin user');
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin updated successfully.',
+            'admin' => $admin
+        ]);
     }
 
     /**
@@ -137,9 +221,18 @@ class AdminController extends Controller
     {
         // Prevent self-deletion
         if (Auth::guard('admin')->id() === $admin->id) {
-            return redirect()->route('admin.admins.index')
-                ->with('error', 'You cannot delete your own account.');
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot delete your own account.'
+            ], 403);
         }
+        
+        // Store data for activity log
+        $adminData = [
+            'id' => $admin->id,
+            'name' => $admin->name,
+            'email' => $admin->email
+        ];
         
         // Delete profile image if exists
         if ($admin->profile_image) {
@@ -148,8 +241,18 @@ class AdminController extends Controller
         
         $admin->delete();
         
-        return redirect()->route('admin.admins.index')
-            ->with('success', 'Admin deleted successfully.');
+        // Log activity if spatie activity-log package is installed
+        if (method_exists(app(), 'activity')) {
+            activity()
+                ->causedBy(Auth::guard('admin')->user())
+                ->withProperties($adminData)
+                ->log('Deleted admin user');
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin deleted successfully.'
+        ]);
     }
     
     /**
@@ -168,21 +271,55 @@ class AdminController extends Controller
     {
         $admin = Auth::guard('admin')->user();
         
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:admins,email,' . $admin->id,
-            'phone' => 'nullable|string|max:20',
-            'profile_image' => 'nullable|image|max:2048',
-        ]);
+        // Handle AJAX validation
+        if ($request->ajax()) {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:admins,email,' . $admin->id,
+                'phone' => 'nullable|string|max:20',
+                'position' => 'nullable|string|max:100',
+                'department' => 'nullable|string|max:100',
+                'profile_image' => 'nullable|image|max:2048',
+            ]);
+            
+            // Validate password if provided
+            if ($request->filled('password')) {
+                $validator->addRules([
+                    'password' => 'required|string|min:8|confirmed',
+                    'current_password' => 'required|current_password:admin',
+                ]);
+            }
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+        } else {
+            // Regular validation for non-AJAX requests
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:admins,email,' . $admin->id,
+                'phone' => 'nullable|string|max:20',
+                'position' => 'nullable|string|max:100',
+                'department' => 'nullable|string|max:100',
+                'profile_image' => 'nullable|image|max:2048',
+            ]);
+            
+            // Validate password if provided
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => 'required|string|min:8|confirmed',
+                    'current_password' => 'required|current_password:admin',
+                ]);
+            }
+        }
         
-        $data = $request->except(['password', 'password_confirmation', 'profile_image']);
+        $data = $request->except(['password', 'password_confirmation', 'profile_image', 'current_password', '_token', '_method']);
         
         // Update password if provided
         if ($request->filled('password')) {
-            $request->validate([
-                'password' => 'required|string|min:8|confirmed',
-                'current_password' => 'required|current_password:admin',
-            ]);
             $data['password'] = Hash::make($request->password);
         }
         
@@ -199,6 +336,25 @@ class AdminController extends Controller
         
         $admin->update($data);
         
+        // Log activity if spatie activity-log package is installed
+        if (method_exists(app(), 'activity')) {
+            activity()
+                ->causedBy($admin)
+                ->performedOn($admin)
+                ->log('Updated profile');
+        }
+        
+        // Handle AJAX response
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully.',
+                'name' => $admin->name,
+                'email' => $admin->email
+            ]);
+        }
+        
+        // Regular response
         return redirect()->route('admin.profile')
             ->with('success', 'Profile updated successfully.');
     }

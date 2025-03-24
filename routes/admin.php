@@ -3,14 +3,23 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Middleware\TwoFactorMiddleware;
+use App\Http\Controllers\Admin\CarController;
 use App\Http\Middleware\SuperAdminMiddleware;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\BlogTagController;
+use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\BlogPostController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\BlogCommentController;
+use App\Http\Controllers\Admin\BlogCategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,7 +55,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware(['auth:admin', TwoFactorMiddleware::class])->group(function () {
         // Dashboard
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+        Route::get('/chart-data', [App\Http\Controllers\Admin\DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
         
         // Logout
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
@@ -66,13 +75,173 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('activities/{activity}', [ActivityController::class, 'destroy'])->name('activities.destroy');
         Route::post('activities/clear', [ActivityController::class, 'clearAll'])->name('activities.clear');
         
+        // Admin Management (requires permissions)
+        Route::middleware('permission:view admins')->group(function () {
+            Route::get('admins', [AdminController::class, 'index'])->name('admins.index');
+            Route::get('admins/data', [AdminController::class, 'data'])->name('admins.data');
+            Route::get('admins/{admin}', [AdminController::class, 'show'])->name('admins.show');
+        });
+
+        Route::middleware('permission:create admins')->group(function () {
+            Route::post('admins', [AdminController::class, 'store'])->name('admins.store');
+        });
+
+        Route::middleware('permission:edit admins')->group(function () {
+            Route::get('admins/{admin}/edit', [AdminController::class, 'edit'])->name('admins.edit');
+            Route::get('admins/{admin}/edit/form', [AdminController::class, 'getEditForm'])->name('admins.edit.form');
+            Route::put('admins/{admin}', [AdminController::class, 'update'])->name('admins.update');
+        });
+
+        Route::middleware('permission:delete admins')->group(function () {
+            Route::delete('admins/{admin}', [AdminController::class, 'destroy'])->name('admins.destroy');
+        });
+
+       // Permission Routes 
+Route::prefix('permissions')->name('permissions.')->middleware(SuperAdminMiddleware::class)->group(function () {
+    Route::get('/', [PermissionController::class, 'index'])->name('index');
+    Route::get('/data', [PermissionController::class, 'data'])->name('data');
+    Route::post('/', [PermissionController::class, 'store'])->name('store');
+    Route::get('/{permission}/edit', [PermissionController::class, 'edit'])->name('edit');
+    Route::put('/{permission}', [PermissionController::class, 'update'])->name('update');
+    Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy');
+    Route::post('/validate-field', [PermissionController::class, 'validateField'])->name('validate-field');
+});
+
+// Role Routes 
+Route::prefix('roles')->name('roles.')->middleware('permission:manage roles')->group(function () {
+    Route::get('/', [RoleController::class, 'index'])->name('index');
+    Route::get('/data', [RoleController::class, 'data'])->name('data');
+    Route::post('/', [RoleController::class, 'store'])->name('store');
+    Route::get('/{role}', [RoleController::class, 'show'])->name('show');
+    Route::get('/{role}/edit', [RoleController::class, 'edit'])->name('edit');
+    Route::put('/{role}', [RoleController::class, 'update'])->name('update');
+    Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
+    Route::post('/validate-field', [RoleController::class, 'validateField'])->name('validate-field');
+});
+      // Category Routes
+Route::prefix('categories')->name('categories.')->middleware('permission:manage categories')->group(function () {
+    Route::get('/', [CategoryController::class, 'index'])->name('index');
+    Route::get('/data', [CategoryController::class, 'data'])->name('data');
+    Route::post('/', [CategoryController::class, 'store'])->name('store');
+    Route::get('/{category}/edit', [CategoryController::class, 'edit'])->name('edit');
+    Route::put('/{category}', [CategoryController::class, 'update'])->name('update');
+    Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
+});
+
+// Brand Routes
+Route::prefix('brands')->name('brands.')->middleware('permission:manage brands')->group(function () {
+    Route::get('/', [BrandController::class, 'index'])->name('index');
+    Route::get('/data', [BrandController::class, 'data'])->name('data');
+    Route::post('/', [BrandController::class, 'store'])->name('store');
+    Route::get('/{brand}/edit', [BrandController::class, 'edit'])->name('edit');
+    Route::put('/{brand}', [BrandController::class, 'update'])->name('update');
+    Route::delete('/{brand}', [BrandController::class, 'destroy'])->name('destroy');
+});
+
+// Car Routes
+Route::prefix('cars')->name('cars.')->middleware('permission:manage cars')->group(function () {
+    Route::get('/', [CarController::class, 'index'])->name('index');
+    Route::get('/data', [CarController::class, 'data'])->name('data');
+    Route::post('/', [CarController::class, 'store'])->name('store');
+    Route::get('/{car}/edit', [CarController::class, 'edit'])->name('edit');
+    Route::put('/{car}', [CarController::class, 'update'])->name('update');
+    Route::delete('/{car}', [CarController::class, 'destroy'])->name('destroy');
+    Route::post('/update-image-order', [CarController::class, 'updateImageOrder'])->name('update-image-order');
+    Route::post('/set-featured-image', [CarController::class, 'setFeaturedImage'])->name('set-featured-image');
+    Route::post('/delete-image', [CarController::class, 'deleteImage'])->name('delete-image');
+});
+
+// Booking Management Routes
+Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permission:manage bookings'])->group(function () {
+    // Routes pour lister et gérer les réservations
+    Route::get('/', [BookingController::class, 'index'])->name('index');
+    Route::get('/data', [BookingController::class, 'data'])->name('data');
+    Route::post('/', [BookingController::class, 'store'])->name('store');
+    Route::get('/{booking}/edit', [BookingController::class, 'edit'])->name('edit');
+    Route::put('/{booking}', [BookingController::class, 'update'])->name('update');
+    Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
+
+    // Routes supplémentaires spécifiques aux réservations
+    Route::get('/export', [BookingController::class, 'export'])->name('export');
+    Route::post('/calculate-prices', [BookingController::class, 'calculatePrices'])->name('calculate-prices');
+    Route::patch('/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('update-status');
+    Route::patch('/{booking}/update-payment-status', [BookingController::class, 'updatePaymentStatus'])->name('update-payment-status');
+    Route::get('/dashboard-stats', [BookingController::class, 'dashboardStats'])->name('dashboard-stats');
+    Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
+});
+// Review Management
+Route::prefix('reviews')->name('reviews.')->middleware('permission:manage reviews')->group(function () {
+    Route::get('/', [ReviewController::class, 'index'])->name('index');
+    Route::get('/data', [ReviewController::class, 'data'])->name('data');
+    Route::post('/', [ReviewController::class, 'store'])->name('store');
+    Route::get('/{review}/edit', [ReviewController::class, 'edit'])->name('edit');
+    Route::put('/{review}', [ReviewController::class, 'update'])->name('update');
+    Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('destroy');
+    Route::post('/{review}/toggle-approval', [ReviewController::class, 'toggleApproval'])->name('toggle-approval');
+    Route::get('/get-users', [ReviewController::class, 'getUsers'])->name('get-users');
+});
+
+ // Blog Categories
+ Route::prefix('blog-categories')->name('blog-categories.')->middleware('permission:manage blog categories')->group(function () {
+    Route::get('/', [BlogCategoryController::class, 'index'])->name('index');
+    Route::get('/data', [BlogCategoryController::class, 'data'])->name('data');
+    Route::post('/', [BlogCategoryController::class, 'store'])->name('store');
+    Route::get('/{category}', [BlogCategoryController::class, 'show'])->name('show');
+    Route::get('/{category}/edit', [BlogCategoryController::class, 'edit'])->name('edit');
+    Route::put('/{category}', [BlogCategoryController::class, 'update'])->name('update');
+    Route::delete('/{category}', [BlogCategoryController::class, 'destroy'])->name('destroy');
+    Route::post('/validate-field', [BlogCategoryController::class, 'validateField'])->name('validate-field');
+    Route::get('/get-categories', [BlogCategoryController::class, 'getCategories'])->name('get-categories');
+});
+
+// Blog Tags
+Route::prefix('blog-tags')->name('blog-tags.')->middleware('permission:manage blog tags')->group(function () {
+    Route::get('/', [BlogTagController::class, 'index'])->name('index');
+    Route::get('/data', [BlogTagController::class, 'data'])->name('data');
+    Route::post('/', [BlogTagController::class, 'store'])->name('store');
+    Route::get('/{tag}', [BlogTagController::class, 'show'])->name('show');
+    Route::get('/{tag}/edit', [BlogTagController::class, 'edit'])->name('edit');
+    Route::put('/{tag}', [BlogTagController::class, 'update'])->name('update');
+    Route::delete('/{tag}', [BlogTagController::class, 'destroy'])->name('destroy');
+    Route::post('/validate-field', [BlogTagController::class, 'validateField'])->name('validate-field');
+    Route::get('/get-tags', [BlogTagController::class, 'getTags'])->name('get-tags');
+});
+
+// Blog Posts Routes
+Route::prefix('blog-posts')->name('blog-posts.')->group(function () {
+    Route::get('/', [BlogPostController::class, 'index'])->name('index');
+    Route::get('/data', [BlogPostController::class, 'data'])->name('data');
+    Route::post('/', [BlogPostController::class, 'store'])->name('store')->middleware('can:create blog posts');
+    Route::get('/{post}', [BlogPostController::class, 'show'])->name('show')->middleware('can:view blog posts');
+    Route::get('/{post}/edit', [BlogPostController::class, 'edit'])->name('edit')->middleware('can:edit blog posts');
+    Route::put('/{post}', [BlogPostController::class, 'update'])->name('update')->middleware('can:edit blog posts');
+    Route::delete('/{post}', [BlogPostController::class, 'destroy'])->name('destroy')->middleware('can:delete blog posts');
+    
+    // Additional actions
+    Route::post('/upload-image', [BlogPostController::class, 'uploadImage'])->name('upload-image')->middleware('can:create blog posts');
+    Route::post('/generate-slug', [BlogPostController::class, 'generateSlug'])->name('generate-slug');
+    Route::post('/validate-slug', [BlogPostController::class, 'validateSlug'])->name('validate-slug');
+    Route::post('/validate-field', [BlogPostController::class, 'validateField'])->name('validate-field');
+    Route::post('/{post}/toggle-featured', [BlogPostController::class, 'toggleFeatured'])->name('toggle-featured')->middleware('can:edit blog posts');
+    Route::post('/{post}/toggle-published', [BlogPostController::class, 'togglePublished'])->name('toggle-published')->middleware('can:edit blog posts');
+});
+
+// Blog Comments
+Route::prefix('blog-comments')->name('blog-comments.')->middleware('permission:manage blog comments')->group(function () {
+    Route::get('/', [BlogCommentController::class, 'index'])->name('index');
+    Route::get('/data', [BlogCommentController::class, 'data'])->name('data');
+    Route::get('/post/{post}', [BlogCommentController::class, 'getByPost'])->name('get-by-post');
+    Route::post('/', [BlogCommentController::class, 'store'])->name('store');
+    Route::get('/{comment}', [BlogCommentController::class, 'show'])->name('show');
+    Route::put('/{comment}', [BlogCommentController::class, 'update'])->name('update');
+    Route::delete('/{comment}', [BlogCommentController::class, 'destroy'])->name('destroy');
+    Route::patch('/{comment}/approve', [BlogCommentController::class, 'approve'])->name('approve');
+    Route::patch('/{comment}/reject', [BlogCommentController::class, 'reject'])->name('reject');
+});
         // Bookings Routes (Placeholder - you'll need to create these controllers)
         Route::resource('bookings', BookingController::class);
         Route::get('bookings/calendar', [BookingController::class, 'calendar'])->name('bookings.calendar');
         
-        // Vehicles Routes (Placeholder - you'll need to create these controllers)
-        Route::resource('vehicles', VehicleController::class);
-        Route::resource('vehicles/categories', VehicleCategoryController::class)->except(['show']);
         
         // Customers Routes (Placeholder - you'll need to create this controller)
         Route::resource('customers', CustomerController::class);
@@ -88,16 +257,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
         Route::post('settings/general', [SettingController::class, 'updateGeneral']);
         
-        // Admin Management (requires permissions)
-        Route::middleware('permission:manage admins')->group(function () {
-            Route::resource('admins', AdminController::class);
-        });
-        
         // Role & Permission Management
         // These routes are protected by both permission middleware AND Super Admin middleware
         // for double security
         Route::middleware(['permission:manage roles', SuperAdminMiddleware::class])->group(function () {
             Route::resource('roles', RoleController::class);
+        });
+        
+        // Activity Logs
+        Route::prefix('activities')->name('activities.')->middleware('permission:view activities')->group(function () {
+            Route::get('/', [ActivityController::class, 'index'])->name('index');
+            Route::get('/export', [ActivityController::class, 'export'])->name('export');
+            Route::get('/{activity}', [ActivityController::class, 'show'])->name('show');
+            
+            // These routes require additional permissions
+            Route::delete('/{activity}', [ActivityController::class, 'destroy'])
+                ->name('destroy')
+                ->middleware('permission:delete activities');
+            
+            Route::delete('/clear', [ActivityController::class, 'clearAll'])
+                ->name('clear')
+                ->middleware('permission:clear activities');
         });
         
         // Permission Management - Super Admin only

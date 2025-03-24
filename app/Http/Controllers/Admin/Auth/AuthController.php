@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers\Admin\Auth;
 
-use App\Http\Controllers\Controller;
-use App\Models\Admin;
 use Carbon\Carbon;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Models\Admin;
+use App\Facades\Alert;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -74,9 +75,13 @@ class AuthController extends Controller
             
             // Check for two-factor authentication
             if ($admin->two_factor_enabled) {
+                // Flash success message for login before redirecting to 2FA page
+                session()->flash('sweet_alert', Alert::success('Logged In', 'Please complete two-factor authentication.'));
                 return redirect()->route('admin.two-factor.verify');
             }
             
+            // Flash success message for login
+            session()->flash('sweet_alert', Alert::success('Welcome Back!', 'You have successfully logged in.'));
             return redirect()->intended(route('admin.dashboard'));
         }
         
@@ -94,6 +99,8 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
+        // Flash success message for logout
+        session()->flash('sweet_alert', Alert::success('Logged Out', 'You have been logged out successfully.'));
         return redirect()->route('admin.login');
     }
     
