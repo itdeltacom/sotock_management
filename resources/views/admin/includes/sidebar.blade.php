@@ -63,6 +63,29 @@
             </a>
         @endcan
 
+        {{-- User Feedback Section --}}
+        <div class="sidebar-menu-item {{ request()->routeIs('admin.testimonials.*') || request()->routeIs('admin.reviews.*') ? 'active expanded' : '' }}"
+            data-toggle="collapse" data-target="#feedbackMenu">
+            <i class="fas fa-comment-dots"></i>
+            <span class="menu-text">User Feedback</span>
+            <i class="fas fa-chevron-right menu-arrow"></i>
+        </div>
+        <div class="sidebar-submenu {{ request()->routeIs('admin.testimonials.*') || request()->routeIs('admin.reviews.*') ? 'show' : '' }}"
+            id="feedbackMenu">
+            @canany(['view testimonials', 'edit testimonials', 'create testimonials', 'delete testimonials'])
+                <a href="{{ route('admin.testimonials.index') }}"
+                    class="sidebar-submenu-item {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}">
+                    <i class="fas fa-quote-right submenu-icon"></i> Testimonials
+                </a>
+            @endcanany
+            @can('manage reviews')
+                <a href="{{ route('admin.reviews.index') }}"
+                    class="sidebar-submenu-item {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}">
+                    <i class="fas fa-star submenu-icon"></i> Car Reviews
+                </a>
+            @endcan
+        </div>
+
         {{-- Blog Management Section --}}
         @canany(['view blog posts', 'view blog categories', 'view blog tags', 'view blog comments'])
             <div class="sidebar-menu-item {{ request()->routeIs('admin.blog-*') ? 'active expanded' : '' }}"
@@ -117,7 +140,25 @@
                     Reports</a>
             </div>
         @endcan
-
+        {{-- Newsletter Management Section --}}
+        @can('manage newsletters')
+            <div class="sidebar-menu-item {{ request()->routeIs('admin.newsletters.*') ? 'active expanded' : '' }}"
+                data-toggle="collapse" data-target="#newsletterMenu">
+                <i class="fas fa-envelope"></i>
+                <span class="menu-text">Newsletter</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+            </div>
+            <div class="sidebar-submenu {{ request()->routeIs('admin.newsletters.*') ? 'show' : '' }}" id="newsletterMenu">
+                <a href="{{ route('admin.newsletters.index') }}"
+                    class="sidebar-submenu-item {{ request()->routeIs('admin.newsletters.index') || request()->routeIs('admin.newsletters.create') || request()->routeIs('admin.newsletters.edit') ? 'active' : '' }}">
+                    <i class="fas fa-paper-plane submenu-icon"></i> Newsletters
+                </a>
+                <a href="{{ route('admin.newsletters.subscribers') }}"
+                    class="sidebar-submenu-item {{ request()->routeIs('admin.newsletters.subscribers') ? 'active' : '' }}">
+                    <i class="fas fa-users submenu-icon"></i> Subscribers
+                </a>
+            </div>
+        @endcan
         @can('manage settings')
             <div class="sidebar-menu-heading">Settings</div>
 
@@ -183,6 +224,19 @@
                     const createCategoryBtn = document.getElementById('createCategoryBtn');
                     if (createCategoryBtn) {
                         createCategoryBtn.click();
+                    }
+                });
+            }
+
+            // Add click event for the "Add New Testimonial" link
+            const addNewTestimonialLink = document.getElementById('addNewTestimonialLink');
+            if (addNewTestimonialLink) {
+                addNewTestimonialLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    // Trigger the "Add New Testimonial" button click if it exists
+                    const createTestimonialBtn = document.getElementById('createTestimonialBtn');
+                    if (createTestimonialBtn) {
+                        createTestimonialBtn.click();
                     }
                 });
             }

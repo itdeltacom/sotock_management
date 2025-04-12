@@ -19,7 +19,9 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\BlogCommentController;
+use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\BlogCategoryController;
+use App\Http\Controllers\Admin\NewsletterAdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -181,6 +183,22 @@ Route::prefix('reviews')->name('reviews.')->middleware('permission:manage review
     Route::get('/get-users', [ReviewController::class, 'getUsers'])->name('get-users');
 });
 
+// Testimonial Routes
+Route::prefix('testimonials')->name('testimonials.')->group(function () {
+    Route::get('/', [TestimonialController::class, 'index'])->name('index');
+    Route::get('/data', [TestimonialController::class, 'data'])->name('data');
+    Route::post('/', [TestimonialController::class, 'store'])->name('store')->middleware('can:create testimonials');
+    Route::get('/{testimonial}', [TestimonialController::class, 'show'])->name('show')->middleware('can:view testimonials');
+    Route::get('/{testimonial}/edit', [TestimonialController::class, 'edit'])->name('edit')->middleware('can:edit testimonials');
+    Route::put('/{testimonial}', [TestimonialController::class, 'update'])->name('update')->middleware('can:edit testimonials');
+    Route::delete('/{testimonial}', [TestimonialController::class, 'destroy'])->name('destroy')->middleware('can:delete testimonials');
+    
+    // Additional actions
+    Route::post('/{testimonial}/toggle-featured', [TestimonialController::class, 'toggleFeatured'])->name('toggle-featured')->middleware('can:edit testimonials');
+    Route::post('/{testimonial}/toggle-approval', [TestimonialController::class, 'toggleApproval'])->name('toggle-approval')->middleware('can:edit testimonials');
+    Route::post('/update-order', [TestimonialController::class, 'updateOrder'])->name('update-order')->middleware('can:edit testimonials');
+});
+
  // Blog Categories
  Route::prefix('blog-categories')->name('blog-categories.')->middleware('permission:manage blog categories')->group(function () {
     Route::get('/', [BlogCategoryController::class, 'index'])->name('index');
@@ -241,7 +259,28 @@ Route::prefix('blog-comments')->name('blog-comments.')->middleware('permission:m
         // Bookings Routes (Placeholder - you'll need to create these controllers)
         Route::resource('bookings', BookingController::class);
         Route::get('bookings/calendar', [BookingController::class, 'calendar'])->name('bookings.calendar');
-        
+        // Admin Newsletter Routes (add to admin.php)
+Route::prefix('newsletters')->name('newsletters.')->middleware(['auth:admin', 'permission:manage newsletters'])->group(function () {
+    Route::get('/', [NewsletterAdminController::class, 'index'])->name('index');
+    Route::get('/data', [NewsletterAdminController::class, 'data'])->name('data');
+    Route::get('/create', [NewsletterAdminController::class, 'create'])->name('create');
+    Route::post('/', [NewsletterAdminController::class, 'store'])->name('store');
+    Route::get('/{newsletter}', [NewsletterAdminController::class, 'show'])->name('show');
+    Route::get('/{newsletter}/edit', [NewsletterAdminController::class, 'edit'])->name('edit');
+    Route::put('/{newsletter}', [NewsletterAdminController::class, 'update'])->name('update');
+    Route::delete('/{newsletter}', [NewsletterAdminController::class, 'destroy'])->name('destroy');
+    Route::post('/{newsletter}/send', [NewsletterAdminController::class, 'send'])->name('send');
+    
+    // Subscriber Management
+    Route::get('/subscribers', [NewsletterAdminController::class, 'subscribers'])->name('subscribers');
+    Route::get('/subscribers/data', [NewsletterAdminController::class, 'subscribersData'])->name('subscribers.data');
+    Route::delete('/subscribers/{subscriber}', [NewsletterAdminController::class, 'deleteSubscriber'])->name('subscribers.delete');
+    Route::post('/subscribers/{subscriber}/toggle-status', [NewsletterAdminController::class, 'toggleSubscriberStatus'])->name('subscribers.toggle-status');
+    Route::post('/subscribers/{subscriber}/resend-confirmation', [NewsletterAdminController::class, 'resendConfirmation'])->name('subscribers.resend-confirmation');
+    Route::post('/subscribers/import', [NewsletterAdminController::class, 'importSubscribers'])->name('subscribers.import');
+    Route::get('/subscribers/export', [NewsletterAdminController::class, 'exportSubscribers'])->name('subscribers.export');
+});
+
         
         // Customers Routes (Placeholder - you'll need to create this controller)
         Route::resource('customers', CustomerController::class);

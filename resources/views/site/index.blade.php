@@ -7,7 +7,26 @@
 @section('og_title', 'Premium Car Rental Services | Cental')
 @section('og_description', 'Choose from our fleet of luxury vehicles. Get 15% off your rental today with free pick-up and 24/7 road assistance.')
 @section('og_image', asset('site/img/carousel-1.jpg'))
+@push('styles')
+    <style>
+        .testimonial-item {
+            position: relative;
+        }
 
+        .featured-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1;
+        }
+
+        .testimonial-inner img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+        }
+    </style>
+@endpush
 @section('content')
 
     <!-- Carousel Start -->
@@ -764,13 +783,13 @@
     <!-- Team End -->
 
     <!-- Testimonial Start -->
+    <!-- Testimonial Start -->
     <div class="container-fluid testimonial pb-5">
         <div class="container pb-5">
             <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
-                <h1 class="display-5 text-capitalize mb-3">Our Clients<span class="text-primary"> Riviews</span></h1>
-                <p class="mb-0">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ut amet nemo expedita
-                    asperiores commodi accusantium at cum harum, excepturi, quia tempora cupiditate! Adipisci facilis
-                    modi quisquam quia distinctio,
+                <h1 class="display-5 text-capitalize mb-3">Our Clients<span class="text-primary"> Reviews</span></h1>
+                <p class="mb-0">Don't just take our word for it! See what our satisfied customers have to say about their
+                    experience with Cental Car Rental. We're committed to providing exceptional service with every rental.
                 </p>
             </div>
             <div class="owl-carousel testimonial-carousel wow fadeInUp" data-wow-delay="0.1s">
@@ -779,11 +798,16 @@
                         <div class="testimonial-quote"><i class="fa fa-quote-right fa-2x"></i>
                         </div>
                         <div class="testimonial-inner p-4">
-                            <img src="{{ asset('site/img/testimonial-' . ($loop->index + 1) . '.jpg') }}" class="img-fluid"
-                                alt="">
+                            @if($review->image)
+                                <img src="{{ Storage::url($review->image) }}" class="img-fluid rounded-circle"
+                                    alt="{{ $review->user_name }}">
+                            @else
+                                <img src="{{ asset('site/img/testimonial-' . (($loop->index % 4) + 1) . '.jpg') }}"
+                                    class="img-fluid rounded-circle" alt="{{ $review->user_name }}">
+                            @endif
                             <div class="ms-4">
                                 <h4>{{ $review->user_name }}</h4>
-                                <p>Customer</p>
+                                <p>{{ $review->user_title ?: 'Customer' }}</p>
                                 <div class="d-flex text-primary">
                                     @for($i = 1; $i <= 5; $i++)
                                         @if($i <= $review->rating)
@@ -798,72 +822,266 @@
                         <div class="border-top rounded-bottom p-4">
                             <p class="mb-0">{{ $review->content }}</p>
                         </div>
+                        @if($review->is_featured)
+                            <div class="featured-badge">
+                                <span class="badge bg-primary rounded-pill py-1 px-3">
+                                    <i class="fas fa-star me-1"></i> Featured
+                                </span>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
+            </div>
+            <div class="text-center mt-4 wow fadeInUp" data-wow-delay="0.3s">
+                <a href="{{ route('testimonials') }}" class="btn btn-primary py-3 px-5 rounded-pill">View All Reviews</a>
+                <button type="button" class="btn btn-outline-primary py-3 px-5 rounded-pill ms-3" data-bs-toggle="modal"
+                    data-bs-target="#testimonialModal">
+                    <i class="fas fa-comment-alt me-2"></i>Share Your Experience
+                </button>
             </div>
         </div>
     </div>
     <!-- Testimonial End -->
 
+    <!-- Testimonial Modal -->
+    <div class="modal fade" id="testimonialModal" tabindex="-1" aria-labelledby="testimonialModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="testimonialModalLabel">Share Your Experience</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="testimonialForm">
+                        @csrf
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="name" name="name" placeholder="Your Name"
+                                        required>
+                                    <label for="name">Your Name</label>
+                                    <div class="invalid-feedback" id="name-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="email" class="form-control" id="email" name="email"
+                                        placeholder="Your Email" required>
+                                    <label for="email">Your Email</label>
+                                    <div class="invalid-feedback" id="email-error"></div>
+                                </div>
+                                <small class="text-muted">Your email will not be published</small>
+                            </div>
+                            <div class="col-12">
+                                <div class="mb-2">Your Rating</div>
+                                <div class="rating-selector d-flex align-items-center">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="rating" id="rating1" value="1">
+                                        <label class="form-check-label" for="rating1">1 <i
+                                                class="fas fa-star text-warning"></i></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="rating" id="rating2" value="2">
+                                        <label class="form-check-label" for="rating2">2 <i
+                                                class="fas fa-star text-warning"></i></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="rating" id="rating3" value="3">
+                                        <label class="form-check-label" for="rating3">3 <i
+                                                class="fas fa-star text-warning"></i></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="rating" id="rating4" value="4">
+                                        <label class="form-check-label" for="rating4">4 <i
+                                                class="fas fa-star text-warning"></i></label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="rating" id="rating5" value="5"
+                                            checked>
+                                        <label class="form-check-label" for="rating5">5 <i
+                                                class="fas fa-star text-warning"></i></label>
+                                    </div>
+                                </div>
+                                <div class="invalid-feedback d-block" id="rating-error"></div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <textarea class="form-control" placeholder="Share your experience with us" id="content"
+                                        name="content" style="height: 150px" required></textarea>
+                                    <label for="content">Your Testimonial</label>
+                                    <div class="invalid-feedback" id="content-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <!-- Google reCAPTCHA -->
+                                <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
+                                <div class="invalid-feedback d-block" id="g-recaptcha-response-error"></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitTestimonial">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Testimonial
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Structured Data for Car Rental Service -->
     <script type="application/ld+json">
-                                                {
-                                                  "@context": "https://schema.org",
-                                                  "@type": "CarRentalBusiness",
-                                                  "name": "Cental Car Rental",
-                                                  "image": "{{asset('site/img/carousel-1.jpg')}}",
-                                                  "address": {
-                                                    "@type": "PostalAddress",
-                                                    "streetAddress": "123 Main Street",
-                                                    "addressLocality": "New York",
-                                                    "addressRegion": "NY",
-                                                    "postalCode": "10001",
-                                                    "addressCountry": "US"
-                                                  },
-                                                  "geo": {
-                                                    "@type": "GeoCoordinates",
-                                                    "latitude": "40.7128",
-                                                    "longitude": "-74.0060"
-                                                  },
-                                                  "url": "{{url('/')}}",
-                                                  "telephone": "+1-234-567-8901",
-                                                  "openingHoursSpecification": [
-                                                    {
-                                                      "@type": "OpeningHoursSpecification",
-                                                      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                                                      "opens": "08:00",
-                                                      "closes": "18:00"
-                                                    },
-                                                    {
-                                                      "@type": "OpeningHoursSpecification",
-                                                      "dayOfWeek": ["Saturday"],
-                                                      "opens": "09:00",
-                                                      "closes": "16:00"
-                                                    }
-                                                  ],
-                                                  "priceRange": "$99 - $187",
-                                                  "aggregateRating": {
-                                                    "@type": "AggregateRating",
-                                                    "ratingValue": "4.5",
-                                                    "reviewCount": "{{ $stats['happy_clients'] }}"
-                                                  }
-                                                }
-                                                </script>
+                                                                    {
+                                                                      "@context": "https://schema.org",
+                                                                      "@type": "CarRentalBusiness",
+                                                                      "name": "Cental Car Rental",
+                                                                      "image": "{{asset('site/img/carousel-1.jpg')}}",
+                                                                      "address": {
+                                                                        "@type": "PostalAddress",
+                                                                        "streetAddress": "123 Main Street",
+                                                                        "addressLocality": "New York",
+                                                                        "addressRegion": "NY",
+                                                                        "postalCode": "10001",
+                                                                        "addressCountry": "US"
+                                                                      },
+                                                                      "geo": {
+                                                                        "@type": "GeoCoordinates",
+                                                                        "latitude": "40.7128",
+                                                                        "longitude": "-74.0060"
+                                                                      },
+                                                                      "url": "{{url('/')}}",
+                                                                      "telephone": "+1-234-567-8901",
+                                                                      "openingHoursSpecification": [
+                                                                        {
+                                                                          "@type": "OpeningHoursSpecification",
+                                                                          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                                                                          "opens": "08:00",
+                                                                          "closes": "18:00"
+                                                                        },
+                                                                        {
+                                                                          "@type": "OpeningHoursSpecification",
+                                                                          "dayOfWeek": ["Saturday"],
+                                                                          "opens": "09:00",
+                                                                          "closes": "16:00"
+                                                                        }
+                                                                      ],
+                                                                      "priceRange": "$99 - $187",
+                                                                      "aggregateRating": {
+                                                                        "@type": "AggregateRating",
+                                                                        "ratingValue": "4.5",
+                                                                        "reviewCount": "{{ $stats['happy_clients'] }}"
+                                                                      }
+                                                                    }
+                                                                    </script>
     <script type="application/ld+json">
-                                                    {
-                                                        "@context": "https://schema.org",
-                                                        "@type": "Service",
-                                                        "serviceType": "Car Rental",
-                                                        "provider": {
-                                                            "@type": "Organization",
-                                                            "name": "Cental Car Rental"
-                                                        },
-                                                        "areaServed": "USA",
-                                                        "offers": {
-                                                            "@type": "Offer",
-                                                            "priceCurrency": "USD",
-                                                            "priceRange": "$99 - $187"
-                                                        }
-                                                    }
-                                                    </script>
+                                                                        {
+                                                                            "@context": "https://schema.org",
+                                                                            "@type": "Service",
+                                                                            "serviceType": "Car Rental",
+                                                                            "provider": {
+                                                                                "@type": "Organization",
+                                                                                "name": "Cental Car Rental"
+                                                                            },
+                                                                            "areaServed": "USA",
+                                                                            "offers": {
+                                                                                "@type": "Offer",
+                                                                                "priceCurrency": "USD",
+                                                                                "priceRange": "$99 - $187"
+                                                                            }
+                                                                        }
+                                                                        </script>
 @endsection
+
+@push('scripts')
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            // Submit testimonial form via AJAX
+            $('#submitTestimonial').on('click', function () {
+                // Clear previous errors
+                $('.is-invalid').removeClass('is-invalid');
+                $('.invalid-feedback').text('');
+
+                // Get form data
+                let formData = new FormData();
+                formData.append('name', $('#name').val());
+                formData.append('email', $('#email').val());
+                formData.append('rating', $('input[name="rating"]:checked').val());
+                formData.append('content', $('#content').val());
+                formData.append('g-recaptcha-response', grecaptcha.getResponse());
+                formData.append('_token', $('input[name="_token"]').val());
+
+                // Submit form via AJAX
+                $.ajax({
+                    url: "{{ route('testimonials.submit.ajax') }}",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    beforeSend: function () {
+                        // Disable submit button and show loading state
+                        $('#submitTestimonial').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Submitting...');
+                    },
+                    success: function (response) {
+                        // Close modal
+                        $('#testimonialModal').modal('hide');
+
+                        // Show success message
+                        Swal.fire({
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'Thank you for your testimonial!',
+                            text: 'Your review has been submitted and will be published after approval.',
+                            toast: true,
+                            showConfirmButton: false,
+                            timer: 5000,
+                            timerProgressBar: true
+                        });
+
+                        // Reset form
+                        $('#testimonialForm')[0].reset();
+                        grecaptcha.reset();
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            // Validation errors
+                            let errors = xhr.responseJSON.errors;
+
+                            // Display each error on the form
+                            $.each(errors, function (field, messages) {
+                                $('#' + field).addClass('is-invalid');
+                                $('#' + field + '-error').text(messages[0]);
+                            });
+                        } else {
+                            // General error
+                            Swal.fire({
+                                position: 'top-end',
+                                icon: 'error',
+                                title: 'Oops!',
+                                text: 'Something went wrong. Please try again later.',
+                                toast: true,
+                                showConfirmButton: false,
+                                timer: 5000
+                            });
+                        }
+                    },
+                    complete: function () {
+                        // Re-enable submit button
+                        $('#submitTestimonial').prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Submit Testimonial');
+                    }
+                });
+            });
+
+            // Reset form when modal is closed
+            $('#testimonialModal').on('hidden.bs.modal', function () {
+                $('#testimonialForm')[0].reset();
+                $('.is-invalid').removeClass('is-invalid');
+                $('.invalid-feedback').text('');
+                grecaptcha.reset();
+            });
+        });
+    </script>
+@endpush

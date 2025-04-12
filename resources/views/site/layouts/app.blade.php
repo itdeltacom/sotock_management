@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <title>@yield('title', 'Cental - Premium Car Rental Services')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- SEO Meta Tags -->
     <meta name="description"
         content="@yield('meta_description', 'Cental offers premium car rental services with a wide selection of vehicles at competitive prices. Easy booking, 24/7 support, and free pick-up services.')">

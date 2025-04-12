@@ -55,6 +55,12 @@ class AdminSeeder extends Seeder
             'delete brands',
             'manage vehicles',
             'view vehicles',
+
+            //reviews
+            'manage reviews',
+            'create reviews',
+            'edit reviews',
+            'delete reviews',
             
             // Booking permissions
             'manage bookings',
@@ -106,7 +112,28 @@ class AdminSeeder extends Seeder
             'manage activities',
             'view activities',
             'delete activities',
-            'clear activities'
+            'clear activities',
+            
+            //testimonials
+            'view testimonials',
+            'create testimonials',
+            'edit testimonials',
+            'delete testimonials',
+            'manage testimonials',
+            
+            // Newsletter permissions
+            'manage newsletters',
+            'view newsletters',
+            'create newsletters',
+            'edit newsletters',
+            'delete newsletters',
+            'send newsletters',
+            'manage newsletter subscribers',
+            'view newsletter subscribers',
+            'edit newsletter subscribers',
+            'delete newsletter subscribers',
+            'import newsletter subscribers',
+            'export newsletter subscribers',
         ];
 
         foreach ($permissions as $permission) {
@@ -136,6 +163,11 @@ class AdminSeeder extends Seeder
             'view cars',
             'view categories',
             'view brands',
+            'view newsletters',
+            'create newsletters',
+            'edit newsletters',
+            'send newsletters',
+            'view newsletter subscribers',
         ]);
 
         $managerRole = Role::create(['name' => 'Manager', 'guard_name' => 'admin']);

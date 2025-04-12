@@ -957,14 +957,16 @@
                     <div class="sidebar-widget wow fadeInUp" data-wow-delay="0.1s">
                         <h3>Newsletter</h3>
                         <p>Subscribe to our newsletter to get the latest updates directly to your inbox.</p>
-                        <form method="POST">
+                        <form id="newsletterForm">
                             @csrf
                             <div class="input-group">
-                                <input type="email" name="email" class="form-control" placeholder="Your Email *" required>
+                                <input type="email" name="email" class="form-control" placeholder="Your Email *"
+                                    id="newsletter-email">
                                 <button class="btn btn-primary" type="submit">
                                     Subscribe
                                 </button>
                             </div>
+                            <div class="invalid-feedback" id="newsletter-email-error"></div>
                         </form>
                     </div>
                 </div>
@@ -980,75 +982,75 @@
 
     <!-- Structured Data for Article -->
     <script type="application/ld+json">
-                {
-                  "@context": "https://schema.org",
-                  "@type": "BlogPosting",
-                  "mainEntityOfPage": {
-                    "@type": "WebPage",
-                    "@id": "{{ route('blog.show', $post->slug) }}"
-                  },
-                  "headline": "{{ $post->title }}",
-                  "description": "{{ $post->meta_description ?? Str::limit(strip_tags($post->content), 160) }}",
-                  "image": "{{ $post->featured_image ? Storage::url($post->featured_image) : asset('site/img/blog-header.jpg') }}",
-                  "author": {
-                    "@type": "Person",
-                    "name": "{{ $post->author ? $post->author->name : 'Admin' }}"
-                  },
-                  "publisher": {
-                    "@type": "Organization",
-                    "name": "Cental Car Rental",
-                    "logo": {
-                      "@type": "ImageObject",
-                      "url": "{{ asset('site/img/logo.png') }}"
-                    }
-                  },
-                  "datePublished": "{{ $post->published_at->toIso8601String() }}",
-                  "dateModified": "{{ $post->updated_at->toIso8601String() }}"
-                }
-                </script>
+                                                {
+                                                  "@context": "https://schema.org",
+                                                  "@type": "BlogPosting",
+                                                  "mainEntityOfPage": {
+                                                    "@type": "WebPage",
+                                                    "@id": "{{ route('blog.show', $post->slug) }}"
+                                                  },
+                                                  "headline": "{{ $post->title }}",
+                                                  "description": "{{ $post->meta_description ?? Str::limit(strip_tags($post->content), 160) }}",
+                                                  "image": "{{ $post->featured_image ? Storage::url($post->featured_image) : asset('site/img/blog-header.jpg') }}",
+                                                  "author": {
+                                                    "@type": "Person",
+                                                    "name": "{{ $post->author ? $post->author->name : 'Admin' }}"
+                                                  },
+                                                  "publisher": {
+                                                    "@type": "Organization",
+                                                    "name": "Cental Car Rental",
+                                                    "logo": {
+                                                      "@type": "ImageObject",
+                                                      "url": "{{ asset('site/img/logo.png') }}"
+                                                    }
+                                                  },
+                                                  "datePublished": "{{ $post->published_at->toIso8601String() }}",
+                                                  "dateModified": "{{ $post->updated_at->toIso8601String() }}"
+                                                }
+                                                </script>
 
     <!-- Structured Data for BreadcrumbList -->
     <script type="application/ld+json">
-                {
-                  "@context": "https://schema.org",
-                  "@type": "BreadcrumbList",
-                  "itemListElement": [
-                    {
-                      "@type": "ListItem",
-                      "position": 1,
-                      "name": "Home",
-                      "item": "{{ route('home') }}"
-                    },
-                    {
-                      "@type": "ListItem",
-                      "position": 2,
-                      "name": "Blog",
-                      "item": "{{ route('blog.index') }}"
-                    },
-                    @if($post->category)
-                        {
-                          "@type": "ListItem",
-                          "position": 3,
-                          "name": "{{ $post->category->name }}",
-                          "item": "{{ route('blog.category', $post->category->slug) }}"
-                        },
-                        {
-                          "@type": "ListItem",
-                          "position": 4,
-                          "name": "{{ $post->title }}",
-                          "item": "{{ route('blog.show', $post->slug) }}"
-                        }
-                    @else
-                        {
-                          "@type": "ListItem",
-                          "position": 3,
-                          "name": "{{ $post->title }}",
-                          "item": "{{ route('blog.show', $post->slug) }}"
-                        }
-                    @endif
-                  ]
-                }
-                </script>
+                                                {
+                                                  "@context": "https://schema.org",
+                                                  "@type": "BreadcrumbList",
+                                                  "itemListElement": [
+                                                    {
+                                                      "@type": "ListItem",
+                                                      "position": 1,
+                                                      "name": "Home",
+                                                      "item": "{{ route('home') }}"
+                                                    },
+                                                    {
+                                                      "@type": "ListItem",
+                                                      "position": 2,
+                                                      "name": "Blog",
+                                                      "item": "{{ route('blog.index') }}"
+                                                    },
+                                                    @if($post->category)
+                                                        {
+                                                          "@type": "ListItem",
+                                                          "position": 3,
+                                                          "name": "{{ $post->category->name }}",
+                                                          "item": "{{ route('blog.category', $post->category->slug) }}"
+                                                        },
+                                                        {
+                                                          "@type": "ListItem",
+                                                          "position": 4,
+                                                          "name": "{{ $post->title }}",
+                                                          "item": "{{ route('blog.show', $post->slug) }}"
+                                                        }
+                                                    @else
+                                                        {
+                                                          "@type": "ListItem",
+                                                          "position": 3,
+                                                          "name": "{{ $post->title }}",
+                                                          "item": "{{ route('blog.show', $post->slug) }}"
+                                                        }
+                                                    @endif
+                                                  ]
+                                                }
+                                                </script>
 @endsection
 
 @push('scripts')
@@ -1298,60 +1300,60 @@
             // Function to append new comment to the comments list
             function appendNewComment(comment) {
                 const commentHtml = `
-                            <div class="comment wow fadeInUp" id="comment-${comment.id}" data-wow-delay="0.1s">
-                                <div class="comment-author-img">
-                                    <img src="${comment.avatar}" class="img-fluid" alt="${comment.name}">
-                                </div>
-                                <div class="comment-body">
-                                    <h4 class="comment-author">${comment.name}</h4>
-                                    <div class="comment-date">${comment.formattedDate}</div>
-                                    <div class="comment-content">
-                                        <p>${comment.content}</p>
-                                    </div>
-                                    <div class="comment-reply" data-comment-id="${comment.id}">Reply</div>
+                                                            <div class="comment wow fadeInUp" id="comment-${comment.id}" data-wow-delay="0.1s">
+                                                                <div class="comment-author-img">
+                                                                    <img src="${comment.avatar}" class="img-fluid" alt="${comment.name}">
+                                                                </div>
+                                                                <div class="comment-body">
+                                                                    <h4 class="comment-author">${comment.name}</h4>
+                                                                    <div class="comment-date">${comment.formattedDate}</div>
+                                                                    <div class="comment-content">
+                                                                        <p>${comment.content}</p>
+                                                                    </div>
+                                                                    <div class="comment-reply" data-comment-id="${comment.id}">Reply</div>
 
-                                    <!-- Reply Form -->
-                                    <div class="reply-form" id="reply-form-${comment.id}" style="display: none;">
-                                        <form action="javascript:void(0)" method="POST" data-post-slug="${$('#comment-form').data('post-slug')}" data-comment-id="${comment.id}">
-                                            @csrf
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <input type="text" name="name" class="form-control" placeholder="Your Name *" required value="${$('#comment-form [name="name"]').val()}">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <input type="email" name="email" class="form-control" placeholder="Your Email *" required value="${$('#comment-form [name="email"]').val()}">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-12">
-                                                    <div class="form-group">
-                                                        <input type="url" name="website" class="form-control" placeholder="Your Website" value="${$('#comment-form [name="website"]').val()}">
-                                                    </div>
-                                                </div>
-                                                <div class="col-12">
-                                                    <div class="form-group">
-                                                        <textarea name="content" class="form-control" rows="3" placeholder="Your Reply *" required></textarea>
-                                                    </div>
-                                                    <div class="form-check mb-3">
-                                                        <input type="checkbox" class="form-check-input" id="saveInfoReply${comment.id}" name="save_info" checked>
-                                                        <label class="form-check-label" for="saveInfoReply${comment.id}">Save my information for future comments</label>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary">Submit Reply</button>
-                                                    <button type="button" class="btn btn-secondary cancel-reply" data-comment-id="${comment.id}">Cancel</button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
+                                                                    <!-- Reply Form -->
+                                                                    <div class="reply-form" id="reply-form-${comment.id}" style="display: none;">
+                                                                        <form action="javascript:void(0)" method="POST" data-post-slug="${$('#comment-form').data('post-slug')}" data-comment-id="${comment.id}">
+                                                                            @csrf
+                                                                            <div class="row">
+                                                                                <div class="col-md-6">
+                                                                                    <div class="form-group">
+                                                                                        <input type="text" name="name" class="form-control" placeholder="Your Name *" required value="${$('#comment-form [name="name"]').val()}">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <div class="form-group">
+                                                                                        <input type="email" name="email" class="form-control" placeholder="Your Email *" required value="${$('#comment-form [name="email"]').val()}">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-md-12">
+                                                                                    <div class="form-group">
+                                                                                        <input type="url" name="website" class="form-control" placeholder="Your Website" value="${$('#comment-form [name="website"]').val()}">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <div class="form-group">
+                                                                                        <textarea name="content" class="form-control" rows="3" placeholder="Your Reply *" required></textarea>
+                                                                                    </div>
+                                                                                    <div class="form-check mb-3">
+                                                                                        <input type="checkbox" class="form-check-input" id="saveInfoReply${comment.id}" name="save_info" checked>
+                                                                                        <label class="form-check-label" for="saveInfoReply${comment.id}">Save my information for future comments</label>
+                                                                                    </div>
+                                                                                    <button type="submit" class="btn btn-primary">Submit Reply</button>
+                                                                                    <button type="button" class="btn btn-secondary cancel-reply" data-comment-id="${comment.id}">Cancel</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </form>
+                                                                    </div>
+                                                                </div>
 
-                                <!-- Comment Replies -->
-                                <div class="replies" id="replies-${comment.id}">
-                                    <!-- Replies will be added here -->
-                                </div>
-                            </div>
-                        `;
+                                                                <!-- Comment Replies -->
+                                                                <div class="replies" id="replies-${comment.id}">
+                                                                    <!-- Replies will be added here -->
+                                                                </div>
+                                                            </div>
+                                                        `;
 
                 // If no comments yet, remove the no comments message
                 if ($('.comments-list p').length > 0 && $('.comments-list p').text().includes('No comments yet')) {
@@ -1368,19 +1370,19 @@
             // Function to append new reply to the replies list
             function appendNewReply(reply) {
                 const replyHtml = `
-                            <div class="comment reply wow fadeInUp" id="comment-${reply.id}" data-wow-delay="0.1s">
-                                <div class="comment-author-img">
-                                    <img src="${reply.avatar}" class="img-fluid" alt="${reply.name}">
-                                </div>
-                                <div class="comment-body">
-                                    <h4 class="comment-author">${reply.name}</h4>
-                                    <div class="comment-date">${reply.formattedDate}</div>
-                                    <div class="comment-content">
-                                        <p>${reply.content}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                                                            <div class="comment reply wow fadeInUp" id="comment-${reply.id}" data-wow-delay="0.1s">
+                                                                <div class="comment-author-img">
+                                                                    <img src="${reply.avatar}" class="img-fluid" alt="${reply.name}">
+                                                                </div>
+                                                                <div class="comment-body">
+                                                                    <h4 class="comment-author">${reply.name}</h4>
+                                                                    <div class="comment-date">${reply.formattedDate}</div>
+                                                                    <div class="comment-content">
+                                                                        <p>${reply.content}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        `;
 
                 // Append the new reply to the replies list
                 $(`#replies-${reply.parentId}`).append(replyHtml);
@@ -1464,77 +1466,77 @@
                 if (comment.hasReplies) {
                     comment.replies.forEach(function (reply) {
                         repliesHtml += `
-                                    <div class="comment reply" id="comment-${reply.id}">
-                                        <div class="comment-author-img">
-                                            <img src="${reply.avatar}" class="img-fluid" alt="${reply.name}">
-                                        </div>
-                                        <div class="comment-body">
-                                            <h4 class="comment-author">${reply.name}</h4>
-                                            <div class="comment-date">${reply.formattedDate}</div>
-                                            <div class="comment-content">
-                                                <p>${reply.content}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `;
+                                                                    <div class="comment reply" id="comment-${reply.id}">
+                                                                        <div class="comment-author-img">
+                                                                            <img src="${reply.avatar}" class="img-fluid" alt="${reply.name}">
+                                                                        </div>
+                                                                        <div class="comment-body">
+                                                                            <h4 class="comment-author">${reply.name}</h4>
+                                                                            <div class="comment-date">${reply.formattedDate}</div>
+                                                                            <div class="comment-content">
+                                                                                <p>${reply.content}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                `;
                     });
                 }
 
                 const commentHtml = `
-                            <div class="comment" id="comment-${comment.id}">
-                                <div class="comment-author-img">
-                                    <img src="${comment.avatar}" class="img-fluid" alt="${comment.name}">
-                                </div>
-                                <div class="comment-body">
-                                    <h4 class="comment-author">${comment.name}</h4>
-                                    <div class="comment-date">${comment.formattedDate}</div>
-                                    <div class="comment-content">
-                                        <p>${comment.content}</p>
-                                    </div>
-                                    <div class="comment-reply" data-comment-id="${comment.id}">Reply</div>
+                                                            <div class="comment" id="comment-${comment.id}">
+                                                                <div class="comment-author-img">
+                                                                    <img src="${comment.avatar}" class="img-fluid" alt="${comment.name}">
+                                                                </div>
+                                                                <div class="comment-body">
+                                                                    <h4 class="comment-author">${comment.name}</h4>
+                                                                    <div class="comment-date">${comment.formattedDate}</div>
+                                                                    <div class="comment-content">
+                                                                        <p>${comment.content}</p>
+                                                                    </div>
+                                                                    <div class="comment-reply" data-comment-id="${comment.id}">Reply</div>
 
-                                    <!-- Reply Form -->
-                                    <div class="reply-form" id="reply-form-${comment.id}" style="display: none;">
-                                        <form action="javascript:void(0)" method="POST" data-post-slug="${$('#comment-form').data('post-slug')}" data-comment-id="${comment.id}">
-                                            @csrf
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <input type="text" name="name" class="form-control" placeholder="Your Name *" required value="${$('#comment-form [name="name"]').val()}">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="form-group">
-                                                        <input type="email" name="email" class="form-control" placeholder="Your Email *" required value="${$('#comment-form [name="email"]').val()}">
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-12">
-                                                    <div class="form-group">
-                                                        <input type="url" name="website" class="form-control" placeholder="Your Website" value="${$('#comment-form [name="website"]').val()}">
-                                                    </div>
-                                                </div>
-                                                <div class="col-12">
-                                                    <div class="form-group">
-                                                        <textarea name="content" class="form-control" rows="3" placeholder="Your Reply *" required></textarea>
-                                                    </div>
-                                                    <div class="form-check mb-3">
-                                                        <input type="checkbox" class="form-check-input" id="saveInfoReply${comment.id}" name="save_info" checked>
-                                                        <label class="form-check-label" for="saveInfoReply${comment.id}">Save my information for future comments</label>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary">Submit Reply</button>
-                                                    <button type="button" class="btn btn-secondary cancel-reply" data-comment-id="${comment.id}">Cancel</button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
+                                                                    <!-- Reply Form -->
+                                                                    <div class="reply-form" id="reply-form-${comment.id}" style="display: none;">
+                                                                        <form action="javascript:void(0)" method="POST" data-post-slug="${$('#comment-form').data('post-slug')}" data-comment-id="${comment.id}">
+                                                                            @csrf
+                                                                            <div class="row">
+                                                                                <div class="col-md-6">
+                                                                                    <div class="form-group">
+                                                                                        <input type="text" name="name" class="form-control" placeholder="Your Name *" required value="${$('#comment-form [name="name"]').val()}">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <div class="form-group">
+                                                                                        <input type="email" name="email" class="form-control" placeholder="Your Email *" required value="${$('#comment-form [name="email"]').val()}">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-md-12">
+                                                                                    <div class="form-group">
+                                                                                        <input type="url" name="website" class="form-control" placeholder="Your Website" value="${$('#comment-form [name="website"]').val()}">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <div class="form-group">
+                                                                                        <textarea name="content" class="form-control" rows="3" placeholder="Your Reply *" required></textarea>
+                                                                                    </div>
+                                                                                    <div class="form-check mb-3">
+                                                                                        <input type="checkbox" class="form-check-input" id="saveInfoReply${comment.id}" name="save_info" checked>
+                                                                                        <label class="form-check-label" for="saveInfoReply${comment.id}">Save my information for future comments</label>
+                                                                                    </div>
+                                                                                    <button type="submit" class="btn btn-primary">Submit Reply</button>
+                                                                                    <button type="button" class="btn btn-secondary cancel-reply" data-comment-id="${comment.id}">Cancel</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </form>
+                                                                    </div>
+                                                                </div>
 
-                                <!-- Comment Replies -->
-                                <div class="replies" id="replies-${comment.id}">
-                                    ${repliesHtml}
-                                </div>
-                            </div>
-                        `;
+                                                                <!-- Comment Replies -->
+                                                                <div class="replies" id="replies-${comment.id}">
+                                                                    ${repliesHtml}
+                                                                </div>
+                                                            </div>
+                                                        `;
 
                 // Append the comment to the comments list
                 $('.comments-list').append(commentHtml);
@@ -1559,6 +1561,107 @@
 
             // Make blog content images clickable
             $(".blog-content img").css("cursor", "pointer");
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            // Initialize email validation
+            const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+            // Real-time email validation
+            $('#newsletter-email').on('input', function () {
+                const email = $(this).val();
+                const isValid = emailRegex.test(email);
+
+                if (email && !isValid) {
+                    $(this).addClass('is-invalid');
+                    $('#newsletter-email-error').text('Please enter a valid email address').show();
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $('#newsletter-email-error').hide();
+                }
+            });
+
+            // Form submission
+            $('#newsletterForm').on('submit', function (e) {
+                e.preventDefault();
+
+                const email = $('#newsletter-email').val();
+
+                // Validate email again
+                if (!email || !emailRegex.test(email)) {
+                    $('#newsletter-email').addClass('is-invalid');
+                    $('#newsletter-email-error').text('Please enter a valid email address').show();
+                    return false;
+                }
+
+                // Submit the subscription request
+                $.ajax({
+                    url: "{{ route('newsletter.subscribe') }}",
+                    method: 'POST',
+                    data: {
+                        email: email,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    beforeSend: function () {
+                        // Disable button and show loading
+                        $('#newsletterForm button[type="submit"]').prop('disabled', true)
+                            .html('<i class="fas fa-spinner fa-spin"></i>');
+                    },
+                    success: function (response) {
+                        // Reset form
+                        $('#newsletterForm')[0].reset();
+
+                        // Show success message with SweetAlert2
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message,
+                            icon: 'success',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 5000,
+                            timerProgressBar: true
+                        });
+                    },
+                    error: function (xhr) {
+                        let errorMessage = 'Failed to subscribe. Please try again later.';
+
+                        if (xhr.status === 422) {
+                            // Validation errors
+                            const errors = xhr.responseJSON.errors;
+
+                            if (errors && errors.email) {
+                                errorMessage = errors.email[0];
+                                $('#newsletter-email').addClass('is-invalid');
+                                $('#newsletter-email-error').text(errors.email[0]).show();
+                            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                                $('#newsletter-email').addClass('is-invalid');
+                                $('#newsletter-email-error').text(xhr.responseJSON.message).show();
+                            }
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+
+                        // Show error as SweetAlert2 toast
+                        Swal.fire({
+                            title: 'Error',
+                            text: errorMessage,
+                            icon: 'error',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 5000
+                        });
+                    },
+                    complete: function () {
+                        // Re-enable button
+                        $('#newsletterForm button[type="submit"]').prop('disabled', false)
+                            .html('Subscribe');
+                    }
+                });
+            });
         });
     </script>
 @endpush

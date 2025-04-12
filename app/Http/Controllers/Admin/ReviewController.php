@@ -19,7 +19,7 @@ class ReviewController extends Controller
     public function index()
     {
         $cars = Car::orderBy('name')->get();
-        return view('admin.reviews.index', compact('cars'));
+        return view('admin.cars.reviews', compact('cars'));
     }
 
     /**

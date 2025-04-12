@@ -92,7 +92,7 @@ public function show($slug)
             
             // Admin users can preview posts
             if (auth()->guard('admin')->check()) {
-                $query->orWhere('id', '>', 0); // This allows admins to see all posts
+                $query->orWhere('id', '>', 0); 
             }
         })
         ->firstOrFail();

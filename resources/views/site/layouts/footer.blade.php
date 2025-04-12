@@ -10,12 +10,18 @@
                             customer experience.</p>
                     </div>
                     <div class="position-relative">
-                        <form action="{{ route('contact.submit') }}" method="POST">
+                        <form id="newsletterForm">
                             @csrf
-                            <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="email" name="email"
-                                placeholder="Enter your email" required>
-                            <button type="submit"
-                                class="btn btn-secondary rounded-pill position-absolute top-0 end-0 py-2 mt-2 me-2">Subscribe</button>
+                            <div class="input-group">
+                                <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="email" name="email"
+                                    id="newsletter-email" placeholder="Enter your email" required>
+                                <button type="submit"
+                                    class="btn btn-secondary rounded-pill position-absolute top-0 end-0 py-2 mt-2 me-2"
+                                    id="subscribeBtn">Subscribe</button>
+                            </div>
+                            <div class="invalid-feedback" id="newsletter-email-error"></div>
+                            <div class="form-text text-white mt-1">Subscribe to our newsletter for exclusive deals and
+                                updates.</div>
                         </form>
                     </div>
                 </div>
@@ -87,8 +93,9 @@
                 </span>
             </div>
             <div class="col-md-6 text-center text-md-end text-body">
-                Designed By <a class="border-bottom text-white" href="https://htmlcodex.com">HTML Codex</a>
-                Distributed By <a class="border-bottom text-white" href="https://themewagon.com">ThemeWagon</a>
+                Designed By <a class="border-bottom text-white" href="itdeltacom.com">It Delta Com</a>
+                {{-- Distributed By <a class="border-bottom text-white" href="https://themewagon.com">ThemeWagon</a>
+                --}}
             </div>
         </div>
     </div>
@@ -122,3 +129,99 @@
 
 <!-- Back to Top -->
 <a href="#" class="btn btn-secondary btn-lg-square rounded-circle back-to-top"><i class="fa fa-arrow-up"></i></a>
+
+@push('js')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            // Initialize email validation
+            const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+            // Real-time email validation
+            $('#newsletter-email').on('input', function () {
+                const email = $(this).val();
+                const isValid = emailRegex.test(email);
+
+                if (email && !isValid) {
+                    $(this).addClass('is-invalid');
+                    $('#newsletter-email-error').text('Please enter a valid email address').show();
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $('#newsletter-email-error').hide();
+                }
+            });
+
+            // Form submission
+            $('#newsletterForm').on('submit', function (e) {
+                e.preventDefault();
+
+                const email = $('#newsletter-email').val();
+
+                // Validate email again
+                if (!email || !emailRegex.test(email)) {
+                    $('#newsletter-email').addClass('is-invalid');
+                    $('#newsletter-email-error').text('Please enter a valid email address').show();
+                    return false;
+                }
+
+                // Submit the subscription request
+                $.ajax({
+                    url: "{{ route('newsletter.subscribe') }}",
+                    method: 'POST',
+                    data: {
+                        email: email,
+                        _token: '{{ csrf_token() }}'
+                    },
+                    beforeSend: function () {
+                        // Disable button and show loading
+                        $('#subscribeBtn').prop('disabled', true)
+                            .html('<i class="fas fa-spinner fa-spin"></i>');
+                    },
+                    success: function (response) {
+                        // Reset form
+                        $('#newsletterForm')[0].reset();
+
+                        // Show success message
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message,
+                            icon: 'success',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 5000,
+                            timerProgressBar: true
+                        });
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            // Validation errors
+                            const errors = xhr.responseJSON.errors;
+
+                            if (errors.email) {
+                                $('#newsletter-email').addClass('is-invalid');
+                                $('#newsletter-email-error').text(errors.email[0]).show();
+                            }
+                        } else {
+                            // Generic error
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'Failed to subscribe. Please try again later.',
+                                icon: 'error',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
+                    },
+                    complete: function () {
+                        // Re-enable button
+                        $('#subscribeBtn').prop('disabled', false)
+                            .text('Subscribe');
+                    }
+                });
+            });
+        });
+    </script>
+@endpush

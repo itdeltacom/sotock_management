@@ -7,11 +7,13 @@ use App\Http\Controllers\Front\BlogController;
 use App\Http\Controllers\Front\HomeController;
 use App\Http\Controllers\Front\ReviewController;
 use App\Http\Controllers\Front\BookingController;
+use App\Http\Controllers\Front\ProfileController;
 use App\Http\Controllers\Front\CategoryController;
 use App\Http\Controllers\Front\CarListingController;
+use App\Http\Controllers\Front\NewsletterController;
 use App\Http\Controllers\Front\BlogCommentController;
 use App\Http\Controllers\Front\ClientDashboardController;
-use App\Http\Controllers\Front\ProfileController;
+use App\Http\Controllers\Front\TestimonialFrontController;
 
 // Home and static pages
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -53,6 +55,19 @@ Route::get('/api/categories/featured', [CategoryController::class, 'featured'])-
 
 // Reviews
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+// Testimonial Frontend Routes
+Route::get('testimonials', [TestimonialFrontController::class, 'index'])->name('testimonials');
+Route::get('testimonials/create', function() {
+    return view('site.testimonial-form');
+})->name('testimonials.create');
+Route::post('testimonials/submit', [TestimonialFrontController::class, 'store'])->name('testimonials.submit');
+Route::post('testimonials/submit-ajax', [HomeController::class, 'submitTestimonialAjax'])->name('testimonials.submit.ajax');
+
+// Frontend Newsletter Routes (add to web.php)
+// Newsletter Routes
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
+Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])->name('newsletter.confirm');
+Route::get('/newsletter/unsubscribe/{email}/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 
 // Login and Registration
 Route::get('/login-register', [AuthController::class, 'showLoginRegister'])->name('login-register');

@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Car;
 use App\Models\Category;
 use App\Models\BlogPost;
+use App\Models\Testimonial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -56,24 +57,34 @@ class HomeController extends Controller
             'total_kilometers' => 589
         ];
         
-        // Dummy reviews for display
-        $latestReviews = collect([
-            (object)[
-                'user_name' => 'John Doe',
-                'rating' => 4,
-                'content' => 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.'
-            ],
-            (object)[
-                'user_name' => 'Jane Smith',
-                'rating' => 5,
-                'content' => 'Great service and amazing cars. I would definitely rent again from Cental Car Rental!'
-            ],
-            (object)[
-                'user_name' => 'Michael Johnson',
-                'rating' => 4,
-                'content' => 'The rental process was smooth and the car was in perfect condition. Highly recommended!'
-            ]
-        ]);
+        // Get latest approved testimonials, featured first
+        $latestReviews = Testimonial::where('is_approved', true)
+            ->orderBy('is_featured', 'desc')
+            ->orderBy('order', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->take(6)
+            ->get();
+            
+        // If no testimonials are found, use dummy data as fallback
+        if ($latestReviews->isEmpty()) {
+            $latestReviews = collect([
+                (object)[
+                    'user_name' => 'John Doe',
+                    'rating' => 4,
+                    'content' => 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.'
+                ],
+                (object)[
+                    'user_name' => 'Jane Smith',
+                    'rating' => 5,
+                    'content' => 'Great service and amazing cars. I would definitely rent again from Cental Car Rental!'
+                ],
+                (object)[
+                    'user_name' => 'Michael Johnson',
+                    'rating' => 4,
+                    'content' => 'The rental process was smooth and the car was in perfect condition. Highly recommended!'
+                ]
+            ]);
+        }
         
         // Dummy blog posts for display until BlogPost model is ready
         try {
@@ -208,6 +219,14 @@ class HomeController extends Controller
             'total_kilometers' => 589
         ];
         
+        // Get testimonials for about page
+        $testimonials = Testimonial::where('is_approved', true)
+            ->orderBy('is_featured', 'desc')
+            ->orderBy('order', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->take(3)
+            ->get();
+        
         // Dummy team members
         $teamMembers = collect([
             (object)[
@@ -250,6 +269,7 @@ class HomeController extends Controller
         return view('site.about-us', [
             'stats' => $stats, 
             'teamMembers' => $teamMembers,
+            'testimonials' => $testimonials,
             'pageTitle' => 'About Us',
             'parentPage' => [
                 'name' => 'Pages',
@@ -260,6 +280,92 @@ class HomeController extends Controller
         
     }
     
+    /**
+     * Display the testimonials page.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function testimonials()
+    {
+        $testimonials = Testimonial::where('is_approved', true)
+            ->orderBy('is_featured', 'desc')
+            ->orderBy('order', 'asc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+            
+        return view('site.testimonials', [
+            'testimonials' => $testimonials,
+            'pageTitle' => 'Customer Testimonials',
+            'parentPage' => [
+                'name' => 'Pages',
+                'url' => '#'
+            ],
+            'currentPage' => 'Testimonials'
+        ]);
+    }
+    
+    /**
+     * Display the testimonial submission form.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function testimonialForm()
+    {
+        return view('site.testimonial-form', [
+            'pageTitle' => 'Share Your Experience',
+            'parentPage' => [
+                'name' => 'Testimonials',
+                'url' => route('testimonials')
+            ],
+            'currentPage' => 'Submit Testimonial'
+        ]);
+    }
+    
+    /**
+     * Process testimonial submission.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+   /**
+ * Process testimonial submission via AJAX.
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function submitTestimonialAjax(Request $request)
+{
+    $validator = \Validator::make($request->all(), [
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'rating' => 'required|integer|min:1|max:5',
+        'content' => 'required|string|max:1000',
+        'g-recaptcha-response' => 'required|captcha'
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+    
+    $testimonial = new Testimonial();
+    $testimonial->user_name = $request->name;
+    $testimonial->user_email = $request->email;
+    $testimonial->rating = $request->rating;
+    $testimonial->content = $request->content;
+    $testimonial->is_approved = false; 
+    $testimonial->save();
+    
+    // Log activity
+    \Log::info('New testimonial submitted: ' . $testimonial->id);
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Your testimonial has been submitted successfully and will be reviewed shortly.'
+    ]);
+}
     /**
      * Display the contact page.
      *
@@ -307,7 +413,7 @@ class HomeController extends Controller
             ],
             'currentPage' => 'Contact'
         ]);
-        }
+    }
     
     /**
      * Process contact form submission.
