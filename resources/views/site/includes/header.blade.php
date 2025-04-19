@@ -203,7 +203,7 @@
                         </a>
                     @endauth
                 </div>
-                <a href="{{ route('cars.index') }}" class="btn btn-primary rounded-pill py-2 px-4">Get Started</a>
+                <a href="{{ route('admin.login') }}" class="btn btn-primary rounded-pill py-2 px-4">Get Started</a>
             </div>
         </nav>
     </div>
