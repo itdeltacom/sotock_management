@@ -65,37 +65,50 @@ class HomeController extends Controller
             ->take(6)
             ->get();
             
-        // If no testimonials are found, use dummy data as fallback
-        if ($latestReviews->isEmpty()) {
-            $latestReviews = collect([
-                (object)[
-                    'user_name' => 'John Doe',
-                    'rating' => 4,
-
-            'user_title' => 'Happy Customer', 
-                    'content' => 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.',
+      // If no testimonials are found, use dummy data as fallback
+if ($latestReviews->isEmpty()) {
+    $latestReviews = collect([
+        (object)[
+            'user_name' => 'John Doe',
+            'user_title' => 'Happy Customer',
+            'user_email' => null,
+            'content' => 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.',
+            'rating' => 4,
             'image' => null,
-                ],
-                (object)[
-                    'user_name' => 'Jane Smith',
-                    'rating' => 5,
-
-            'user_title' => 'Happy Customer', 
-                    'content' => 'Great service and amazing cars. I would definitely rent again from Cental Car Rental!',
-
+            'is_approved' => true,
+            'order' => 0,
+            'is_featured' => false,
+            'created_at' => now(),
+            'updated_at' => now()
+        ],
+        (object)[
+            'user_name' => 'Jane Smith',
+            'user_title' => 'Business Traveler',
+            'user_email' => null,
+            'content' => 'Great service and amazing cars. I would definitely rent again from Cental Car Rental!',
+            'rating' => 5,
             'image' => null,
-                ],
-                (object)[
-                    'user_name' => 'Michael Johnson',
-                    'rating' => 4,
-
-            'user_title' => 'Happy Customer', 
-                    'content' => 'The rental process was smooth and the car was in perfect condition. Highly recommended!',
-
+            'is_approved' => true,
+            'order' => 0,
+            'is_featured' => true, // This one is featured
+            'created_at' => now()->subDays(1),
+            'updated_at' => now()->subDays(1)
+        ],
+        (object)[
+            'user_name' => 'Michael Johnson',
+            'user_title' => 'Frequent Renter',
+            'user_email' => null,
+            'content' => 'The rental process was smooth and the car was in perfect condition. Highly recommended!',
+            'rating' => 4,
             'image' => null,
-                ]
-            ]);
-        }
+            'is_approved' => true,
+            'order' => 0,
+            'is_featured' => false,
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDays(2)
+        ]
+    ]);
+}
         
         // Dummy blog posts for display until BlogPost model is ready
         try {
