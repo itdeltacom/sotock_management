@@ -71,12 +71,16 @@ class HomeController extends Controller
                 (object)[
                     'user_name' => 'John Doe',
                     'rating' => 4,
+
+            'user_title' => 'Happy Customer', 
                     'content' => 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam soluta neque ab repudiandae reprehenderit ipsum eos cumque esse repellendus impedit.',
             'image' => null,
                 ],
                 (object)[
                     'user_name' => 'Jane Smith',
                     'rating' => 5,
+
+            'user_title' => 'Happy Customer', 
                     'content' => 'Great service and amazing cars. I would definitely rent again from Cental Car Rental!',
 
             'image' => null,
@@ -84,6 +88,8 @@ class HomeController extends Controller
                 (object)[
                     'user_name' => 'Michael Johnson',
                     'rating' => 4,
+
+            'user_title' => 'Happy Customer', 
                     'content' => 'The rental process was smooth and the car was in perfect condition. Highly recommended!',
 
             'image' => null,
