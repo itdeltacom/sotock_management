@@ -13,7 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'admin.two-factor' => \App\Http\Middleware\TwoFactorMiddleware::class,
-            'auth.admin' => \App\Http\Middleware\AdminAuthenticate::class, 
+            'auth.admin' => \App\Http\Middleware\AdminAuthenticate::class,
+    'auth' => \App\Http\Middleware\Authenticate::class, 
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,

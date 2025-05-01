@@ -23,71 +23,14 @@
                     <span class="nav-link-text ms-1">Dashboard</span>
                 </a>
             </li>
-            <!-- Admin Management Section -->
-            @canany(['view admins', 'view roles', 'view permissions'])
-                <li class="nav-item mt-3">
-                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Admin Management</h6>
-                </li>
 
-                @can('view admins')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.admins.*') ? 'active' : '' }}"
-                            href="{{ route('admin.admins.index') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-circle-08 text-dark text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Admins</span>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('view roles')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('admin/roles') || request()->is('admin/roles/*') ? 'active' : '' }}"
-                            href="{{ route('admin.roles.index') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-badge text-dark text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Roles</span>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('view permissions')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('admin/permissions') || request()->is('admin/permissions/*') ? 'active' : '' }}"
-                            href="{{ route('admin.permissions.index') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-lock-circle-open text-dark text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Permissions</span>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('assign permissions')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.roles-permissions') ? 'active' : '' }}"
-                            href="{{ route('admin.roles-permissions') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-settings-gear-65 text-dark text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Role Permissions</span>
-                        </a>
-                    </li>
-                @endcan
-            @endcanany
             <!-- Car Management Section -->
-            @canany(['view cars', 'manage cars'])
+            @canany(['manage cars', 'view cars'])
                 <li class="nav-item mt-3">
                     <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Car Management</h6>
                 </li>
 
-                @can('view cars')
+                @can('manage cars')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.cars.*') ? 'active' : '' }}"
                             href="{{ route('admin.cars.index') }}">
@@ -100,95 +43,143 @@
                     </li>
                 @endcan
 
-                @can('view documents')
+                @can('manage brands')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.documents.*') ? 'active' : '' }}"
-                            href="{{ route('admin.documents.expiring') }}">
+                        <a class="nav-link {{ request()->routeIs('admin.brands.*') ? 'active' : '' }}"
+                            href="{{ route('admin.brands.index') }}">
                             <div
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-single-copy-04 text-dark text-sm opacity-10"></i>
+                                <i class="ni ni-badge text-dark text-sm opacity-10"></i>
                             </div>
-                            <span class="nav-link-text ms-1">Documents</span>
+                            <span class="nav-link-text ms-1">Brands</span>
                         </a>
                     </li>
                 @endcan
 
-                @can('view maintenance')
+                @can('manage categories')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}"
-                            href="{{ route('admin.maintenance.due.soon') }}">
+                        <a class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}"
+                            href="{{ route('admin.categories.index') }}">
                             <div
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-settings text-dark text-sm opacity-10"></i>
+                                <i class="ni ni-bullet-list-67 text-dark text-sm opacity-10"></i>
                             </div>
-                            <span class="nav-link-text ms-1">Maintenance</span>
+                            <span class="nav-link-text ms-1">Categories</span>
                         </a>
                     </li>
                 @endcan
             @endcanany
 
-            <!-- Contract Management Section -->
-            @canany(['view contracts', 'manage contracts'])
+            <!-- Booking Management Section -->
+            @canany(['manage bookings', 'view bookings'])
                 <li class="nav-item mt-3">
-                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Rental Management</h6>
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Booking Management</h6>
                 </li>
 
-                @can('view contracts')
+                @can('manage bookings')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.contracts.*') ? 'active' : '' }}"
-                            href="{{ route('admin.contracts.index') }}">
+                        <a class="nav-link {{ request()->routeIs('admin.bookings.*') && !request()->routeIs('admin.bookings.calendar') ? 'active' : '' }}"
+                            href="{{ route('admin.bookings.index') }}">
                             <div
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-paper-diploma text-dark text-sm opacity-10"></i>
+                                <i class="ni ni-calendar-grid-58 text-dark text-sm opacity-10"></i>
                             </div>
-                            <span class="nav-link-text ms-1">Contracts</span>
+                            <span class="nav-link-text ms-1">Bookings</span>
                         </a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.contracts.ending.soon') ? 'active' : '' }}"
-                            href="{{ route('admin.contracts.ending.soon') }}">
+                        <a class="nav-link {{ request()->routeIs('admin.bookings.calendar') ? 'active' : '' }}"
+                            href="{{ route('admin.bookings.calendar') }}">
                             <div
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-time-alarm text-dark text-sm opacity-10"></i>
+                                <i class="ni ni-calendar-grid-58 text-dark text-sm opacity-10"></i>
                             </div>
-                            <span class="nav-link-text ms-1">Ending Soon</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.contracts.overdue') ? 'active' : '' }}"
-                            href="{{ route('admin.contracts.overdue') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="ni ni-notification-70 text-dark text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Overdue</span>
+                            <span class="nav-link-text ms-1">Booking Calendar</span>
                         </a>
                     </li>
                 @endcan
             @endcanany
 
-            <!-- Client Management -->
-            @can('view clients')
+            <!-- Customer Management -->
+            @can('manage customers')
                 <li class="nav-item mt-3">
-                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Client Management</h6>
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Customer Management</h6>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}"
-                        href="{{ route('admin.clients.index') }}">
+                    <a class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}"
+                        href="{{ route('admin.customers.index') }}">
                         <div
                             class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                             <i class="ni ni-single-02 text-dark text-sm opacity-10"></i>
                         </div>
-                        <span class="nav-link-text ms-1">Clients</span>
+                        <span class="nav-link-text ms-1">Customers</span>
                     </a>
                 </li>
             @endcan
 
+            <!-- Content Management -->
+            @canany(['manage blog posts', 'manage blog categories', 'manage blog tags', 'manage testimonials'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Content Management</h6>
+                </li>
+
+                @can('manage blog posts')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.blog-posts.*') ? 'active' : '' }}"
+                            href="{{ route('admin.blog-posts.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-collection text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Blog Posts</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('manage blog categories')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.blog-categories.*') ? 'active' : '' }}"
+                            href="{{ route('admin.blog-categories.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-archive-2 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Blog Categories</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('manage blog tags')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.blog-tags.*') ? 'active' : '' }}"
+                            href="{{ route('admin.blog-tags.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-tag text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Blog Tags</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('manage testimonials')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}"
+                            href="{{ route('admin.testimonials.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-chat-round text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Testimonials</span>
+                        </a>
+                    </li>
+                @endcan
+            @endcanany
+
             <!-- Admin Management Section -->
-            @canany(['view admins', 'view roles'])
+            @canany(['view admins', 'manage roles', 'manage permissions'])
                 <li class="nav-item mt-3">
                     <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Admin Management</h6>
                 </li>
@@ -206,21 +197,73 @@
                     </li>
                 @endcan
 
-                @can('view roles')
+                @can('manage roles')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
-                            href="{{ route('admin.roles-permissions') }}">
+                            href="{{ route('admin.roles.index') }}">
                             <div
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                                 <i class="ni ni-badge text-dark text-sm opacity-10"></i>
                             </div>
-                            <span class="nav-link-text ms-1">Roles & Permissions</span>
+                            <span class="nav-link-text ms-1">Roles</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('manage permissions')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}"
+                            href="{{ route('admin.permissions.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-key-25 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Permissions</span>
                         </a>
                     </li>
                 @endcan
             @endcanany
 
-            <!-- Account Section -->
+            <!-- Reports Section -->
+            @can('view reports')
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Reports</h6>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.reports.revenue') ? 'active' : '' }}"
+                        href="{{ route('admin.reports.revenue') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="ni ni-chart-bar-32 text-dark text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Revenue</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.reports.bookings') ? 'active' : '' }}"
+                        href="{{ route('admin.reports.bookings') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="ni ni-chart-pie-35 text-dark text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Bookings</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.reports.vehicles') ? 'active' : '' }}"
+                        href="{{ route('admin.reports.vehicles') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="ni ni-delivery-fast text-dark text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Vehicles</span>
+                    </a>
+                </li>
+            @endcan
+
             <!-- Account Section -->
             <li class="nav-item mt-3">
                 <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Account</h6>

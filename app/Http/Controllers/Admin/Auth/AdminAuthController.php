@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Validator;
 
-class AuthController extends Controller
+class AdminAuthController extends Controller
 {
    /**
      * Show the login form

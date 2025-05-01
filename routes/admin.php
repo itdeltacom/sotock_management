@@ -16,7 +16,7 @@ use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BlogPostController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
-use App\Http\Controllers\Admin\Auth\AuthController;
+use App\Http\Controllers\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -36,16 +36,20 @@ use App\Http\Controllers\Admin\NewsletterAdminController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest:admin')->group(function () {
-        Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
-        Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+        Route::get('login', [AdminAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('login', [AdminAuthController::class, 'login'])->name('login.submit');
 
         // Password Reset Routes
-        Route::get('forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
-        Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
-        Route::get('reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
-        Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
-        Route::post('/validate-password', [AuthController::class, 'validatePassword'])->name('password.validate');
-    });
+        Route::get('forgot-password', [AdminAuthController::class, 'showForgotPasswordForm'])->name('password.request');
+        Route::post('forgot-password', [AdminAuthController::class, 'forgotPassword'])->name('password.email');
+        Route::get('reset-password/{token}', [AdminAuthController::class, 'showResetPasswordForm'])->name('password.reset');
+        Route::post('reset-password', [AdminAuthController::class, 'resetPassword'])->name('password.update');
+        Route::post('/validate-password', [AdminAuthController::class, 'validatePassword'])->name('password.validate');
+    });Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
+Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
+// Password Change
+Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
+Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
     
     // Two-Factor Authentication Routes
     Route::middleware('auth:admin')->group(function () {
@@ -60,7 +64,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
         
         // Logout
-        Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+        Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
         
         // Profile
         Route::get('profile', [AdminController::class, 'profile'])->name('profile');

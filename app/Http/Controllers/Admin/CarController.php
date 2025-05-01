@@ -25,7 +25,7 @@ class CarController extends Controller
         $categories = Category::where('is_active', true)->orderBy('name')->get();
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         
-        return view('admin.cars.index', compact('categories', 'brands'));
+        return view('admin.cars.cars', compact('categories', 'brands'));
     }
 
     /**
