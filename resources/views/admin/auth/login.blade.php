@@ -68,7 +68,7 @@
                             class="col-6 d-lg-flex d-none h-100 my-auto pe-0 position-absolute top-0 end-0 text-center justify-content-center flex-column">
                             <div class="position-relative bg-gradient-primary h-100 m-3 px-7 border-radius-lg d-flex flex-column justify-content-center overflow-hidden"
                                 style="background-image: url('{{ asset('admin/assets/img/signin-bg.jpg') }}');
-                                  background-size: cover;">
+                                      background-size: cover;">
                                 <span class="mask bg-gradient-primary opacity-6"></span>
                                 <h4 class="mt-5 text-white font-weight-bolder position-relative">Welcome to IT Delta Com
                                     Admin Panel</h4>
@@ -157,6 +157,22 @@
                             setTimeout(function () {
                                 window.location.href = redirectUrl;
                             }, 1000);
+                        } else {
+                            // Handle authentication failure with HTTP success
+                            $('#login-btn').prop('disabled', false).text('Sign in');
+
+                            if (response.message) {
+                                toastr.error(response.message);
+                            } else if (response.errors) {
+                                // Display validation errors
+                                $.each(response.errors, function (field, messages) {
+                                    $('#' + field).addClass('is-invalid');
+                                    $('#' + field + '-error').text(messages[0]).show();
+                                    toastr.error(messages[0]);
+                                });
+                            } else {
+                                toastr.error('The provided credentials do not match our records.');
+                            }
                         }
                     },
                     error: function (xhr) {

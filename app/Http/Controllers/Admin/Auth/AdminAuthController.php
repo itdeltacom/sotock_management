@@ -28,138 +28,131 @@ class AdminAuthController extends Controller
     }
     
     /**
-     * Handle admin login request
-     */
-    public function login(Request $request)
-    {
-        // Real-time validation via AJAX
+ * Handle admin login request
+ */
+public function login(Request $request)
+{
+    // Validate input fields
+    $validator = Validator::make($request->all(), [
+        'login' => 'required',
+        'password' => 'required',
+    ]);
+    
+    if ($validator->fails()) {
         if ($request->ajax()) {
-            $validator = Validator::make($request->all(), [
-                'login' => 'required',
-                'password' => 'required',
-            ]);
-            
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
-            
-            return response()->json(['success' => true]);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
+        return back()->withErrors($validator)->withInput();
+    }
+    
+    // Log the request for debugging
+    Log::info('Login attempt', ['login' => $request->login]);
+    
+    // Determine if input is email or phone number
+    $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+    $credentials = [
+        $loginType => $request->login,
+        'password' => $request->password
+    ];
+    
+    // Log the credentials and guard for debugging
+    Log::info('Login credentials', ['type' => $loginType, 'guard' => 'admin']);
+    
+    if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
+        $admin = Auth::guard('admin')->user();
         
-        // Regular form submission
-        $request->validate([
-            'login' => 'required',
-            'password' => 'required',
-        ]);
+        // Log successful login
+        Log::info('Login successful', ['admin_id' => $admin->id]);
         
-        // Log the request for debugging
-        Log::info('Login attempt', ['login' => $request->login]);
-        
-        // Determine if input is email or phone number
-        $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
-        $credentials = [
-            $loginType => $request->login,
-            'password' => $request->password
-        ];
-        
-        // Log the credentials and guard for debugging
-        Log::info('Login credentials', ['type' => $loginType, 'guard' => 'admin']);
-        
-        if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
-            $admin = Auth::guard('admin')->user();
+        // Check if admin is active
+        if (!$admin->is_active) {
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
             
-            // Log successful login
-            Log::info('Login successful', ['admin_id' => $admin->id]);
-            
-            // Check if admin is active
-            if (!$admin->is_active) {
-                Auth::guard('admin')->logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                
-                Log::warning('Inactive admin account login attempt', ['admin_id' => $admin->id]);
-                
-                if ($request->ajax()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Your account has been deactivated. Please contact the system administrator.'
-                    ], 403);
-                }
-                
-                return back()->withErrors([
-                    'login' => 'Your account has been deactivated. Please contact the system administrator.',
-                ]);
-            }
-            
-            // Update last login information
-            $admin->update([
-                'last_login_at' => now(),
-                'last_login_ip' => $request->ip(),
-            ]);
-            
-            $request->session()->regenerate();
-            
-            // Check for two-factor authentication
-            if ($admin->two_factor_enabled) {
-                // Log 2FA requirement
-                Log::info('2FA verification required', ['admin_id' => $admin->id]);
-                
-                if ($request->ajax()) {
-                    // Generate redirect URL and log it for debugging
-                    $redirectUrl = route('admin.two-factor.verify');
-                    Log::info('2FA redirect URL', ['url' => $redirectUrl]);
-                    
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Logged in successfully. Please complete two-factor authentication.',
-                        'redirect' => $redirectUrl
-                    ]);
-                }
-                
-                // Flash success message for login before redirecting to 2FA page
-                session()->flash('toastr', [
-                    'type' => 'success',
-                    'message' => 'Please complete two-factor authentication.'
-                ]);
-                return redirect()->route('admin.two-factor.verify');
-            }
+            Log::warning('Inactive admin account login attempt', ['admin_id' => $admin->id]);
             
             if ($request->ajax()) {
-                // Generate dashboard URL and log it for debugging
-                $dashboardUrl = route('admin.dashboard');
-                Log::info('Dashboard redirect URL', ['url' => $dashboardUrl]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been deactivated. Please contact the system administrator.'
+                ], 403);
+            }
+            
+            return back()->withErrors([
+                'login' => 'Your account has been deactivated. Please contact the system administrator.',
+            ]);
+        }
+        
+        // Update last login information
+        $admin->update([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ]);
+        
+        $request->session()->regenerate();
+        
+        // Check for two-factor authentication
+        if ($admin->two_factor_enabled) {
+            // Log 2FA requirement
+            Log::info('2FA verification required', ['admin_id' => $admin->id]);
+            
+            if ($request->ajax()) {
+                // Generate redirect URL and log it for debugging
+                $redirectUrl = route('admin.two-factor.verify');
+                Log::info('2FA redirect URL', ['url' => $redirectUrl]);
                 
                 return response()->json([
                     'success' => true,
-                    'message' => 'You have successfully logged in.',
-                    'redirect' => $dashboardUrl
+                    'message' => 'Logged in successfully. Please complete two-factor authentication.',
+                    'redirect' => $redirectUrl
                 ]);
             }
             
-            // Flash success message for login
+            // Flash success message for login before redirecting to 2FA page
             session()->flash('toastr', [
                 'type' => 'success',
-                'message' => 'You have successfully logged in.'
+                'message' => 'Please complete two-factor authentication.'
             ]);
-            
-            // Redirect to dashboard with intended URL support
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->route('admin.two-factor.verify');
         }
-        
-        // Log failed login attempt
-        Log::warning('Failed login attempt', ['login' => $request->login, 'ip' => $request->ip()]);
         
         if ($request->ajax()) {
+            // Generate dashboard URL and log it for debugging
+            $dashboardUrl = route('admin.dashboard');
+            Log::info('Dashboard redirect URL', ['url' => $dashboardUrl]);
+            
             return response()->json([
-                'success' => false,
-                'message' => 'The provided credentials do not match our records.'
-            ], 422);
+                'success' => true,
+                'message' => 'You have successfully logged in.',
+                'redirect' => $dashboardUrl
+            ]);
         }
         
-        return back()->withErrors([
-            'login' => 'The provided credentials do not match our records.',
-        ])->onlyInput('login');
+        // Flash success message for login
+        session()->flash('toastr', [
+            'type' => 'success',
+            'message' => 'You have successfully logged in.'
+        ]);
+        
+        // Redirect to dashboard with intended URL support
+        return redirect()->intended(route('admin.dashboard'));
     }
+    
+    // Log failed login attempt
+    Log::warning('Failed login attempt', ['login' => $request->login, 'ip' => $request->ip()]);
+    
+    if ($request->ajax()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'The provided credentials do not match our records.'
+        ], 422);
+    }
+    
+    return back()->withErrors([
+        'login' => 'The provided credentials do not match our records.',
+    ])->onlyInput('login');
+}
     
     /**
      * Handle admin logout request
