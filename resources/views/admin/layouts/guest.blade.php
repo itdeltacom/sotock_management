@@ -2,103 +2,53 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{ asset('admin/assets/img/apple-icon.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('admin/assets/img/favicon.png') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin Login') - BATI Car Rental</title>
+    <title>{{ config('app.name', 'IT Delta Com') }} - Admin Panel</title>
 
-    <!-- Favicon -->
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" />
+    <link href="{{ asset('admin/assets/css/nucleo-icons.css') }}" rel="stylesheet" />
+    <link href="{{ asset('admin/assets/css/nucleo-svg.css') }}" rel="stylesheet" />
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
 
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS Files -->
+    <link id="pagestyle" href="{{ asset('admin/assets/css/argon-dashboard.css?v=2.1.0') }}" rel="stylesheet" />
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
-
-    <!-- SweetAlert2 CSS -->
-    @if(isset($sweet_alert_styles))
-        {!! $sweet_alert_styles !!}
-    @else
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-        <style>
-            :root {
-                --swal2-primary: #2D3FE0;
-                --swal2-success: #34D399;
-                --swal2-warning: #FBBF24;
-                --swal2-error: #EF4444;
-                --swal2-info: #2D3FE0;
-                --swal2-accent: #FF7D3B;
-            }
-
-            .colored-toast.swal2-icon-success {
-                background-color: rgba(52, 211, 153, 0.9) !important;
-            }
-
-            .colored-toast.swal2-icon-error {
-                background-color: rgba(239, 68, 68, 0.9) !important;
-            }
-
-            .colored-toast.swal2-icon-warning {
-                background-color: rgba(251, 191, 36, 0.9) !important;
-            }
-
-            .colored-toast.swal2-icon-info {
-                background-color: rgba(45, 63, 224, 0.9) !important;
-            }
-
-            .colored-toast .swal2-title {
-                color: white !important;
-            }
-
-            .colored-toast .swal2-html-container {
-                color: rgba(255, 255, 255, 0.8) !important;
-            }
-
-            .swal2-popup {
-                font-family: var(--font-sans, "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif) !important;
-                border-radius: var(--radius-lg, 0.75rem) !important;
-            }
-
-            .swal2-confirm {
-                background-color: var(--swal2-primary) !important;
-            }
-
-            .swal2-styled.swal2-confirm:focus {
-                box-shadow: 0 0 0 3px rgba(45, 63, 224, 0.3) !important;
-            }
-        </style>
-    @endif
-
-    <!-- Custom Styles -->
+    <!-- Additional CSS -->
     @stack('css')
 </head>
 
-<body>
+<body class="">
     @yield('content')
 
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="{{ asset('admin/js/sweet-alert.js') }}"></script>
-    <!-- SweetAlert2 JS -->
-    @if(isset($sweet_alert_scripts))
-        {!! $sweet_alert_scripts !!}
-    @else
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    @endif
+    <!-- Core JS Files -->
+    <script src="{{ asset('admin/assets/js/core/popper.min.js') }}"></script>
+    <script src="{{ asset('admin/assets/js/core/bootstrap.min.js') }}"></script>
+    <script src="{{ asset('admin/assets/js/plugins/perfect-scrollbar.min.js') }}"></script>
+    <script src="{{ asset('admin/assets/js/plugins/smooth-scrollbar.min.js') }}"></script>
 
-    <!-- Display SweetAlert from session flash -->
-    @if(isset($sweet_alert))
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                {!! $sweet_alert !!}
-            });
-        </script>
-    @endif
+    <!-- Github buttons -->
+    <script async defer src="{{ asset('admin/assets/js/buttons.js') }}"></script>
 
-    <!-- Custom Scripts -->
+    <!-- Custom Script -->
+    <script>
+        var win = navigator.platform.indexOf('Win') > -1;
+        if (win && document.querySelector('#sidenav-scrollbar')) {
+            var options = {
+                damping: '0.5'
+            };
+            Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
+        }
+    </script>
+
+    <!-- Control Center for Argon Dashboard -->
+    <script src="{{ asset('admin/assets/js/argon-dashboard.min.js?v=2.1.0') }}"></script>
+
+    <!-- Additional JS -->
     @stack('js')
 </body>
 

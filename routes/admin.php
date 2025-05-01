@@ -3,17 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Middleware\TwoFactorMiddleware;
-use App\Http\Controllers\Admin\CarController;
 use App\Http\Middleware\SuperAdminMiddleware;
+use App\Http\Controllers\Admin\CarController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BlogPostController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\Auth\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
@@ -33,13 +35,11 @@ use App\Http\Controllers\Admin\NewsletterAdminController;
 */
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    // Guest routes
     Route::middleware('guest:admin')->group(function () {
-        // Authentication
         Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
-        Route::post('login', [AuthController::class, 'login']);
-        
-        // Password Reset
+        Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+
+        // Password Reset Routes
         Route::get('forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
         Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
         Route::get('reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
@@ -57,7 +57,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware(['auth:admin', TwoFactorMiddleware::class])->group(function () {
         // Dashboard
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/chart-data', [App\Http\Controllers\Admin\DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+        Route::get('/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
         
         // Logout
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
@@ -293,8 +293,8 @@ Route::prefix('newsletters')->name('newsletters.')->middleware(['auth:admin', 'p
         });
         
         // Settings (Placeholder - you'll need to create this controller)
-        Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
-        Route::post('settings/general', [SettingController::class, 'updateGeneral']);
+        //Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
+        //Route::post('settings/general', [SettingController::class, 'updateGeneral']);
         
         // Role & Permission Management
         // These routes are protected by both permission middleware AND Super Admin middleware

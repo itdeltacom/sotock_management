@@ -8,6 +8,7 @@ use App\Facades\Alert;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    /**
+   /**
      * Show the login form
      */
     public function showLoginForm()
@@ -34,7 +35,7 @@ class AuthController extends Controller
         // Real-time validation via AJAX
         if ($request->ajax()) {
             $validator = Validator::make($request->all(), [
-                'email' => 'required|email',
+                'login' => 'required',
                 'password' => 'required',
             ]);
             
@@ -46,13 +47,29 @@ class AuthController extends Controller
         }
         
         // Regular form submission
-        $credentials = $request->validate([
-            'email' => 'required|email',
+        $request->validate([
+            'login' => 'required',
             'password' => 'required',
         ]);
         
+        // Log the request for debugging
+        Log::info('Login attempt', ['login' => $request->login]);
+        
+        // Determine if input is email or phone number
+        $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        $credentials = [
+            $loginType => $request->login,
+            'password' => $request->password
+        ];
+        
+        // Log the credentials and guard for debugging
+        Log::info('Login credentials', ['type' => $loginType, 'guard' => 'admin']);
+        
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             $admin = Auth::guard('admin')->user();
+            
+            // Log successful login
+            Log::info('Login successful', ['admin_id' => $admin->id]);
             
             // Check if admin is active
             if (!$admin->is_active) {
@@ -60,8 +77,17 @@ class AuthController extends Controller
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
                 
+                Log::warning('Inactive admin account login attempt', ['admin_id' => $admin->id]);
+                
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your account has been deactivated. Please contact the system administrator.'
+                    ], 403);
+                }
+                
                 return back()->withErrors([
-                    'email' => 'Your account has been deactivated. Please contact the system administrator.',
+                    'login' => 'Your account has been deactivated. Please contact the system administrator.',
                 ]);
             }
             
@@ -75,19 +101,64 @@ class AuthController extends Controller
             
             // Check for two-factor authentication
             if ($admin->two_factor_enabled) {
+                // Log 2FA requirement
+                Log::info('2FA verification required', ['admin_id' => $admin->id]);
+                
+                if ($request->ajax()) {
+                    // Generate redirect URL and log it for debugging
+                    $redirectUrl = route('admin.two-factor.verify');
+                    Log::info('2FA redirect URL', ['url' => $redirectUrl]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Logged in successfully. Please complete two-factor authentication.',
+                        'redirect' => $redirectUrl
+                    ]);
+                }
+                
                 // Flash success message for login before redirecting to 2FA page
-                session()->flash('sweet_alert', Alert::success('Logged In', 'Please complete two-factor authentication.'));
+                session()->flash('toastr', [
+                    'type' => 'success',
+                    'message' => 'Please complete two-factor authentication.'
+                ]);
                 return redirect()->route('admin.two-factor.verify');
             }
             
+            if ($request->ajax()) {
+                // Generate dashboard URL and log it for debugging
+                $dashboardUrl = route('admin.dashboard');
+                Log::info('Dashboard redirect URL', ['url' => $dashboardUrl]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'You have successfully logged in.',
+                    'redirect' => $dashboardUrl
+                ]);
+            }
+            
             // Flash success message for login
-            session()->flash('sweet_alert', Alert::success('Welcome Back!', 'You have successfully logged in.'));
+            session()->flash('toastr', [
+                'type' => 'success',
+                'message' => 'You have successfully logged in.'
+            ]);
+            
+            // Redirect to dashboard with intended URL support
             return redirect()->intended(route('admin.dashboard'));
         }
         
+        // Log failed login attempt
+        Log::warning('Failed login attempt', ['login' => $request->login, 'ip' => $request->ip()]);
+        
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The provided credentials do not match our records.'
+            ], 422);
+        }
+        
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+            'login' => 'The provided credentials do not match our records.',
+        ])->onlyInput('login');
     }
     
     /**
@@ -100,7 +171,10 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
         
         // Flash success message for logout
-        session()->flash('sweet_alert', Alert::success('Logged Out', 'You have been logged out successfully.'));
+        session()->flash('toastr', [
+            'type' => 'success',
+            'message' => 'You have been logged out successfully.'
+        ]);
         return redirect()->route('admin.login');
     }
     
@@ -117,10 +191,13 @@ class AuthController extends Controller
      */
     public function forgotPassword(Request $request)
     {
+        // Determine if input is email or phone number
+        $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        
         // Real-time validation via AJAX
         if ($request->ajax()) {
             $validator = Validator::make($request->all(), [
-                'email' => 'required|email|exists:admins,email',
+                'login' => 'required|exists:admins,' . $loginType,
             ]);
             
             if ($validator->fails()) {
@@ -132,12 +209,16 @@ class AuthController extends Controller
         
         // Regular form submission
         $request->validate([
-            'email' => 'required|email|exists:admins,email',
+            'login' => 'required|exists:admins,' . $loginType,
         ]);
+        
+        // For phone numbers, we need to fetch the associated email
+        $admin = Admin::where($loginType, $request->login)->first();
+        $email = $admin->email;
         
         // Delete any existing reset tokens for this email
         DB::table('password_reset_tokens')
-            ->where('email', $request->email)
+            ->where('email', $email)
             ->delete();
         
         // Generate a new token
@@ -145,19 +226,19 @@ class AuthController extends Controller
         
         // Store the new token
         DB::table('password_reset_tokens')->insert([
-            'email' => $request->email,
+            'email' => $email,
             'token' => Hash::make($token),
             'created_at' => Carbon::now()
         ]);
         
         // Create reset link
-        $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $request->email]);
+        $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $email]);
         
         // Send email with reset link
         try {
-            Mail::send('admin.emails.reset-password', ['resetLink' => $resetLink], function($message) use ($request) {
-                $message->to($request->email);
-                $message->subject('Reset Your BATI Car Rental Admin Password');
+            Mail::send('admin.emails.reset-password', ['resetLink' => $resetLink], function($message) use ($email) {
+                $message->to($email);
+                $message->subject('Reset Your Admin Password');
             });
             
             if ($request->ajax()) {
@@ -167,16 +248,20 @@ class AuthController extends Controller
                 ]);
             }
             
-            return back()->with('status', 'We have emailed your password reset link!');
+            session()->flash('toastr', [
+                'type' => 'success',
+                'message' => 'We have emailed your password reset link!'
+            ]);
+            return back();
             
         } catch (\Exception $e) {
             if ($request->ajax()) {
                 return response()->json([
-                    'errors' => ['email' => ['Could not send reset link. Please try again later.']]
+                    'errors' => ['login' => ['Could not send reset link. Please try again later.']]
                 ], 422);
             }
             
-            return back()->withErrors(['email' => 'Could not send reset link. Please try again later.']);
+            return back()->withErrors(['login' => 'Could not send reset link. Please try again later.']);
         }
     }
     
@@ -193,8 +278,11 @@ class AuthController extends Controller
             ->first();
             
         if (!$tokenData || !Hash::check($token, $tokenData->token)) {
-            return redirect()->route('admin.password.request')
-                ->withErrors(['email' => 'Invalid or expired password reset token.']);
+            session()->flash('toastr', [
+                'type' => 'error',
+                'message' => 'Invalid or expired password reset token.'
+            ]);
+            return redirect()->route('admin.password.request');
         }
         
         // Check if token is expired (tokens valid for 60 minutes)
@@ -204,8 +292,11 @@ class AuthController extends Controller
                 ->where('email', $email)
                 ->delete();
                 
-            return redirect()->route('admin.password.request')
-                ->withErrors(['email' => 'Password reset token has expired. Please request a new link.']);
+            session()->flash('toastr', [
+                'type' => 'error',
+                'message' => 'Password reset token has expired. Please request a new link.'
+            ]);
+            return redirect()->route('admin.password.request');
         }
         
         return view('admin.auth.reset-password', ['token' => $token, 'email' => $email]);
@@ -241,161 +332,167 @@ class AuthController extends Controller
                 ->where('email', $request->email)
                 ->first();
                 
-                if (!$tokenData || !Hash::check($request->token, $tokenData->token)) {
-                    return response()->json([
-                        'errors' => ['email' => ['Invalid or expired password reset token.']]
-                    ], 422);
-                }
-                
-                // Check if token is expired (tokens valid for 60 minutes)
-                $tokenCreatedAt = Carbon::parse($tokenData->created_at);
-                if (Carbon::now()->diffInMinutes($tokenCreatedAt) > 60) {
-                    DB::table('password_reset_tokens')
-                        ->where('email', $request->email)
-                        ->delete();
-                        
-                    return response()->json([
-                        'errors' => ['email' => ['Password reset token has expired. Please request a new link.']]
-                    ], 422);
-                }
-                
-                return response()->json(['success' => true]);
-            }
-            
-            // Regular form submission
-            $request->validate([
-                'token' => 'required',
-                'email' => 'required|email|exists:admins,email',
-                'password' => [
-                    'required',
-                    'string',
-                    'min:8',
-                    'confirmed',
-                    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
-                ],
-            ], [
-                'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
-            ]);
-            
-            // Verify token is valid
-            $tokenData = DB::table('password_reset_tokens')
-                ->where('email', $request->email)
-                ->first();
-                
             if (!$tokenData || !Hash::check($request->token, $tokenData->token)) {
-                if ($request->ajax()) {
-                    return response()->json([
-                        'errors' => ['email' => ['Invalid or expired password reset token.']]
-                    ], 422);
-                }
-                
-                return redirect()->route('admin.password.request')
-                    ->withErrors(['email' => 'Invalid or expired password reset token.']);
-            }
-            
-            // Update the admin's password
-            $admin = Admin::where('email', $request->email)->first();
-            $admin->update([
-                'password' => Hash::make($request->password)
-            ]);
-            
-            // Delete the token
-            DB::table('password_reset_tokens')
-                ->where('email', $request->email)
-                ->delete();
-            
-            // Fire the password reset event
-            event(new PasswordReset($admin));
-            
-            // For AJAX requests
-            if ($request->ajax()) {
-                // Log the admin in automatically for AJAX requests
-                Auth::guard('admin')->login($admin);
-                
                 return response()->json([
-                    'success' => true,
-                    'message' => 'Your password has been reset successfully!',
-                    'redirect' => route('admin.dashboard')
-                ]);
+                    'errors' => ['email' => ['Invalid or expired password reset token.']]
+                ], 422);
             }
             
-            // Log the admin in automatically
-            Auth::guard('admin')->login($admin);
+            // Check if token is expired (tokens valid for 60 minutes)
+            $tokenCreatedAt = Carbon::parse($tokenData->created_at);
+            if (Carbon::now()->diffInMinutes($tokenCreatedAt) > 60) {
+                DB::table('password_reset_tokens')
+                    ->where('email', $request->email)
+                    ->delete();
+                    
+                return response()->json([
+                    'errors' => ['email' => ['Password reset token has expired. Please request a new link.']]
+                ], 422);
+            }
             
-            return redirect()->route('admin.dashboard')
-                ->with('status', 'Your password has been reset successfully!');
+            return response()->json(['success' => true]);
         }
         
-        /**
-         * Validate password in real-time
-         */
-        public function validatePassword(Request $request)
-        {
-            $validator = Validator::make($request->all(), [
-                'password' => [
-                    'required',
-                    'string',
-                    'min:8',
-                    'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
-                ],
-            ], [
-                'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
-            ]);
+        // Regular form submission
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email|exists:admins,email',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
+            ],
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
+        ]);
+        
+        // Verify token is valid
+        $tokenData = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
             
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
+        if (!$tokenData || !Hash::check($request->token, $tokenData->token)) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'errors' => ['email' => ['Invalid or expired password reset token.']]
+                ], 422);
             }
             
-            // Calculate password strength (0-100)
-            $strength = 0;
-            $password = $request->password;
-            
-            // Basic requirements (length)
-            if (strlen($password) >= 8) $strength += 25;
-            if (strlen($password) >= 12) $strength += 15;
-            
-            // Complexity
-            if (preg_match('/[A-Z]/', $password)) $strength += 10;
-            if (preg_match('/[a-z]/', $password)) $strength += 10;
-            if (preg_match('/[0-9]/', $password)) $strength += 10;
-            if (preg_match('/[^A-Za-z0-9]/', $password)) $strength += 15;
-            
-            // Variety
-            $chars = str_split($password);
-            $uniqueChars = count(array_unique($chars));
-            $uniqueRatio = $uniqueChars / strlen($password);
-            $strength += round($uniqueRatio * 15);
+            session()->flash('toastr', [
+                'type' => 'error',
+                'message' => 'Invalid or expired password reset token.'
+            ]);
+            return redirect()->route('admin.password.request');
+        }
+        
+        // Update the admin's password
+        $admin = Admin::where('email', $request->email)->first();
+        $admin->update([
+            'password' => Hash::make($request->password)
+        ]);
+        
+        // Delete the token
+        DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->delete();
+        
+        // Fire the password reset event
+        event(new PasswordReset($admin));
+        
+        // For AJAX requests
+        if ($request->ajax()) {
+            // Log the admin in automatically for AJAX requests
+            Auth::guard('admin')->login($admin);
             
             return response()->json([
                 'success' => true,
-                'strength' => min(100, $strength),
-                'feedback' => $this->getPasswordFeedback($strength)
+                'message' => 'Your password has been reset successfully!',
+                'redirect' => route('admin.dashboard')
             ]);
         }
         
-        /**
-         * Get password strength feedback
-         */
-        private function getPasswordFeedback($strength)
-        {
-            if ($strength < 40) {
-                return [
-                    'level' => 'weak',
-                    'message' => 'Weak password. Add more variety and length.',
-                    'color' => '#EF4444'
-                ];
-            } else if ($strength < 70) {
-                return [
-                    'level' => 'medium',
-                    'message' => 'Medium strength. Consider adding special characters.',
-                    'color' => '#FBBF24'
-                ];
-            } else {
-                return [
-                    'level' => 'strong',
-                    'message' => 'Strong password. Good job!',
-                    'color' => '#34D399'
-                ];
-            }
+        // Log the admin in automatically
+        Auth::guard('admin')->login($admin);
+        
+        session()->flash('toastr', [
+            'type' => 'success',
+            'message' => 'Your password has been reset successfully!'
+        ]);
+        return redirect()->route('admin.dashboard');
+    }
+    
+    /**
+     * Validate password in real-time
+     */
+    public function validatePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
+            ],
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, and one number.'
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        
+        // Calculate password strength (0-100)
+        $strength = 0;
+        $password = $request->password;
+        
+        // Basic requirements (length)
+        if (strlen($password) >= 8) $strength += 25;
+        if (strlen($password) >= 12) $strength += 15;
+        
+        // Complexity
+        if (preg_match('/[A-Z]/', $password)) $strength += 10;
+        if (preg_match('/[a-z]/', $password)) $strength += 10;
+        if (preg_match('/[0-9]/', $password)) $strength += 10;
+        if (preg_match('/[^A-Za-z0-9]/', $password)) $strength += 15;
+        
+        // Variety
+        $chars = str_split($password);
+        $uniqueChars = count(array_unique($chars));
+        $uniqueRatio = $uniqueChars / strlen($password);
+        $strength += round($uniqueRatio * 15);
+        
+        return response()->json([
+            'success' => true,
+            'strength' => min(100, $strength),
+            'feedback' => $this->getPasswordFeedback($strength)
+        ]);
+    }
+    
+    /**
+     * Get password strength feedback
+     */
+    private function getPasswordFeedback($strength)
+    {
+        if ($strength < 40) {
+            return [
+                'level' => 'weak',
+                'message' => 'Weak password. Add more variety and length.',
+                'color' => '#EF4444'
+            ];
+        } else if ($strength < 70) {
+            return [
+                'level' => 'medium',
+                'message' => 'Medium strength. Consider adding special characters.',
+                'color' => '#FBBF24'
+            ];
+        } else {
+            return [
+                'level' => 'strong',
+                'message' => 'Strong password. Good job!',
+                'color' => '#34D399'
+            ];
         }
     }
+}

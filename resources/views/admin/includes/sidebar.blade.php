@@ -1,245 +1,263 @@
-<aside class="admin-sidebar" id="sidebar">
-    <div class="sidebar-logo">
-        <a href="{{ route('admin.dashboard') }}">
-            <img src="{{ asset('site/img/logo.png') }}" alt="BATI Car Rental">
+<aside class="sidenav bg-white navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-4"
+    id="sidenav-main">
+    <div class="sidenav-header">
+        <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none"
+            aria-hidden="true" id="iconSidenav"></i>
+        <a class="navbar-brand m-0" href="{{ route('admin.dashboard') }}">
+            <img src="{{ asset('assets/img/logo-ct-dark.png') }}" width="26px" height="26px"
+                class="navbar-brand-img h-100" alt="main_logo">
+            <span class="ms-1 font-weight-bold">{{ config('app.name') }}</span>
         </a>
     </div>
-
-    <nav class="sidebar-menu">
-        <div class="sidebar-menu-heading">Navigation</div>
-
-        <a href="{{ route('admin.dashboard') }}"
-            class="sidebar-menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <i class="fas fa-tachometer-alt"></i>
-            <span class="menu-text">Dashboard</span>
-        </a>
-
-        @can('view bookings')
-            <div class="sidebar-menu-item {{ request()->routeIs('admin.bookings.*') ? 'active expanded' : '' }}"
-                data-toggle="collapse" data-target="#bookingsMenu">
-                <i class="fas fa-calendar-alt"></i>
-                <span class="menu-text">Bookings</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
-            <div class="sidebar-submenu {{ request()->routeIs('admin.bookings.*') ? 'show' : '' }}" id="bookingsMenu">
-                <a href="{{ route('admin.bookings.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.bookings.index') ? 'active' : '' }}">
-                    <i class="fas fa-list submenu-icon"></i> All Bookings
+    <hr class="horizontal dark mt-0">
+    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+        <ul class="navbar-nav">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                    href="{{ route('admin.dashboard') }}">
+                    <div
+                        class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="ni ni-tv-2 text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Dashboard</span>
                 </a>
-                {{-- <a href="{{ route('admin.bookings.create') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.bookings.create') ? 'active' : '' }}">
-                    <i class="fas fa-plus submenu-icon"></i> Create Booking
-                </a> --}}
-                <a href="{{ route('admin.bookings.calendar') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.bookings.calendar') ? 'active' : '' }}">
-                    <i class="fas fa-calendar submenu-icon"></i> Booking Calendar
-                </a>
-            </div>
-        @endcan
-        @can('view cars')
-            <div class="sidebar-menu-item {{ request()->routeIs('admin.vehicles.*') || request()->routeIs('admin.cars.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.brands.*') ? 'active expanded' : '' }}"
-                data-toggle="collapse" data-target="#vehiclesMenu">
-                <i class="fas fa-car"></i>
-                <span class="menu-text">Vehicles</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
-            <div class="sidebar-submenu {{ request()->routeIs('admin.vehicles.*') || request()->routeIs('admin.cars.*') || request()->routeIs('admin.categories.*') || request()->routeIs('admin.brands.*') ? 'show' : '' }}"
-                id="vehiclesMenu">
-                <a href="{{ route('admin.cars.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.cars.*') ? 'active' : '' }}">All
-                    Cars</a>
-                <a href="{{ route('admin.categories.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">Categories</a>
-                <a href="{{ route('admin.brands.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.brands.*') ? 'active' : '' }}">Brands</a>
-            </div>
-        @endcan
+            </li>
+            <!-- Admin Management Section -->
+            @canany(['view admins', 'view roles', 'view permissions'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Admin Management</h6>
+                </li>
 
-        @can('view customers')
-            <a href="{{ route('admin.customers.index') }}"
-                class="sidebar-menu-item {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
-                <i class="fas fa-users"></i>
-                <span class="menu-text">Customers</span>
-            </a>
-        @endcan
+                @can('view admins')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.admins.*') ? 'active' : '' }}"
+                            href="{{ route('admin.admins.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-circle-08 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Admins</span>
+                        </a>
+                    </li>
+                @endcan
 
-        {{-- User Feedback Section --}}
-        <div class="sidebar-menu-item {{ request()->routeIs('admin.testimonials.*') || request()->routeIs('admin.reviews.*') ? 'active expanded' : '' }}"
-            data-toggle="collapse" data-target="#feedbackMenu">
-            <i class="fas fa-comment-dots"></i>
-            <span class="menu-text">User Feedback</span>
-            <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-        <div class="sidebar-submenu {{ request()->routeIs('admin.testimonials.*') || request()->routeIs('admin.reviews.*') ? 'show' : '' }}"
-            id="feedbackMenu">
-            @canany(['view testimonials', 'edit testimonials', 'create testimonials', 'delete testimonials'])
-                <a href="{{ route('admin.testimonials.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}">
-                    <i class="fas fa-quote-right submenu-icon"></i> Testimonials
-                </a>
+                @can('view roles')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->is('admin/roles') || request()->is('admin/roles/*') ? 'active' : '' }}"
+                            href="{{ route('admin.roles.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-badge text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Roles</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('view permissions')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->is('admin/permissions') || request()->is('admin/permissions/*') ? 'active' : '' }}"
+                            href="{{ route('admin.permissions.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-lock-circle-open text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Permissions</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('assign permissions')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.roles-permissions') ? 'active' : '' }}"
+                            href="{{ route('admin.roles-permissions') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-settings-gear-65 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Role Permissions</span>
+                        </a>
+                    </li>
+                @endcan
             @endcanany
-            @can('manage reviews')
-                <a href="{{ route('admin.reviews.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}">
-                    <i class="fas fa-star submenu-icon"></i> Car Reviews
-                </a>
+            <!-- Car Management Section -->
+            @canany(['view cars', 'manage cars'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Car Management</h6>
+                </li>
+
+                @can('view cars')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.cars.*') ? 'active' : '' }}"
+                            href="{{ route('admin.cars.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-bus-front-12 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Cars</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('view documents')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.documents.*') ? 'active' : '' }}"
+                            href="{{ route('admin.documents.expiring') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-single-copy-04 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Documents</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('view maintenance')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}"
+                            href="{{ route('admin.maintenance.due.soon') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-settings text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Maintenance</span>
+                        </a>
+                    </li>
+                @endcan
+            @endcanany
+
+            <!-- Contract Management Section -->
+            @canany(['view contracts', 'manage contracts'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Rental Management</h6>
+                </li>
+
+                @can('view contracts')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.contracts.*') ? 'active' : '' }}"
+                            href="{{ route('admin.contracts.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-paper-diploma text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Contracts</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.contracts.ending.soon') ? 'active' : '' }}"
+                            href="{{ route('admin.contracts.ending.soon') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-time-alarm text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Ending Soon</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.contracts.overdue') ? 'active' : '' }}"
+                            href="{{ route('admin.contracts.overdue') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-notification-70 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Overdue</span>
+                        </a>
+                    </li>
+                @endcan
+            @endcanany
+
+            <!-- Client Management -->
+            @can('view clients')
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Client Management</h6>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}"
+                        href="{{ route('admin.clients.index') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="ni ni-single-02 text-dark text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Clients</span>
+                    </a>
+                </li>
             @endcan
-        </div>
 
-        {{-- Blog Management Section --}}
-        @canany(['view blog posts', 'view blog categories', 'view blog tags', 'view blog comments'])
-            <div class="sidebar-menu-item {{ request()->routeIs('admin.blog-*') ? 'active expanded' : '' }}"
-                data-toggle="collapse" data-target="#blogMenu">
-                <i class="fas fa-blog"></i>
-                <span class="menu-text">Blog Management</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
-            <div class="sidebar-submenu {{ request()->routeIs('admin.blog-*') ? 'show' : '' }}" id="blogMenu">
-                @can('view blog posts')
-                    <a href="{{ route('admin.blog-posts.index') }}"
-                        class="sidebar-submenu-item {{ request()->routeIs('admin.blog-posts.*') ? 'active' : '' }}">
-                        <i class="fas fa-file-alt submenu-icon"></i> Blog Posts
-                    </a>
+            <!-- Admin Management Section -->
+            @canany(['view admins', 'view roles'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Admin Management</h6>
+                </li>
+
+                @can('view admins')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.admins.*') ? 'active' : '' }}"
+                            href="{{ route('admin.admins.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-circle-08 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Admins</span>
+                        </a>
+                    </li>
                 @endcan
-                @can('view blog categories')
-                    <a href="{{ route('admin.blog-categories.index') }}"
-                        class="sidebar-submenu-item {{ request()->routeIs('admin.blog-categories.*') ? 'active' : '' }}">
-                        <i class="fas fa-folder submenu-icon"></i> Categories
-                    </a>
+
+                @can('view roles')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+                            href="{{ route('admin.roles-permissions') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-badge text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Roles & Permissions</span>
+                        </a>
+                    </li>
                 @endcan
-                @can('view blog tags')
-                    <a href="{{ route('admin.blog-tags.index') }}"
-                        class="sidebar-submenu-item {{ request()->routeIs('admin.blog-tags.*') ? 'active' : '' }}">
-                        <i class="fas fa-tags submenu-icon"></i> Tags
-                    </a>
-                @endcan
-                @can('view blog comments')
-                    <a href="{{ route('admin.blog-comments.index') }}"
-                        class="sidebar-submenu-item {{ request()->routeIs('admin.blog-comments.*') ? 'active' : '' }}">
-                        <i class="fas fa-comments submenu-icon"></i> Comments
-                    </a>
-                @endcan
-            </div>
-        @endcanany
-        @can('view reports')
-            <div class="sidebar-menu-item {{ request()->routeIs('admin.reports.*') ? 'active expanded' : '' }}"
-                data-toggle="collapse" data-target="#reportsMenu">
-                <i class="fas fa-chart-bar"></i>
-                <span class="menu-text">Reports</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
-            <div class="sidebar-submenu {{ request()->routeIs('admin.reports.*') ? 'show' : '' }}" id="reportsMenu">
-                <a href="{{ route('admin.reports.revenue') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.reports.revenue') ? 'active' : '' }}">Revenue
-                    Reports</a>
-                <a href="{{ route('admin.reports.bookings') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.reports.bookings') ? 'active' : '' }}">Booking
-                    Reports</a>
-                <a href="{{ route('admin.reports.vehicles') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.reports.vehicles') ? 'active' : '' }}">Vehicle
-                    Reports</a>
-            </div>
-        @endcan
-        {{-- Newsletter Management Section --}}
-        @can('manage newsletters')
-            <div class="sidebar-menu-item {{ request()->routeIs('admin.newsletters.*') ? 'active expanded' : '' }}"
-                data-toggle="collapse" data-target="#newsletterMenu">
-                <i class="fas fa-envelope"></i>
-                <span class="menu-text">Newsletter</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
-            <div class="sidebar-submenu {{ request()->routeIs('admin.newsletters.*') ? 'show' : '' }}" id="newsletterMenu">
-                <a href="{{ route('admin.newsletters.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.newsletters.index') || request()->routeIs('admin.newsletters.create') || request()->routeIs('admin.newsletters.edit') ? 'active' : '' }}">
-                    <i class="fas fa-paper-plane submenu-icon"></i> Newsletters
+            @endcanany
+
+            <!-- Account Section -->
+            <!-- Account Section -->
+            <li class="nav-item mt-3">
+                <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Account</h6>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}"
+                    href="{{ route('admin.profile') }}">
+                    <div
+                        class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="ni ni-single-02 text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Profile</span>
                 </a>
-                <a href="{{ route('admin.newsletters.subscribers') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.newsletters.subscribers') ? 'active' : '' }}">
-                    <i class="fas fa-users submenu-icon"></i> Subscribers
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.password.change') ? 'active' : '' }}"
+                    href="{{ route('admin.password.change') }}">
+                    <div
+                        class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="ni ni-key-25 text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Change Password</span>
                 </a>
-            </div>
-        @endcan
-        @can('manage settings')
-            <div class="sidebar-menu-heading">Settings</div>
-
-            <a href="{{ route('admin.settings.general') }}"
-                class="sidebar-menu-item {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                <i class="fas fa-cog"></i>
-                <span class="menu-text">System Settings</span>
-            </a>
-        @endcan
-
-        @can('manage admins')
-            <div class="sidebar-menu-item {{ request()->routeIs('admin.admins.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.permissions.*') ? 'active expanded' : '' }}"
-                data-toggle="collapse" data-target="#adminMenu">
-                <i class="fas fa-user-shield"></i>
-                <span class="menu-text">Administration</span>
-                <i class="fas fa-chevron-right menu-arrow"></i>
-            </div>
-            <div class="sidebar-submenu {{ request()->routeIs('admin.admins.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.permissions.*') ? 'show' : '' }}"
-                id="adminMenu">
-                <a href="{{ route('admin.admins.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.admins.*') ? 'active' : '' }}">Admin
-                    Users</a>
-                <a href="{{ route('admin.roles.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">Roles &
-                    Permissions</a>
-                @hasrole('Super Admin')
-                <a href="{{ route('admin.permissions.index') }}"
-                    class="sidebar-submenu-item {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}">Permissions</a>
-                @endhasrole
-            </div>
-        @endcan
-        @can('view activities')
-            <a href="{{ route('admin.activities.index') }}"
-                class="sidebar-menu-item {{ request()->routeIs('admin.activities.*') ? 'active' : '' }}">
-                <i class="fas fa-history"></i>
-                <span class="menu-text">Activity Log</span>
-            </a>
-        @endcan
-    </nav>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('admin.logout') }}"
+                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <div
+                        class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="ni ni-user-run text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Logout</span>
+                </a>
+                <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+            </li>
+        </ul>
+    </div>
 </aside>
-@push('js')
-    <script>
-        // Add click event to the "Add New Car" link to open the car modal
-        document.addEventListener('DOMContentLoaded', function () {
-            const addNewCarLink = document.getElementById('addNewCarLink');
-            if (addNewCarLink) {
-                addNewCarLink.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    // Trigger the "Add New Car" button click if it exists
-                    const createCarBtn = document.getElementById('createCarBtn');
-                    if (createCarBtn) {
-                        createCarBtn.click();
-                    }
-                });
-            }
-
-            // Add click event for the "Add New Category" link
-            const addNewCategoryLink = document.getElementById('addNewCategoryLink');
-            if (addNewCategoryLink) {
-                addNewCategoryLink.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    // Trigger the "Add New Category" button click if it exists
-                    const createCategoryBtn = document.getElementById('createCategoryBtn');
-                    if (createCategoryBtn) {
-                        createCategoryBtn.click();
-                    }
-                });
-            }
-
-            // Add click event for the "Add New Testimonial" link
-            const addNewTestimonialLink = document.getElementById('addNewTestimonialLink');
-            if (addNewTestimonialLink) {
-                addNewTestimonialLink.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    // Trigger the "Add New Testimonial" button click if it exists
-                    const createTestimonialBtn = document.getElementById('createTestimonialBtn');
-                    if (createTestimonialBtn) {
-                        createTestimonialBtn.click();
-                    }
-                });
-            }
-        });
-    </script>
-@endpush

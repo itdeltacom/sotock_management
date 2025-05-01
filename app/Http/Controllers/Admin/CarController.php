@@ -2,57 +2,48 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Brand;
 use App\Models\Car;
+use App\Models\Brand;
 use App\Models\CarImage;
 use App\Models\Category;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Intervention\Image\Image;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Validator;
 
 class CarController extends Controller
 {
     /**
-     * Display a listing of the cars.
+     * Display a listing of the resource.
      */
     public function index()
     {
         $categories = Category::where('is_active', true)->orderBy('name')->get();
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         
-        return view('admin.cars.cars', compact('categories', 'brands'));
+        return view('admin.cars.index', compact('categories', 'brands'));
     }
 
     /**
-     * Get cars data for DataTables.
+     * Process DataTables AJAX request.
      */
-    public function data()
+    public function datatable(Request $request)
     {
-        $cars = Car::with(['category', 'brand'])->get();
+        $cars = Car::with(['category', 'brand', 'images'])->latest();
         
         return DataTables::of($cars)
-            ->addColumn('action', function (Car $car) {
-                $actions = '';
-                
-                // Only show edit button if user has permission
-                if (Auth::guard('admin')->user()->can('edit cars')) {
-                    $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="'.$car->id.'">
-                        <i class="fas fa-edit"></i>
-                    </button> ';
+            ->addColumn('image', function (Car $car) {
+                if ($car->main_image) {
+                    return '<img src="' . Storage::url($car->main_image) . '" alt="' . $car->name . '" class="img-thumbnail" width="80">';
                 }
-                
-                // Only show delete button if user has permission
-                if (Auth::guard('admin')->user()->can('delete cars')) {
-                    $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="'.$car->id.'" data-name="'.$car->name.'">
-                        <i class="fas fa-trash"></i>
-                    </button>';
-                }
-                
-                return $actions;
+                return '<div class="bg-light text-center p-2" style="width:80px;height:60px;"><i class="fas fa-car fa-2x text-muted"></i></div>';
+            })
+            ->addColumn('brand_model', function (Car $car) {
+                return ($car->brand ? $car->brand->name : '') . ' ' . $car->name;
             })
             ->addColumn('status', function (Car $car) {
                 return $car->is_available 
@@ -75,22 +66,46 @@ class CarController extends Controller
             ->addColumn('brand_name', function (Car $car) {
                 return $car->brand ? $car->brand->name : '';
             })
-            ->addColumn('image', function (Car $car) {
-                if ($car->main_image) {
-                    return '<img src="' . Storage::url($car->main_image) . '" alt="' . $car->name . '" width="80" class="img-thumbnail">';
-                }
-                
-                return '<span class="badge bg-secondary">No Image</span>';
-            })
             ->addColumn('booking_count', function (Car $car) {
                 return $car->bookings()->count();
             })
-            ->rawColumns(['action', 'status', 'price', 'image'])
+            ->addColumn('actions', function (Car $car) {
+                $buttons = '<div class="btn-group" role="group">';
+                
+                // View button
+                $buttons .= '<a href="' . route('admin.cars.show', $car->id) . '" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>';
+                
+                // Edit button (with permission check)
+                if (Auth::guard('admin')->user()->can('edit cars')) {
+                    $buttons .= '<button type="button" class="btn btn-sm btn-primary btn-edit" data-id="'.$car->id.'" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>';
+                }
+                
+                // Delete button (with permission check)
+                if (Auth::guard('admin')->user()->can('delete cars')) {
+                    $buttons .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="'.$car->id.'" data-name="'.$car->name.'" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>';
+                }
+                
+                $buttons .= '</div>';
+                return $buttons;
+            })
+            ->rawColumns(['image', 'status', 'price', 'actions'])
             ->make(true);
     }
 
     /**
-     * Store a newly created car in storage.
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        return view('admin.cars.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
@@ -131,49 +146,66 @@ class CarController extends Controller
             ], 422);
         }
 
-        $data = $request->except(['main_image', 'images', '_token']);
-        $data['slug'] = Str::slug($request->name);
-        $data['features'] = $request->features ?? [];
-        $data['rating'] = 0;
-        $data['review_count'] = 0;
-        
-        // Handle main image upload
-        if ($request->hasFile('main_image')) {
-            $data['main_image'] = $this->convertToWebp($request->file('main_image'), 'cars', $data['slug']);
-        }
-        
-        // Create the car
-        $car = Car::create($data);
-        
-        // Handle additional images upload
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
-                $imagePath = $this->convertToWebp($image, 'cars/gallery', $data['slug'] . '-' . ($index + 1));
-                
-                CarImage::create([
-                    'car_id' => $car->id,
-                    'image_path' => $imagePath,
-                    'alt_text' => $car->name . ' - Image ' . ($index + 1),
-                    'sort_order' => $index,
-                    'is_featured' => false
-                ]);
+        try {
+            $data = $request->except(['main_image', 'images', '_token']);
+            $data['slug'] = Str::slug($request->name);
+            $data['features'] = $request->features ?? [];
+            $data['rating'] = 0;
+            $data['review_count'] = 0;
+            
+            // Handle main image upload
+            if ($request->hasFile('main_image')) {
+                $data['main_image'] = $this->processImage($request->file('main_image'), 'cars', $data['slug']);
             }
+            
+            // Create the car
+            $car = Car::create($data);
+            
+            // Handle additional images upload
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $image) {
+                    $imagePath = $this->processImage($image, 'cars/gallery', $data['slug'] . '-' . ($index + 1));
+                    
+                    CarImage::create([
+                        'car_id' => $car->id,
+                        'image_path' => $imagePath,
+                        'alt_text' => $car->name . ' - Image ' . ($index + 1),
+                        'sort_order' => $index,
+                        'is_featured' => $index === 0 // First image is featured by default
+                    ]);
+                }
+            }
+            
+            // Log activity if spatie activity-log package is installed
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->performedOn($car)
+                    ->withProperties(['car_name' => $car->name])
+                    ->log('Created car');
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Car created successfully.',
+                'car' => $car
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the car: ' . $e->getMessage()
+            ], 500);
         }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Car $car)
+    {
+        $car->load('images', 'category', 'brand', 'bookings');
         
-        // Log activity if spatie activity-log package is installed
-        if (method_exists(app(), 'activity')) {
-            activity()
-                ->causedBy(Auth::guard('admin')->user())
-                ->performedOn($car)
-                ->withProperties(['car_name' => $car->name])
-                ->log('Created car');
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Car created successfully.',
-            'car' => $car
-        ]);
+        return view('admin.cars.show', compact('car'));
     }
 
     /**
@@ -191,7 +223,7 @@ class CarController extends Controller
     }
 
     /**
-     * Update the specified car in storage.
+     * Update the specified resource in storage.
      */
     public function update(Request $request, Car $car)
     {
@@ -232,73 +264,80 @@ class CarController extends Controller
             ], 422);
         }
 
-        $data = $request->except(['main_image', 'images', '_token', '_method', 'removed_images']);
-        $data['slug'] = Str::slug($request->name);
-        $data['features'] = $request->features ?? [];
-        
-        // Handle main image upload
-        if ($request->hasFile('main_image')) {
-            // Delete old image if exists
-            if ($car->main_image) {
-                Storage::disk('public')->delete($car->main_image);
-            }
+        try {
+            $data = $request->except(['main_image', 'images', '_token', '_method', 'removed_images']);
+            $data['slug'] = Str::slug($request->name);
+            $data['features'] = $request->features ?? [];
             
-            $data['main_image'] = $this->convertToWebp($request->file('main_image'), 'cars', $data['slug']);
-        }
-        
-        // Update the car
-        $car->update($data);
-        
-        // Handle removed images
-        if ($request->has('removed_images') && !empty($request->removed_images)) {
-            $removedImages = explode(',', $request->removed_images);
-            $imagesToDelete = CarImage::whereIn('id', $removedImages)->where('car_id', $car->id)->get();
-            
-            foreach ($imagesToDelete as $image) {
-                // Delete image file
-                Storage::disk('public')->delete($image->image_path);
+            // Handle main image upload
+            if ($request->hasFile('main_image')) {
+                // Delete old image if exists
+                if ($car->main_image) {
+                    Storage::disk('public')->delete($car->main_image);
+                }
                 
-                // Delete record
-                $image->delete();
+                $data['main_image'] = $this->processImage($request->file('main_image'), 'cars', $data['slug']);
             }
-        }
-        
-        // Handle additional images upload
-        if ($request->hasFile('images')) {
-            // Get highest current sort order
-            $maxOrder = $car->images()->max('sort_order') ?? 0;
             
-            foreach ($request->file('images') as $index => $image) {
-                $imagePath = $this->convertToWebp($image, 'cars/gallery', $data['slug'] . '-' . ($maxOrder + $index + 1));
+            // Update the car
+            $car->update($data);
+            
+            // Handle removed images
+            if ($request->has('removed_images') && !empty($request->removed_images)) {
+                $removedImages = explode(',', $request->removed_images);
+                $imagesToDelete = CarImage::whereIn('id', $removedImages)->where('car_id', $car->id)->get();
                 
-                CarImage::create([
-                    'car_id' => $car->id,
-                    'image_path' => $imagePath,
-                    'alt_text' => $car->name . ' - Image ' . ($index + 1),
-                    'sort_order' => $maxOrder + $index + 1,
-                    'is_featured' => false
-                ]);
+                foreach ($imagesToDelete as $image) {
+                    // Delete image file
+                    Storage::disk('public')->delete($image->image_path);
+                    
+                    // Delete record
+                    $image->delete();
+                }
             }
+            
+            // Handle additional images upload
+            if ($request->hasFile('images')) {
+                // Get highest current sort order
+                $maxOrder = $car->images()->max('sort_order') ?? 0;
+                
+                foreach ($request->file('images') as $index => $image) {
+                    $imagePath = $this->processImage($image, 'cars/gallery', $data['slug'] . '-' . ($maxOrder + $index + 1));
+                    
+                    CarImage::create([
+                        'car_id' => $car->id,
+                        'image_path' => $imagePath,
+                        'alt_text' => $car->name . ' - Image ' . ($index + 1),
+                        'sort_order' => $maxOrder + $index + 1,
+                        'is_featured' => false
+                    ]);
+                }
+            }
+            
+            // Log activity if spatie activity-log package is installed
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->performedOn($car)
+                    ->withProperties(['car_name' => $car->name])
+                    ->log('Updated car');
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Car updated successfully.',
+                'car' => $car
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the car: ' . $e->getMessage()
+            ], 500);
         }
-        
-        // Log activity if spatie activity-log package is installed
-        if (method_exists(app(), 'activity')) {
-            activity()
-                ->causedBy(Auth::guard('admin')->user())
-                ->performedOn($car)
-                ->withProperties(['car_name' => $car->name])
-                ->log('Updated car');
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Car updated successfully.',
-            'car' => $car
-        ]);
     }
     
     /**
-     * Remove the specified car from storage.
+     * Remove the specified resource from storage.
      */
     public function destroy(Car $car)
     {
@@ -310,48 +349,199 @@ class CarController extends Controller
             ], 403);
         }
         
-        // Check if car has active bookings
-        if ($car->bookings()->whereIn('status', ['pending', 'confirmed', 'active'])->count() > 0) {
+        try {
+            // Check if car has active bookings
+            if ($car->bookings()->whereIn('status', ['pending', 'confirmed', 'active'])->count() > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete car with active bookings.'
+                ], 400);
+            }
+            
+            // Store data for activity log
+            $carData = [
+                'id' => $car->id,
+                'name' => $car->name
+            ];
+            
+            // Delete main image if exists
+            if ($car->main_image) {
+                Storage::disk('public')->delete($car->main_image);
+            }
+            
+            // Delete additional images
+            foreach ($car->images as $image) {
+                Storage::disk('public')->delete($image->image_path);
+            }
+            
+            $car->delete();
+            
+            // Log activity if spatie activity-log package is installed
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->withProperties($carData)
+                    ->log('Deleted car');
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Car deleted successfully.'
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete car with active bookings.'
-            ], 400);
+                'message' => 'An error occurred while deleting the car: ' . $e->getMessage()
+            ], 500);
         }
-        
-        // Store data for activity log
-        $carData = [
-            'id' => $car->id,
-            'name' => $car->name
-        ];
-        
-        // Delete main image if exists
-        if ($car->main_image) {
-            Storage::disk('public')->delete($car->main_image);
-        }
-        
-        // Delete additional images
-        foreach ($car->images as $image) {
-            Storage::disk('public')->delete($image->image_path);
-        }
-        
-        $car->delete();
-        
-        // Log activity if spatie activity-log package is installed
-        if (method_exists(app(), 'activity')) {
-            activity()
-                ->causedBy(Auth::guard('admin')->user())
-                ->withProperties($carData)
-                ->log('Deleted car');
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Car deleted successfully.'
-        ]);
     }
     
     /**
-     * Update image order via AJAX
+     * Upload images for a car.
+     */
+    public function uploadImages(Request $request, Car $car)
+    {
+        // Check permission
+        if (!Auth::guard('admin')->user()->can('edit cars')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to edit cars.'
+            ], 403);
+        }
+        
+        $request->validate([
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+        
+        try {
+            $uploadedImages = [];
+            
+            if ($request->hasFile('images')) {
+                // Get highest current sort order
+                $maxOrder = $car->images()->max('sort_order') ?? 0;
+                
+                foreach ($request->file('images') as $index => $image) {
+                    $imagePath = $this->processImage($image, 'cars/gallery', $car->slug . '-' . ($maxOrder + $index + 1));
+                    
+                    // Create image record
+                    $carImage = CarImage::create([
+                        'car_id' => $car->id,
+                        'image_path' => $imagePath,
+                        'alt_text' => $car->name . ' - Image ' . ($index + 1),
+                        'sort_order' => $maxOrder + $index + 1,
+                        'is_featured' => $car->images->count() === 0 && $index === 0, // First image is featured if no other images
+                    ]);
+                    
+                    $uploadedImages[] = [
+                        'id' => $carImage->id,
+                        'path' => Storage::url($carImage->image_path),
+                        'is_featured' => $carImage->is_featured,
+                    ];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => count($uploadedImages) . ' images uploaded successfully.',
+                'images' => $uploadedImages
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while uploading images: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Delete a car image.
+     */
+    public function deleteImage(Request $request)
+    {
+        // Check permission
+        if (!Auth::guard('admin')->user()->can('edit cars')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to edit cars.'
+            ], 403);
+        }
+        
+        $request->validate([
+            'image_id' => 'required|exists:car_images,id'
+        ]);
+        
+        try {
+            $image = CarImage::findOrFail($request->image_id);
+            $carId = $image->car_id;
+            $isFeatured = $image->is_featured;
+            
+            // Delete file
+            Storage::disk('public')->delete($image->image_path);
+            
+            // Delete record
+            $image->delete();
+            
+            // If it was the featured image, set another image as featured
+            if ($isFeatured) {
+                $newFeaturedImage = CarImage::where('car_id', $carId)->first();
+                if ($newFeaturedImage) {
+                    $newFeaturedImage->update(['is_featured' => true]);
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Image deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the image: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Set image as featured.
+     */
+    public function setFeaturedImage(Request $request)
+    {
+        // Check permission
+        if (!Auth::guard('admin')->user()->can('edit cars')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to edit cars.'
+            ], 403);
+        }
+        
+        $request->validate([
+            'image_id' => 'required|exists:car_images,id',
+            'car_id' => 'required|exists:cars,id'
+        ]);
+        
+        try {
+            // Remove featured flag from all images of this car
+            CarImage::where('car_id', $request->car_id)
+                ->update(['is_featured' => false]);
+            
+            // Set the selected image as featured
+            CarImage::where('id', $request->image_id)
+                ->update(['is_featured' => true]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Featured image updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while setting the featured image: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Update image order.
      */
     public function updateImageOrder(Request $request)
     {
@@ -369,137 +559,83 @@ class CarController extends Controller
             'images.*.order' => 'required|integer|min:0'
         ]);
         
-        foreach ($request->images as $image) {
-            CarImage::where('id', $image['id'])->update(['sort_order' => $image['order']]);
+        try {
+            foreach ($request->images as $image) {
+                CarImage::where('id', $image['id'])->update(['sort_order' => $image['order']]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Image order updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating image order: ' . $e->getMessage()
+            ], 500);
         }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Image order updated successfully'
-        ]);
     }
     
     /**
-     * Set image as featured via AJAX
+     * Get available cars for AJAX select.
      */
-    public function setFeaturedImage(Request $request)
+    public function availableCars(Request $request)
     {
-        // Check permission
-        if (!Auth::guard('admin')->user()->can('edit cars')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to edit cars.'
-            ], 403);
-        }
-        
-        $request->validate([
-            'image_id' => 'required|exists:car_images,id',
-            'car_id' => 'required|exists:cars,id'
-        ]);
-        
-        // Remove featured flag from all images of this car
-        CarImage::where('car_id', $request->car_id)
-            ->update(['is_featured' => false]);
-        
-        // Set the selected image as featured
-        CarImage::where('id', $request->image_id)
-            ->update(['is_featured' => true]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Featured image updated successfully'
-        ]);
-    }
-    
-    /**
-     * Delete image via AJAX
-     */
-    public function deleteImage(Request $request)
-    {
-        // Check permission
-        if (!Auth::guard('admin')->user()->can('edit cars')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to edit cars.'
-            ], 403);
-        }
-        
-        $request->validate([
-            'image_id' => 'required|exists:car_images,id'
-        ]);
-        
-        $image = CarImage::findOrFail($request->image_id);
-        
-        // Delete file
-        Storage::disk('public')->delete($image->image_path);
-        
-        // Delete record
-        $image->delete();
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Image deleted successfully'
-        ]);
+        $search = $request->get('search');
+        $cars = Car::where('is_available', true)
+            ->when($search, function ($query, $search) {
+                return $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhereHas('brand', function($brandQuery) use ($search) {
+                          $brandQuery->where('name', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->with('brand')
+            ->select('id', 'name', 'brand_id', 'price_per_day')
+            ->get()
+            ->map(function ($car) {
+                return [
+                    'id' => $car->id,
+                    'text' => ($car->brand ? $car->brand->name . ' ' : '') . $car->name . ' - $' . number_format($car->price_per_day, 2) . '/day',
+                ];
+            });
+            
+        return response()->json($cars);
     }
 
     /**
-     * Convert and store image as WebP format with slug-based filename.
+     * Process and store image with optimizations.
      *
      * @param \Illuminate\Http\UploadedFile $file
      * @param string $directory
      * @param string $slug
      * @return string
      */
-    private function convertToWebp($file, $directory, $slug)
+    private function processImage($file, $directory, $slug)
     {
-        // Get app name from config and convert to slug format
-        $appNameSlug = Str::slug(config('app.name', 'laravel'));
-        
-        // Generate unique filename using slug, app name, and timestamp
-        $filename = $slug . '-' . $appNameSlug . '-' . time() . '.webp';
+        // Generate unique filename
+        $filename = $slug . '-' . time() . '.' . $file->getClientOriginalExtension();
         
         // Create full path
         $path = $directory . '/' . $filename;
         
-        // Create temporary file path for the uploaded image
-        $tempFile = $file->getRealPath();
-        
-        // Get image content type to determine how to handle the conversion
-        $imageType = exif_imagetype($tempFile);
-        
-        // Create GD image based on image type
-        switch ($imageType) {
-            case IMAGETYPE_JPEG:
-                $image = imagecreatefromjpeg($tempFile);
-                break;
-            case IMAGETYPE_PNG:
-                $image = imagecreatefrompng($tempFile);
-                // Handle transparency for PNG
-                imagepalettetotruecolor($image);
-                imagealphablending($image, true);
-                imagesavealpha($image, true);
-                break;
-            case IMAGETYPE_GIF:
-                $image = imagecreatefromgif($tempFile);
-                break;
-            case IMAGETYPE_WEBP:
-                $image = imagecreatefromwebp($tempFile);
-                break;
-            default:
-                throw new \Exception('Unsupported image type');
+        // Create directory if it doesn't exist
+        if (!Storage::exists('public/' . $directory)) {
+            Storage::makeDirectory('public/' . $directory);
         }
         
-        // Ensure the directory exists
-        Storage::disk('public')->makeDirectory($directory);
+        // Process and optimize the image
+        $img = Image::make($file->getRealPath());
         
-        // Full path to where the WebP file will be saved
-        $storagePath = storage_path('app/public/' . $path);
+        // Resize to a reasonable dimension while maintaining aspect ratio
+        $img->resize(1200, null, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        });
         
-        // Convert to WebP and save (quality: 80%)
-        imagewebp($image, $storagePath, 80);
-        
-        // Free memory
-        imagedestroy($image);
+        // Save with medium quality to reduce file size
+        $img->save(storage_path('app/public/' . $path), 80);
         
         return $path;
     }
