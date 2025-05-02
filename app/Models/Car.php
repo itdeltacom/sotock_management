@@ -119,4 +119,9 @@ class Car extends Model
     {
         return $this->daily_price * (1 - ($this->discount_percentage / 100));
     }
+
+    public function documents()
+{
+    return $this->hasOne(CarDocuments::class);
+}
 }

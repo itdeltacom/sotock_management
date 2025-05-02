@@ -1,15 +1,15 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
 
 class CarDocuments extends Model
 {
     use HasFactory;
-
+    
     protected $fillable = [
         'car_id',
         'carte_grise_number',
@@ -25,7 +25,7 @@ class CarDocuments extends Model
         'file_visite_technique',
         'file_vignette',
     ];
-
+    
     protected $casts = [
         'carte_grise_expiry_date' => 'date',
         'assurance_expiry_date' => 'date',
@@ -33,7 +33,7 @@ class CarDocuments extends Model
         'visite_technique_expiry_date' => 'date',
         'vignette_expiry_date' => 'date',
     ];
-
+    
     // Relationships
     public function car(): BelongsTo
     {
@@ -45,10 +45,10 @@ class CarDocuments extends Model
     {
         $thirtyDaysFromNow = now()->addDays(30);
         
-        return $this->carte_grise_expiry_date <= $thirtyDaysFromNow
-            || $this->assurance_expiry_date <= $thirtyDaysFromNow
-            || $this->visite_technique_expiry_date <= $thirtyDaysFromNow
-            || $this->vignette_expiry_date <= $thirtyDaysFromNow;
+        return $this->carte_grise_expiry_date && $this->carte_grise_expiry_date <= $thirtyDaysFromNow
+            || $this->assurance_expiry_date && $this->assurance_expiry_date <= $thirtyDaysFromNow
+            || $this->visite_technique_expiry_date && $this->visite_technique_expiry_date <= $thirtyDaysFromNow
+            || $this->vignette_expiry_date && $this->vignette_expiry_date <= $thirtyDaysFromNow;
     }
     
     // Get list of documents that will expire within the next 30 days
@@ -57,7 +57,7 @@ class CarDocuments extends Model
         $thirtyDaysFromNow = now()->addDays(30);
         $expiringDocuments = [];
         
-        if ($this->carte_grise_expiry_date <= $thirtyDaysFromNow) {
+        if ($this->carte_grise_expiry_date && $this->carte_grise_expiry_date <= $thirtyDaysFromNow) {
             $expiringDocuments[] = [
                 'document' => 'Carte Grise',
                 'expiry_date' => $this->carte_grise_expiry_date,
@@ -65,7 +65,7 @@ class CarDocuments extends Model
             ];
         }
         
-        if ($this->assurance_expiry_date <= $thirtyDaysFromNow) {
+        if ($this->assurance_expiry_date && $this->assurance_expiry_date <= $thirtyDaysFromNow) {
             $expiringDocuments[] = [
                 'document' => 'Assurance',
                 'expiry_date' => $this->assurance_expiry_date,
@@ -73,7 +73,7 @@ class CarDocuments extends Model
             ];
         }
         
-        if ($this->visite_technique_expiry_date <= $thirtyDaysFromNow) {
+        if ($this->visite_technique_expiry_date && $this->visite_technique_expiry_date <= $thirtyDaysFromNow) {
             $expiringDocuments[] = [
                 'document' => 'Visite Technique',
                 'expiry_date' => $this->visite_technique_expiry_date,
@@ -81,7 +81,7 @@ class CarDocuments extends Model
             ];
         }
         
-        if ($this->vignette_expiry_date <= $thirtyDaysFromNow) {
+        if ($this->vignette_expiry_date && $this->vignette_expiry_date <= $thirtyDaysFromNow) {
             $expiringDocuments[] = [
                 'document' => 'Vignette',
                 'expiry_date' => $this->vignette_expiry_date,

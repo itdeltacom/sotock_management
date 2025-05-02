@@ -26,6 +26,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Debug mode - set to true to enable console logs
     const debug = true;
 
+    // Get base URL from meta tag or use default
+    const baseUrl = $('meta[name="base-url"]').attr('content') || '';
+
+    // Document routes
+    const documentRoutes = {
+        getDocuments: baseUrl + '/admin/cars/:id/documents',
+        updateDocuments: baseUrl + '/admin/cars/:id/documents/update',
+        uploadDocument: baseUrl + '/admin/cars/:id/documents/upload',
+        deleteDocument: baseUrl + '/admin/cars/:id/documents/delete'
+    };
+
     // Logger function
     const log = function(message, data = null) {
         if (debug && console && console.log) {
@@ -39,6 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize CKEditor
     function initCKEditor() {
+        // If CKEditor is being initialized separately (in the provided HTML), skip this
+        if (typeof ClassicEditor === 'undefined') {
+            log('CKEditor not found, skipping initialization');
+            return Promise.resolve(null);
+        }
+
         return ClassicEditor
             .create(document.querySelector('#description'), {
                 toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo'],
@@ -120,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         let actions = '';
                         
                         // View button
-                        actions += `<a href="${routes.showUrl.replace(':id', row.id)}" class="btn btn-sm btn-info me-1" title="View">
+                        actions += `<a href="${routes.showUrl ? routes.showUrl.replace(':id', row.id) : '#'}" class="btn btn-sm btn-info me-1" title="View">
                             <i class="fas fa-eye"></i>
                         </a>`;
                         
@@ -183,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set POST method for new car creation
         methodInput.val('POST');
         
-        // Reset CKEditor
+        // Reset CKEditor if initialized
         if (editor) {
             editor.setData('');
         }
@@ -194,14 +211,25 @@ document.addEventListener('DOMContentLoaded', function() {
         imageGallery.empty();
         removedImagesInput.val('');
         
+        // Reset document file indicators
+        $('.document-file-indicator').addClass('d-none');
+        
         // Reset car ID
         currentCarId = null;
         
         // Set today's date for date fields
         const today = new Date().toISOString().split('T')[0];
         $('#mise_en_service_date').val(today);
-        $('#vignette_date').val(today);
-        $('#technical_inspection_date').val(today);
+        
+        // Set default document expiry dates (1 year from today)
+        const oneYearFromToday = new Date();
+        oneYearFromToday.setFullYear(oneYearFromToday.getFullYear() + 1);
+        const oneYearFromTodayStr = oneYearFromToday.toISOString().split('T')[0];
+        
+        $('#assurance_expiry_date').val(oneYearFromTodayStr);
+        $('#vignette_expiry_date').val(oneYearFromTodayStr);
+        $('#visite_technique_expiry_date').val(oneYearFromTodayStr);
+        $('#carte_grise_expiry_date').val(oneYearFromTodayStr);
         
         // Ensure all form fields are enabled
         carForm.find('input, select, textarea').prop('disabled', false).css('opacity', '');
@@ -248,6 +276,29 @@ document.addEventListener('DOMContentLoaded', function() {
         return moroccanPlateRegex.test(normalized);
     }
 
+    // Format date for input fields
+    function formatDateForInput(dateString) {
+        if (!dateString) return '';
+        
+        // Check if the date is already in the correct format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+        
+        // Parse the date
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return ''; // Invalid date
+        }
+        
+        // Format the date as YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    }
+
     // Serialize form data for debugging
     function serializeFormData(formData) {
         const serialized = {};
@@ -260,6 +311,72 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         return serialized;
+    }
+
+    // Load car documents via AJAX
+    function loadCarDocuments(carId) {
+        log(`Loading documents for car ID: ${carId}`);
+        
+        $.ajax({
+            url: documentRoutes.getDocuments.replace(':id', carId),
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.documents) {
+                    log('Car documents loaded successfully', response.documents);
+                    populateDocumentFields(response.documents);
+                } else {
+                    log('No documents found or empty response');
+                }
+            },
+            error: function(xhr) {
+                log('Error loading car documents', xhr);
+                // Don't show alert to user, just log error
+            }
+        });
+    }
+
+    // Populate document fields from data
+    function populateDocumentFields(documents) {
+        if (!documents) {
+            log('No document data to populate');
+            return;
+        }
+        
+        log('Populating document fields', documents);
+        
+        // Set insurance information
+        $('#assurance_number').val(documents.assurance_number || '');
+        $('#assurance_company').val(documents.assurance_company || '');
+        $('#assurance_expiry_date').val(formatDateForInput(documents.assurance_expiry_date));
+        
+        // Set carte grise information
+        $('#carte_grise_number').val(documents.carte_grise_number || '');
+        $('#carte_grise_expiry_date').val(formatDateForInput(documents.carte_grise_expiry_date));
+        
+        // Set vignette information
+        $('#vignette_expiry_date').val(formatDateForInput(documents.vignette_expiry_date));
+        
+        // Set technical inspection information
+        $('#visite_technique_date').val(formatDateForInput(documents.visite_technique_date));
+        $('#visite_technique_expiry_date').val(formatDateForInput(documents.visite_technique_expiry_date));
+        
+        // Update file indicators if files exist
+        if (documents.file_carte_grise) {
+            $('#carte_grise_file_indicator').removeClass('d-none').attr('href', `/storage/${documents.file_carte_grise}`);
+        }
+        
+        if (documents.file_assurance) {
+            $('#assurance_file_indicator').removeClass('d-none').attr('href', `/storage/${documents.file_assurance}`);
+        }
+        
+        if (documents.file_visite_technique) {
+            $('#visite_technique_file_indicator').removeClass('d-none').attr('href', `/storage/${documents.file_visite_technique}`);
+        }
+        
+        if (documents.file_vignette) {
+            $('#vignette_file_indicator').removeClass('d-none').attr('href', `/storage/${documents.file_vignette}`);
+        }
     }
 
     // Handle form submission
@@ -312,13 +429,44 @@ document.addEventListener('DOMContentLoaded', function() {
             log(`Matricule formatted: ${$('#matricule').val()}`);
         }
         
+        // Validate expiry dates are in future
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Validate insurance expiry date
+        const assuranceExpiryDate = new Date($('#assurance_expiry_date').val());
+        if (assuranceExpiryDate < today) {
+            $('#assurance_expiry_date').addClass('is-invalid');
+            $('#assurance_expiry_date-error').text('Insurance expiry date must be in the future');
+            isValid = false;
+            log('Validation error: Insurance expiry date is in the past');
+        }
+        
+        // Validate vignette expiry date
+        const vignetteExpiryDate = new Date($('#vignette_expiry_date').val());
+        if (vignetteExpiryDate < today) {
+            $('#vignette_expiry_date').addClass('is-invalid');
+            $('#vignette_expiry_date-error').text('Vignette expiry date must be in the future');
+            isValid = false;
+            log('Validation error: Vignette expiry date is in the past');
+        }
+        
+        // Validate technical inspection expiry date
+        const techInspectionExpiryDate = new Date($('#visite_technique_expiry_date').val());
+        if (techInspectionExpiryDate < today) {
+            $('#visite_technique_expiry_date').addClass('is-invalid');
+            $('#visite_technique_expiry_date-error').text('Technical inspection expiry date must be in the future');
+            isValid = false;
+            log('Validation error: Technical inspection expiry date is in the past');
+        }
+        
         // Check if we need to show the first tab with errors
         if (!isValid) {
             const firstErrorField = carForm.find('.is-invalid').first();
             const tabPane = firstErrorField.closest('.tab-pane');
             if (tabPane.length) {
                 const tabId = tabPane.attr('id');
-                $(`#${tabId}-tab`).tab('show');
+                $(`#carTabs button[data-bs-target="#${tabId}"]`).tab('show');
                 
                 log(`Showing tab with first error: ${tabId}`);
             }
@@ -390,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Show the first tab with errors
                     if (firstErrorTab) {
-                        $(`#${firstErrorTab}-tab`).tab('show');
+                        $(`#carTabs button[data-bs-target="#${firstErrorTab}"]`).tab('show');
                         log(`Showing tab with server validation errors: ${firstErrorTab}`);
                     }
                     
@@ -405,6 +553,128 @@ document.addEventListener('DOMContentLoaded', function() {
                 log('Form submission complete');
             }
         });
+    }
+
+    // Handle document-only update
+    function updateCarDocuments(carId) {
+        log(`Updating documents for car ID: ${carId}`);
+        
+        // Create FormData with only document fields
+        const formData = new FormData();
+        
+        // Add document fields
+        formData.append('assurance_number', $('#assurance_number').val());
+        formData.append('assurance_company', $('#assurance_company').val());
+        formData.append('assurance_expiry_date', $('#assurance_expiry_date').val());
+        formData.append('carte_grise_number', $('#carte_grise_number').val());
+        formData.append('carte_grise_expiry_date', $('#carte_grise_expiry_date').val());
+        formData.append('vignette_expiry_date', $('#vignette_expiry_date').val());
+        formData.append('visite_technique_date', $('#visite_technique_date').val());
+        formData.append('visite_technique_expiry_date', $('#visite_technique_expiry_date').val());
+        
+        // Add document files if selected
+        const fileCarteGrise = $('#file_carte_grise')[0].files[0];
+        const fileAssurance = $('#file_assurance')[0].files[0];
+        const fileVisiteTechnique = $('#file_visite_technique')[0].files[0];
+        const fileVignette = $('#file_vignette')[0].files[0];
+        
+        if (fileCarteGrise) {
+            formData.append('file_carte_grise', fileCarteGrise);
+        }
+        
+        if (fileAssurance) {
+            formData.append('file_assurance', fileAssurance);
+        }
+        
+        if (fileVisiteTechnique) {
+            formData.append('file_visite_technique', fileVisiteTechnique);
+        }
+        
+        if (fileVignette) {
+            formData.append('file_vignette', fileVignette);
+        }
+        
+        // Add CSRF token
+        formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+        
+        // Show loading
+        const documentsTab = $('#documents');
+        documentsTab.prepend('<div class="loading-overlay"><div class="spinner-border text-primary" role="status"></div></div>');
+        
+        $.ajax({
+            url: documentRoutes.updateDocuments.replace(':id', carId),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                log('Document update success', response);
+                
+                if (response.success) {
+                    showAlert('Success', 'Car documents updated successfully', 'success');
+                    
+                    // Update file indicators
+                    if (response.documents) {
+                        updateDocumentFileIndicators(response.documents);
+                    }
+                } else {
+                    showAlert('Error', response.message || 'Failed to update car documents', 'error');
+                }
+            },
+            error: function(xhr) {
+                log('Document update error', xhr);
+                
+                if (xhr.status === 422) {
+                    // Validation errors
+                    const errors = xhr.responseJSON?.errors || {};
+                    log('Document validation errors', errors);
+                    
+                    // Display validation errors
+                    for (const field in errors) {
+                        const input = $(`#${field}`);
+                        if (input.length) {
+                            input.addClass('is-invalid');
+                            $(`#${field}-error`).text(errors[field][0]);
+                        }
+                    }
+                    
+                    showAlert('Validation Error', 'Please check the document fields for errors.', 'error');
+                } else {
+                    showAlert('Error', xhr.responseJSON?.message || 'An error occurred while updating car documents.', 'error');
+                }
+            },
+            complete: function() {
+                // Remove loading overlay
+                documentsTab.find('.loading-overlay').remove();
+            }
+        });
+    }
+
+    // Update document file indicators
+    function updateDocumentFileIndicators(documents) {
+        if (documents.file_carte_grise) {
+            $('#carte_grise_file_indicator')
+                .removeClass('d-none')
+                .attr('href', `/storage/${documents.file_carte_grise}`);
+        }
+        
+        if (documents.file_assurance) {
+            $('#assurance_file_indicator')
+                .removeClass('d-none')
+                .attr('href', `/storage/${documents.file_assurance}`);
+        }
+        
+        if (documents.file_visite_technique) {
+            $('#visite_technique_file_indicator')
+                .removeClass('d-none')
+                .attr('href', `/storage/${documents.file_visite_technique}`);
+        }
+        
+        if (documents.file_vignette) {
+            $('#vignette_file_indicator')
+                .removeClass('d-none')
+                .attr('href', `/storage/${documents.file_vignette}`);
+        }
     }
 
     // Handle edit car
@@ -461,19 +731,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 $('#engine_capacity').val(car.engine_capacity);
                 $('#mileage').val(car.mileage);
                 
-                // Documents tab
-                $('#insurance_number').val(car.insurance_number);
-                $('#grey_card_number').val(car.grey_card_number);
-                
-                // Format dates properly for documents
-                if (car.vignette_date) {
-                    const date = car.vignette_date.split('T')[0].split(' ')[0];
-                    $('#vignette_date').val(date);
-                }
-                
-                if (car.technical_inspection_date) {
-                    const date = car.technical_inspection_date.split('T')[0].split(' ')[0];
-                    $('#technical_inspection_date').val(date);
+                // Load documents data - either from car.documents or via AJAX
+                if (car.documents) {
+                    populateDocumentFields(car.documents);
+                } else {
+                    loadCarDocuments(car.id);
                 }
                 
                 // SEO tab
@@ -484,6 +746,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Set CKEditor content
                 if (editor) {
                     editor.setData(car.description || '');
+                } else if (document.getElementById('description')) {
+                    document.getElementById('description').value = car.description || '';
                 }
                 
                 // Set features
@@ -626,35 +890,209 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Check document expiry dates
+    // Check document expiry dates and show warnings
     function checkDocumentExpiryDates() {
         log('Checking document expiry dates');
-        const currentDate = new Date();
-        const vignetteDate = new Date($('#vignette_date').val());
-        const technicalInspectionDate = new Date($('#technical_inspection_date').val());
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Define date fields to check
+        const dateFields = [
+            { 
+                field: 'assurance_expiry_date', 
+                name: 'Insurance'
+            },
+            { 
+                field: 'vignette_expiry_date',
+                name: 'Vignette'
+            },
+            { 
+                field: 'visite_technique_expiry_date',
+                name: 'Technical Inspection'
+            },
+            { 
+                field: 'carte_grise_expiry_date',
+                name: 'Carte Grise'
+            }
+        ];
+        
         const warningThreshold = 30; // days
         
-        // Check if vignette is expired or about to expire
-        if (vignetteDate < currentDate) {
-            $('#vignette_date').addClass('is-invalid');
-            $('#vignette_date-error').text('Vignette has expired!');
-            log('Vignette has expired');
-        } else if ((vignetteDate - currentDate) / (1000 * 60 * 60 * 24) < warningThreshold) {
-            $('#vignette_date').addClass('is-warning');
-            $('#vignette_date-error').text('Vignette will expire soon!');
-            log('Vignette will expire soon');
+        // Clear previous warnings
+        $('.expiry-warning').remove();
+        
+        // Check each date field
+        dateFields.forEach(item => {
+            const field = $(`#${item.field}`);
+            const dateValue = new Date(field.val());
+            
+            if (isNaN(dateValue.getTime())) {
+                // Invalid date, skip check
+                return;
+            }
+            
+            const daysUntilExpiry = Math.ceil((dateValue - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                // Already expired
+                field.addClass('is-invalid').removeClass('is-warning');
+                const warningHtml = `<div class="expiry-warning text-danger mt-1"><i class="fas fa-exclamation-triangle"></i> ${item.name} has already expired!</div>`;
+                field.after(warningHtml);
+                
+                log(`${item.name} has expired (${daysUntilExpiry} days)`);
+            } else if (daysUntilExpiry <= warningThreshold) {
+                // Will expire soon
+                field.addClass('is-warning').removeClass('is-invalid');
+                const warningHtml = `<div class="expiry-warning text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> ${item.name} will expire in ${daysUntilExpiry} days</div>`;
+                field.after(warningHtml);
+                
+                log(`${item.name} will expire soon (${daysUntilExpiry} days)`);
+            } else {
+                // Valid, no warning needed
+                field.removeClass('is-invalid is-warning');
+            }
+        });
+        
+        // Add class for styling warning fields
+        if ($('.is-warning').length > 0 && !$('#expiry-warning-styles').length) {
+            $('head').append(`
+                <style id="expiry-warning-styles">
+                    .is-warning {
+                        border-color: #ffc107;
+                        background-color: rgba(255, 193, 7, 0.1);
+                    }
+                </style>
+            `);
+        }
+    }
+
+    // Handle document file upload
+    function handleDocumentFileUpload(documentType) {
+        if (!currentCarId) {
+            log('Cannot upload document - no car ID');
+            showAlert('Error', 'Please save the car first before uploading documents', 'error');
+            return;
         }
         
-        // Check if technical inspection is expired or about to expire
-        if (technicalInspectionDate < currentDate) {
-            $('#technical_inspection_date').addClass('is-invalid');
-            $('#technical_inspection_date-error').text('Technical inspection has expired!');
-            log('Technical inspection has expired');
-        } else if ((technicalInspectionDate - currentDate) / (1000 * 60 * 60 * 24) < warningThreshold) {
-            $('#technical_inspection_date').addClass('is-warning');
-            $('#technical_inspection_date-error').text('Technical inspection will expire soon!');
-            log('Technical inspection will expire soon');
+        const fileInput = $(`#file_${documentType}`)[0];
+        if (!fileInput.files || !fileInput.files[0]) {
+            log(`No file selected for ${documentType}`);
+            return;
         }
+        
+        log(`Uploading ${documentType} document for car ID: ${currentCarId}`);
+        
+        const formData = new FormData();
+        formData.append('document_type', documentType);
+        formData.append('file', fileInput.files[0]);
+        formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+        
+        // Show loading indicator
+        $(`#${documentType}_file_indicator`).addClass('d-none');
+        $(`#${documentType}_upload_btn`).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        
+        $.ajax({
+            url: documentRoutes.uploadDocument.replace(':id', currentCarId),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                log(`${documentType} document upload success`, response);
+                
+                if (response.success) {
+                    showAlert('Success', response.message || `${getDocumentTypeName(documentType)} uploaded successfully`, 'success');
+                    
+                    // Show file indicator with link
+                    $(`#${documentType}_file_indicator`)
+                        .removeClass('d-none')
+                        .attr('href', response.file_path || '#');
+                    
+                    // Clear file input
+                    fileInput.value = '';
+                } else {
+                    showAlert('Error', response.message || `Failed to upload ${getDocumentTypeName(documentType)}`, 'error');
+                }
+            },
+            error: function(xhr) {
+                log(`${documentType} document upload error`, xhr);
+                
+                let errorMessage = `Failed to upload ${getDocumentTypeName(documentType)}`;
+                if (xhr.responseJSON?.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON?.errors) {
+                    const errors = xhr.responseJSON.errors;
+                    errorMessage = errors[Object.keys(errors)[0]][0] || errorMessage;
+                }
+                
+                showAlert('Error', errorMessage, 'error');
+            },
+            complete: function() {
+                $(`#${documentType}_upload_btn`).prop('disabled', false).html('<i class="fas fa-upload"></i>');
+            }
+        });
+    }
+
+    // Handle document file deletion
+    function handleDocumentFileDelete(documentType) {
+        if (!currentCarId) {
+            log('Cannot delete document - no car ID');
+            showAlert('Error', 'Car ID not found', 'error');
+            return;
+        }
+        
+        log(`Deleting ${documentType} document for car ID: ${currentCarId}`);
+        
+        // Confirm delete
+        Swal.fire({
+            title: 'Confirm Delete',
+            text: `Are you sure you want to delete the ${getDocumentTypeName(documentType)} document?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Delete'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: documentRoutes.deleteDocument.replace(':id', currentCarId),
+                    type: 'POST',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                        document_type: documentType,
+                        _method: 'DELETE'
+                    },
+                    success: function(response) {
+                        log(`${documentType} document delete success`, response);
+                        
+                        if (response.success) {
+                            showAlert('Success', response.message || `${getDocumentTypeName(documentType)} deleted successfully`, 'success');
+                            
+                            // Hide file indicator
+                            $(`#${documentType}_file_indicator`).addClass('d-none');
+                        } else {
+                            showAlert('Error', response.message || `Failed to delete ${getDocumentTypeName(documentType)}`, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        log(`${documentType} document delete error`, xhr);
+                        showAlert('Error', xhr.responseJSON?.message || `Failed to delete ${getDocumentTypeName(documentType)}`, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // Get document type friendly name
+    function getDocumentTypeName(documentType) {
+        const names = {
+            'carte_grise': 'Carte Grise',
+            'assurance': 'Insurance',
+            'visite_technique': 'Technical Inspection',
+            'vignette': 'Vignette'
+        };
+        
+        return names[documentType] || documentType;
     }
 
     // Attach event listeners for edit buttons
@@ -728,13 +1166,67 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Setup document file upload handlers
+    function setupDocumentHandlers() {
+        // Document upload buttons
+        $('#carte_grise_upload_btn').on('click', function() {
+            handleDocumentFileUpload('carte_grise');
+        });
+        
+        $('#assurance_upload_btn').on('click', function() {
+            handleDocumentFileUpload('assurance');
+        });
+        
+        $('#visite_technique_upload_btn').on('click', function() {
+            handleDocumentFileUpload('visite_technique');
+        });
+        
+        $('#vignette_upload_btn').on('click', function() {
+            handleDocumentFileUpload('vignette');
+        });
+        
+        // Document delete buttons
+        $('#carte_grise_delete_btn').on('click', function() {
+            handleDocumentFileDelete('carte_grise');
+        });
+        
+        $('#assurance_delete_btn').on('click', function() {
+            handleDocumentFileDelete('assurance');
+        });
+        
+        $('#visite_technique_delete_btn').on('click', function() {
+            handleDocumentFileDelete('visite_technique');
+        });
+        
+        $('#vignette_delete_btn').on('click', function() {
+            handleDocumentFileDelete('vignette');
+        });
+        
+        // Document update button
+        $('#update_documents_btn').on('click', function() {
+            if (currentCarId) {
+                updateCarDocuments(currentCarId);
+            } else {
+                showAlert('Error', 'Please save the car first before updating documents', 'error');
+            }
+        });
+    }
+
     // Set default dates
     function setupDefaultDates() {
         // Set today's date as default for date fields
         const today = new Date().toISOString().split('T')[0];
         $('#mise_en_service_date').val(today);
-        $('#vignette_date').val(today);
-        $('#technical_inspection_date').val(today);
+        
+        // Set default expiry dates (1 year from today)
+        const oneYearFromToday = new Date();
+        oneYearFromToday.setFullYear(oneYearFromToday.getFullYear() + 1);
+        const oneYearFromTodayStr = oneYearFromToday.toISOString().split('T')[0];
+        
+        $('#assurance_expiry_date').val(oneYearFromTodayStr);
+        $('#vignette_expiry_date').val(oneYearFromTodayStr);
+        $('#visite_technique_expiry_date').val(oneYearFromTodayStr);
+        $('#carte_grise_expiry_date').val(oneYearFromTodayStr);
     }
 
     // Initialize the application
@@ -742,8 +1234,10 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             log('Initializing Car Management');
             
-            // Initialize CKEditor
-            await initCKEditor();
+            // Initialize CKEditor (if not already initialized elsewhere)
+            if (document.querySelector('#description') && typeof ClassicEditor !== 'undefined') {
+                await initCKEditor();
+            }
             
             // Initialize DataTable
             carsDataTable = initDataTable();
@@ -756,6 +1250,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Setup form validation
             setupFormValidation();
+            
+            // Setup document handlers
+            setupDocumentHandlers();
             
             // Setup default dates
             setupDefaultDates();
@@ -786,12 +1283,51 @@ document.addEventListener('DOMContentLoaded', function() {
             attachEditEventListeners();
             attachDeleteEventListeners();
             
+            // Add CSS for document expiry warnings
+            $('head').append(`
+                <style>
+                    .loading-overlay {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(255, 255, 255, 0.7);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 1000;
+                    }
+                    
+                    .document-file-indicator {
+                        margin-right: 10px;
+                    }
+                    
+                    .document-actions {
+                        display: flex;
+                        margin-top: 10px;
+                    }
+                    
+                    .document-upload-btn {
+                        margin-right: 5px;
+                    }
+                    
+                    .is-warning {
+                        border-color: #ffc107;
+                        background-color: rgba(255, 193, 7, 0.1);
+                    }
+                </style>
+            `);
+            
             log('Car Management initialized');
         } catch (error) {
             console.error('Error initializing Car Management:', error);
         }
     }
 
+    // Make handleEditCar function available globally
+    window.handleEditCar = handleEditCar;
+    
     // Start the application
     init();
 });

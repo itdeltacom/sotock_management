@@ -354,69 +354,226 @@
 
 @push('css')
     <style>
-        /* Critical fixes for modal display */
-        #blogModal {
-            z-index: 1050 !important;
+        /* Blog Management Styles - Argon-inspired */
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
         }
 
-        .modal-backdrop {
-            z-index: 1040 !important;
+        .page-header h3 {
+            margin-bottom: 0;
+            font-size: 1.25rem;
+            color: #344767;
+            font-weight: 600;
         }
 
+        .page-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Card Styling */
+        .card {
+            box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header h5 {
+            margin-bottom: 0;
+            font-size: 1rem;
+            color: #344767;
+            font-weight: 600;
+        }
+
+        /* Form Styling */
+        .form-control,
+        .form-select {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            border-radius: 0.5rem;
+            transition: box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #5e72e4;
+            box-shadow: 0 3px 9px rgba(0, 0, 0, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
+        }
+
+        .form-label {
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #8392AB;
+        }
+
+        .form-text {
+            font-size: 0.75rem;
+            color: #8392AB;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            border: none;
+            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
+        }
+
+        .btn-outline-secondary {
+            border-color: #67748e;
+            color: #67748e;
+            transition: all 0.15s ease;
+        }
+
+        .btn-outline-secondary:hover {
+            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(310deg, #f5365c 0%, #f56036 100%);
+            border: none;
+        }
+
+        /* Table Styling */
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            padding: 0.75rem 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #8392AB;
+            border-bottom: 1px solid #E9ECEF;
+            vertical-align: middle;
+        }
+
+        .table td {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #E9ECEF;
+        }
+
+        /* Modal Styling */
         .modal-content {
-            opacity: 1 !important;
-            background-color: #fff !important;
+            border: 0;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
         }
 
-        /* Critical fix for tab display issue */
-        #blogTabContent>.tab-pane {
-            display: none !important;
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        #blogTabContent>.tab-pane.active.show {
-            display: block !important;
+        .modal-footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        /* Modal styling */
-        .modal-dialog.modal-xl {
-            max-width: 90%;
-            width: 90%;
-            margin: 1.75rem auto;
+        /* Tab Styling */
+        .nav-tabs .nav-link {
+            color: #344767;
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            transition: all 0.15s ease;
         }
 
-        /* Tab content area */
-        .tab-content {
-            border: 1px solid #dee2e6;
-            border-top: 0;
-            padding: 1.25rem;
-            background-color: #fff;
-            border-bottom-right-radius: 0.25rem;
-            border-bottom-left-radius: 0.25rem;
+        .nav-tabs .nav-link.active {
+            color: #fff;
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
         }
 
-        /* Image previews */
+        /* Image Previews */
         #featured-image-preview img,
         #social-image-preview img {
             max-height: 200px;
             width: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        /* CKEditor minimum height */
-        .ck-editor__editable {
-            min-height: 300px !important;
-            z-index: 1;
-        }
-
-        /* Social preview styling */
+        /* Social Preview */
         .social-preview {
             background-color: #f8f9fa;
-            border-radius: 0.25rem;
+            border-radius: 0.5rem;
             padding: 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        /* Loading overlay */
+        .social-preview h6 {
+            color: #8392AB;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .social-preview .fb-preview,
+        .social-preview .twitter-preview {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Form Switches */
+        .form-check-input:checked {
+            background-color: #5e72e4;
+            border-color: #5e72e4;
+        }
+
+        /* DataTables Styling */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_processing,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 0.875rem;
+            color: #8392AB;
+            padding: 1rem 1.5rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            color: white !important;
+            border: none;
+            border-radius: 0.5rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f6f9fc;
+            color: #5e72e4 !important;
+            border: 1px solid #f6f9fc;
+        }
+
+        /* Loading Overlay */
         #loading-overlay {
             position: absolute;
             top: 0;
@@ -428,11 +585,110 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            border-radius: 0.75rem;
         }
 
-        /* Select2 adjustments for modal */
-        .select2-container--open {
-            z-index: 1060 !important;
+        /* Select2 Styling */
+        .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            border-color: #d2d6da;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection:focus {
+            border-color: #5e72e4;
+            box-shadow: 0 3px 9px rgba(0, 0, 0, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
+        }
+
+        .modal-dialog {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100% - 3.5rem);
+        }
+
+        .modal-content {
+            border: 0;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            align-items: center;
+        }
+
+        .modal-header .btn-close {
+            background: transparent;
+            opacity: 0.5;
+            margin: -0.5rem -0.5rem -0.5rem auto;
+            padding: 0.5rem;
+        }
+
+        .modal-header .btn-close:hover {
+            opacity: 1;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-title {
+            font-weight: 600;
+            color: #344767;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        /* Button styles in modal footer */
+        .modal-footer .btn-secondary {
+            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
+            color: white;
+            border: none;
+        }
+
+        .modal-footer .btn-outline-secondary {
+            border-color: #67748e;
+            color: #67748e;
+            transition: all 0.15s ease;
+        }
+
+        .modal-footer .btn-outline-secondary:hover {
+            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .modal-footer .btn-primary,
+        .modal-footer .bg-gradient-primary {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            border: none;
+            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
+        }
+
+        .modal-footer .btn-danger,
+        .modal-footer .bg-gradient-danger {
+            background: linear-gradient(310deg, #f5365c 0%, #f56036 100%);
+            border: none;
+        }
+
+        /* Delete Modal Special Styling */
+        #deleteModal .modal-body {
+            text-align: center;
+        }
+
+        #deleteModal .modal-body i {
+            color: #fb6340;
+            margin-bottom: 1rem;
         }
     </style>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">

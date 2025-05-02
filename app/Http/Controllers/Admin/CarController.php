@@ -142,127 +142,139 @@ class CarController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-    {
-        // Check permission
-        if (!Auth::guard('admin')->user()->can('create cars')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to create cars.'
-            ], 403);
-        }
+{
+    // Check permission
+    if (!Auth::guard('admin')->user()->can('create cars')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You do not have permission to create cars.'
+        ], 403);
+    }
+    
+    // Validate input with all fields including Moroccan-specific ones
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string|max:255',
+        'category_id' => 'required|exists:categories,id',
+        'brand_id' => 'required|exists:brands,id',
+        'model' => 'required|string|max:255',
+        'year' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+1),
+        'chassis_number' => 'required|string|unique:cars,chassis_number',
+        'matricule' => [
+            'required',
+            'string',
+            'unique:cars,matricule', // No car ID needed for new entries
+            function ($attribute, $value, $fail) {
+                // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
+                $normalized = preg_replace('/[-|]/', '', $value);
+                
+                // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
+                if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
+                    $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
+                }
+            },
+        ],
+        'color' => 'nullable|string|max:100',
+        'mise_en_service_date' => 'required|date',
+        'status' => 'required|in:available,rented,maintenance,unavailable',
+        'price_per_day' => 'required|numeric|min:0',
+        'weekly_price' => 'nullable|numeric|min:0',
+        'monthly_price' => 'nullable|numeric|min:0',
+        'discount_percentage' => 'nullable|numeric|min:0|max:100',
+        'fuel_type' => 'required|in:diesel,gasoline,electric,hybrid,petrol',
+        'transmission' => 'required|in:manual,automatic,semi-automatic',
+        'mileage' => 'required|integer|min:0',
+        'engine_capacity' => 'nullable|string|max:50',
+        'seats' => 'required|integer|min:1|max:20',
+        'features' => 'nullable|array',
+        'description' => 'nullable|string',
+        'meta_title' => 'nullable|string|max:255',
+        'meta_description' => 'nullable|string|max:500',
+        'meta_keywords' => 'nullable|string|max:255',
         
-        // Validate input with all fields including Moroccan-specific ones
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'brand_id' => 'required|exists:brands,id',
-            'model' => 'required|string|max:255',
-            'year' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+1),
-            'chassis_number' => 'required|string|unique:cars,chassis_number',
-            'matricule' => [
-                'required',
-                'string',
-                'unique:cars,matricule', // No car ID needed for new entries
-                function ($attribute, $value, $fail) {
-                    // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
-                    $normalized = preg_replace('/[-|]/', '', $value);
-                    
-                    // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
-                    if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
-                        $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
-                    }
-                },
-            ],
-            'color' => 'nullable|string|max:100',
-            'mise_en_service_date' => 'required|date',
-            'status' => 'required|in:available,rented,maintenance,unavailable',
-            'price_per_day' => 'required|numeric|min:0',
-            'weekly_price' => 'nullable|numeric|min:0',
-            'monthly_price' => 'nullable|numeric|min:0',
-            'discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'fuel_type' => 'required|in:diesel,gasoline,electric,hybrid,petrol',
-            'transmission' => 'required|in:manual,automatic,semi-automatic',
-            'mileage' => 'required|integer|min:0',
-            'engine_capacity' => 'nullable|string|max:50',
-            'seats' => 'required|integer|min:1|max:20',
-            'features' => 'nullable|array',
-            'description' => 'nullable|string',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string|max:500',
-            'meta_keywords' => 'nullable|string|max:255',
-            // Document fields validation - these will go to CarDocuments model
-            'insurance_number' => 'required|string|max:100',
-            'vignette_date' => 'required|date|after_or_equal:today',
-            'technical_inspection_date' => 'required|date|after_or_equal:today',
-            'grey_card_number' => 'required|string|max:100',
-            'main_image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-        ], [
-            'matricule.regex' => 'The license plate format is invalid. Moroccan format: numbers-letter-region code',
-            'vignette_date.after_or_equal' => 'Vignette must be valid (today or future date)',
-            'technical_inspection_date.after_or_equal' => 'Technical inspection must be valid (today or future date)',
+        // Document fields validation - these will go to CarDocuments model
+        'assurance_number' => 'required|string|max:100',
+        'assurance_company' => 'required|string|max:100',
+        'assurance_expiry_date' => 'required|date|after_or_equal:today',
+        'carte_grise_number' => 'required|string|max:100',
+        'carte_grise_expiry_date' => 'nullable|date',
+        'vignette_expiry_date' => 'required|date|after_or_equal:today',
+        'visite_technique_date' => 'nullable|date',
+        'visite_technique_expiry_date' => 'required|date|after_or_equal:today',
+        
+        'main_image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        
+        // Optional document files
+        'file_carte_grise' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        'file_assurance' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        'file_visite_technique' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        'file_vignette' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+    ], [
+        'matricule.regex' => 'The license plate format is invalid. Moroccan format: numbers-letter-region code',
+        'assurance_expiry_date.after_or_equal' => 'Insurance must be valid (today or future date)',
+        'vignette_expiry_date.after_or_equal' => 'Vignette must be valid (today or future date)',
+        'visite_technique_expiry_date.after_or_equal' => 'Technical inspection must be valid (today or future date)',
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        // Prepare car data - exclude document fields and images
+        $data = $request->except([
+            'main_image', 'images', '_token', 
+            'carte_grise_number', 'carte_grise_expiry_date', 
+            'assurance_number', 'assurance_company', 'assurance_expiry_date', 
+            'vignette_expiry_date',
+            'visite_technique_date', 'visite_technique_expiry_date',
+            'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
         ]);
         
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+        $data['slug'] = Str::slug($request->name);
+        $data['features'] = $request->features ?? [];
+        $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
+        
+        // Set daily_price equal to price_per_day to maintain consistency
+        $data['daily_price'] = $request->price_per_day;
+        
+        // Set is_available based on status
+        $data['is_available'] = ($request->status === 'available');
+        
+        // Handle automatic pricing if weekly/monthly not provided
+        $data['weekly_price'] = $request->weekly_price ?? $request->price_per_day * 5; // Default weekly discount
+        $data['monthly_price'] = $request->monthly_price ?? $request->price_per_day * 22; // Default monthly discount
+        
+        // Handle main image upload
+        if ($request->hasFile('main_image')) {
+            $data['main_image'] = $this->processImage($request->file('main_image'), 'cars', $data['slug']);
         }
-
-        try {
-            // Prepare car data - exclude document fields and images
-            $data = $request->except([
-                'main_image', 'images', '_token', 
-                'insurance_number', 'grey_card_number', 'vignette_date', 'technical_inspection_date',
-                'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
-            ]);
-            
-            $data['slug'] = Str::slug($request->name);
-            $data['features'] = $request->features ?? [];
-            $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
-            
-            // Set daily_price equal to price_per_day to maintain consistency
-            $data['daily_price'] = $request->price_per_day;
-            
-            // Set is_available based on status
-            $data['is_available'] = ($request->status === 'available');
-            
-            // Handle automatic pricing if weekly/monthly not provided
-            $data['weekly_price'] = $request->weekly_price ?? $request->price_per_day * 5; // Default weekly discount
-            $data['monthly_price'] = $request->monthly_price ?? $request->price_per_day * 22; // Default monthly discount
-            
-            // Handle main image upload
-            if ($request->hasFile('main_image')) {
-                $data['main_image'] = $this->processImage($request->file('main_image'), 'cars', $data['slug']);
+        
+        // Create the car
+        $car = Car::create($data);
+        
+        // Create or update CarDocuments
+        $this->syncCarDocuments($car, $request);
+        
+        // Handle additional images upload
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $image) {
+                $imagePath = $this->processImage($image, 'cars/gallery', $data['slug'] . '-' . ($index + 1));
+                
+                CarImage::create([
+                    'car_id' => $car->id,
+                    'image_path' => $imagePath,
+                    'alt_text' => $car->name . ' - Image ' . ($index + 1),
+                    'sort_order' => $index,
+                    'is_featured' => $index === 0
+                ]);
             }
-            
-            // Create the car
-            $car = Car::create($data);
-            
-            // Create or update CarDocuments
-            $this->syncCarDocuments($car, $request);
-            
-            // Handle additional images upload
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $index => $image) {
-                    $imagePath = $this->processImage($image, 'cars/gallery', $data['slug'] . '-' . ($index + 1));
-                    
-                    CarImage::create([
-                        'car_id' => $car->id,
-                        'image_path' => $imagePath,
-                        'alt_text' => $car->name . ' - Image ' . ($index + 1),
-                        'sort_order' => $index,
-                        'is_featured' => $index === 0
-                    ]);
-                }
-            }
-            
-            // Log activity
-            $activity = new Activity();
-            $activity->log_name = 'cars';
-            $activity->description = 'Created car';
-             // Log activity using your custom Activity model
+        }
+        
+        // Log activity using your custom Activity model
         $this->logActivity(
             $car,
             'car_created',
@@ -270,18 +282,19 @@ class CarController extends Controller
             'Created a new car: ' . $car->name,
             ['car_name' => $car->name]
         );
-            return response()->json([
-                'success' => true,
-                'message' => 'Car created successfully.',
-                'redirect' => route('admin.cars.show', $car->id)
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while creating the car: ' . $e->getMessage()
-            ], 500);
-        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Car created successfully.',
+            'redirect' => route('admin.cars.show', $car->id)
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while creating the car: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Display the specified resource.
@@ -359,14 +372,26 @@ class CarController extends Controller
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'meta_keywords' => 'nullable|string|max:255',
+            
             // Document fields validation - these will go to CarDocuments model
-            'insurance_number' => 'required|string|max:100',
-            'vignette_date' => 'required|date',
-            'technical_inspection_date' => 'required|date',
-            'grey_card_number' => 'required|string|max:100',
+            'assurance_number' => 'required|string|max:100',
+            'assurance_company' => 'required|string|max:100',
+            'assurance_expiry_date' => 'required|date',
+            'carte_grise_number' => 'required|string|max:100',
+            'carte_grise_expiry_date' => 'nullable|date',
+            'vignette_expiry_date' => 'required|date',
+            'visite_technique_date' => 'nullable|date',
+            'visite_technique_expiry_date' => 'required|date',
+            
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'removed_images' => 'nullable|string', // comma-separated IDs of images to remove
+            
+            // Optional document files
+            'file_carte_grise' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+            'file_assurance' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+            'file_visite_technique' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+            'file_vignette' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
         ]);
         
         if ($validator->fails()) {
@@ -380,7 +405,10 @@ class CarController extends Controller
             // Prepare car data - exclude document fields and images
             $data = $request->except([
                 'main_image', 'images', '_token', '_method', 'removed_images',
-                'insurance_number', 'grey_card_number', 'vignette_date', 'technical_inspection_date',
+                'carte_grise_number', 'carte_grise_expiry_date', 
+                'assurance_number', 'assurance_company', 'assurance_expiry_date', 
+                'vignette_expiry_date',
+                'visite_technique_date', 'visite_technique_expiry_date',
                 'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
             ]);
             
@@ -475,14 +503,14 @@ class CarController extends Controller
                 );
             }
             
-           // Log car update activity
-        $this->logActivity(
-            $car,
-            'car_updated',
-            'Car Updated',
-            'Updated car: ' . $car->name,
-            ['changes' => $car->getChanges()]
-        );
+            // Log car update activity
+            $this->logActivity(
+                $car,
+                'car_updated',
+                'Car Updated',
+                'Updated car: ' . $car->name,
+                ['changes' => $car->getChanges()]
+            );
             
             return response()->json([
                 'success' => true,
@@ -821,60 +849,72 @@ class CarController extends Controller
         }
     }
     
-    /**
-     * Sync car documents with the CarDocuments model
-     * 
-     * @param Car $car
-     * @param Request $request
-     * @return void
-     */
-    private function syncCarDocuments(Car $car, Request $request)
-    {
-        // Find existing document record or create new one
-        $document = CarDocuments::firstOrNew(['car_id' => $car->id]);
-        
-        // Set document data
-        $document->car_id = $car->id;
-        $document->carte_grise_number = $request->grey_card_number;
-        $document->carte_grise_expiry_date = $request->carte_grise_expiry_date ?? null;
-        $document->assurance_number = $request->insurance_number;
-        $document->assurance_company = $request->insurance_company ?? '';
-        $document->assurance_expiry_date = $request->insurance_expiry_date ?? Carbon::parse($request->vignette_date);
-        $document->visite_technique_date = Carbon::now();
-        $document->visite_technique_expiry_date = Carbon::parse($request->technical_inspection_date);
-        $document->vignette_expiry_date = Carbon::parse($request->vignette_date);
-        
-        // Handle file uploads if present
-        if ($request->hasFile('file_carte_grise')) {
-            if ($document->file_carte_grise) {
-                Storage::disk('public')->delete($document->file_carte_grise);
-            }
-            $document->file_carte_grise = $this->storeDocumentFile($request->file('file_carte_grise'), 'car-documents/carte-grise');
+ /**
+ * Sync car documents with the CarDocuments model
+ * 
+ * @param Car $car
+ * @param Request $request
+ * @return void
+ */
+private function syncCarDocuments(Car $car, Request $request)
+{
+    // Find existing document record or create new one
+    $document = CarDocuments::firstOrNew(['car_id' => $car->id]);
+    
+    // Set document data
+    $document->car_id = $car->id;
+    $document->carte_grise_number = $request->carte_grise_number;
+    $document->carte_grise_expiry_date = $request->carte_grise_expiry_date;
+    $document->assurance_number = $request->assurance_number;
+    $document->assurance_company = $request->assurance_company;
+    $document->assurance_expiry_date = $request->assurance_expiry_date;
+    $document->visite_technique_date = $request->visite_technique_date ?? now();
+    $document->visite_technique_expiry_date = $request->visite_technique_expiry_date;
+    $document->vignette_expiry_date = $request->vignette_expiry_date;
+    
+    // Handle file uploads if present
+    if ($request->hasFile('file_carte_grise')) {
+        if ($document->file_carte_grise) {
+            Storage::disk('public')->delete($document->file_carte_grise);
         }
-        
-        if ($request->hasFile('file_assurance')) {
-            if ($document->file_assurance) {
-                Storage::disk('public')->delete($document->file_assurance);
-            }
-            $document->file_assurance = $this->storeDocumentFile($request->file('file_assurance'), 'car-documents/assurance');
-        }
-        
-        if ($request->hasFile('file_visite_technique')) {
-            if ($document->file_visite_technique) {
-                Storage::disk('public')->delete($document->file_visite_technique);
-            }
-            $document->file_visite_technique = $this->storeDocumentFile($request->file('file_visite_technique'), 'car-documents/visite-technique');
-        }
-        
-        if ($request->hasFile('file_vignette')) {
-            if ($document->file_vignette) {
-                Storage::disk('public')->delete($document->file_vignette);
-            }
-            $document->file_vignette = $this->storeDocumentFile($request->file('file_vignette'), 'car-documents/vignette');
-        }
-        
-        $document->save();
+        $document->file_carte_grise = $this->storeDocumentFile($request->file('file_carte_grise'), 'car-documents/carte-grise');
     }
+    
+    if ($request->hasFile('file_assurance')) {
+        if ($document->file_assurance) {
+            Storage::disk('public')->delete($document->file_assurance);
+        }
+        $document->file_assurance = $this->storeDocumentFile($request->file('file_assurance'), 'car-documents/assurance');
+    }
+    
+    if ($request->hasFile('file_visite_technique')) {
+        if ($document->file_visite_technique) {
+            Storage::disk('public')->delete($document->file_visite_technique);
+        }
+        $document->file_visite_technique = $this->storeDocumentFile($request->file('file_visite_technique'), 'car-documents/visite-technique');
+    }
+    
+    if ($request->hasFile('file_vignette')) {
+        if ($document->file_vignette) {
+            Storage::disk('public')->delete($document->file_vignette);
+        }
+        $document->file_vignette = $this->storeDocumentFile($request->file('file_vignette'), 'car-documents/vignette');
+    }
+    
+    $document->save();
+    
+    // Check for expiring documents and log warnings if necessary
+    if ($document->hasExpiringDocuments()) {
+        $expiringDocs = $document->getExpiringDocuments();
+        $this->logActivity(
+            $car,
+            'document_expiry_warning',
+            'Document Expiration Warning',
+            'Car ' . $car->name . ' has documents that will expire soon',
+            ['expiring_documents' => $expiringDocs]
+        );
+    }
+}
     
     /**
      * Store a document file and return the path

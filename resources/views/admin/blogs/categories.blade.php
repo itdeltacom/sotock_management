@@ -147,30 +147,207 @@
 @push('css')
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
     <style>
-        #categories-table td.truncate-text {
+        /* Blog Categories Management Styles - Argon-inspired */
+
+        /* Card Styling */
+        .card {
+            box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header h3 {
+            margin-bottom: 0;
+            font-size: 1.25rem;
+            color: #344767;
+            font-weight: 600;
+        }
+
+        .card-tools .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Table Styling */
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            padding: 0.75rem 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #8392AB;
+            border-bottom: 1px solid #E9ECEF;
+            vertical-align: middle;
+        }
+
+        .table td {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #E9ECEF;
+        }
+
+        /* Table Column Specific Styles */
+        .table td.truncate-text {
             max-width: 250px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .badge-status-active {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .badge-status-inactive {
-            background-color: #6c757d;
-            color: white;
-        }
-
         .child-category {
             padding-left: 20px;
+            color: #8392AB;
         }
 
         .child-category::before {
             content: "— ";
-            color: #6c757d;
+            color: #8392AB;
+        }
+
+        /* Status Badges */
+        .badge-status-active {
+            background: linear-gradient(310deg, #2dce89 0%, #2dcecc 100%);
+            color: white;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 0.5rem;
+            display: inline-block;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-status-inactive {
+            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
+            color: white;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 0.5rem;
+            display: inline-block;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Form Inputs */
+        .form-control {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            border-radius: 0.5rem;
+            transition: box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .form-control:focus {
+            border-color: #5e72e4;
+            box-shadow: 0 3px 9px rgba(0, 0, 0, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
+        }
+
+        .form-label,
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #8392AB;
+        }
+
+        .form-text.text-muted {
+            font-size: 0.75rem;
+            color: #8392AB !important;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            border: none;
+            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(310deg, #f5365c 0%, #f56036 100%);
+            border: none;
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border: 0;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-header .close {
+            margin: -1.25rem -1.5rem -1.25rem auto;
+            padding: 1.25rem;
+            color: #344767;
+            opacity: 0.5;
+            transition: all 0.15s ease;
+        }
+
+        .modal-header .close:hover {
+            opacity: 1;
+            color: #f5365c;
+        }
+
+        .modal-footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* DataTables Styling */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_processing,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 0.875rem;
+            color: #8392AB;
+            padding: 1rem 1.5rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            color: white !important;
+            border: none;
+            border-radius: 0.5rem;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f6f9fc;
+            color: #5e72e4 !important;
+            border: 1px solid #f6f9fc;
+        }
+
+        /* Warning and Danger Text */
+        .text-danger {
+            color: #f5365c !important;
+        }
+
+        .font-weight-bold {
+            font-weight: 600;
         }
     </style>
 @endpush

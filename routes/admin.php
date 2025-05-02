@@ -3,8 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Middleware\TwoFactorMiddleware;
-use App\Http\Middleware\SuperAdminMiddleware;
 use App\Http\Controllers\Admin\CarController;
+use App\Http\Middleware\SuperAdminMiddleware;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BrandController;
@@ -16,13 +16,14 @@ use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BlogPostController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
-use App\Http\Controllers\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\BlogCommentController;
+use App\Http\Controllers\Admin\CarDocumentController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\BlogCategoryController;
+use App\Http\Controllers\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\NewsletterAdminController;
 
 /*
@@ -146,15 +147,30 @@ Route::prefix('brands')->name('brands.')->middleware('permission:manage brands')
 
 // Car Routes
 Route::prefix('cars')->name('cars.')->middleware('permission:manage cars')->group(function () {
+    // Basic car management
     Route::get('/', [CarController::class, 'index'])->name('index');
     Route::get('/data', [CarController::class, 'datatable'])->name('data');
     Route::post('/', [CarController::class, 'store'])->name('store');
     Route::get('/{car}/edit', [CarController::class, 'edit'])->name('edit');
+    Route::get('/{car}', [CarController::class, 'show'])->name('show'); // Add this to fix the show route error
     Route::put('/{car}', [CarController::class, 'update'])->name('update');
     Route::delete('/{car}', [CarController::class, 'destroy'])->name('destroy');
+    
+    // Car image management
     Route::post('/update-image-order', [CarController::class, 'updateImageOrder'])->name('update-image-order');
     Route::post('/set-featured-image', [CarController::class, 'setFeaturedImage'])->name('set-featured-image');
     Route::post('/delete-image', [CarController::class, 'deleteImage'])->name('delete-image');
+    
+    // Car Document Management Routes
+    Route::get('{car}/documents', [CarDocumentController::class, 'getDocuments'])->name('documents');
+    Route::post('{car}/documents/update', [CarDocumentController::class, 'ajaxUpdate'])->name('documents.update');
+    Route::post('{car}/documents/upload', [CarDocumentController::class, 'uploadDocument'])->name('documents.upload');
+    Route::delete('{car}/documents/delete', [CarDocumentController::class, 'deleteDocument'])->name('documents.delete');
+    Route::get('{car}/documents/show', [CarDocumentController::class, 'show'])->name('documents.show');
+    
+    // Expiring documents view
+    Route::get('documents/expiring', [CarDocumentController::class, 'expiringDocuments'])->name('documents.expiring');
+    Route::get('documents/expiring/data', [CarDocumentController::class, 'expiringDocumentsDatatable'])->name('documents.expiring.data');
 });
 
 // Booking Management Routes

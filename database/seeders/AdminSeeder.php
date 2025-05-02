@@ -150,12 +150,21 @@ class AdminSeeder extends Seeder
             'import newsletter subscribers',
             'export newsletter subscribers',
             
-            // Document management
+            // Document management permissions
             'manage documents',
             'view documents',
             'upload documents',
             'edit documents',
             'delete documents',
+            'view expiring documents',
+            'renew documents',
+            'export documents',
+            'manage car documents',
+            'upload car documents',
+            'edit car documents',
+            'delete car documents',
+            'download car documents',
+            'view car documents',
             
             // Maintenance
             'manage maintenance',
@@ -223,6 +232,17 @@ class AdminSeeder extends Seeder
             'view activities',
             'manage reviews',
             'manage testimonials',
+            // Document management permissions for Admin
+            'manage documents',
+            'view documents',
+            'upload documents',
+            'edit documents',
+            'manage car documents',
+            'upload car documents',
+            'edit car documents',
+            'view car documents',
+            'view expiring documents',
+            'renew documents',
         ]);
 
         $managerRole = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'admin']);
@@ -241,6 +261,10 @@ class AdminSeeder extends Seeder
             'view reports',
             'view activities',
             'manage reviews',
+            // Document management permissions for Manager
+            'view documents',
+            'view car documents',
+            'view expiring documents',
         ]);
 
         // Content Editor Role
@@ -266,6 +290,37 @@ class AdminSeeder extends Seeder
             'view testimonials',
             'create testimonials',
             'edit testimonials',
+        ]);
+
+        // Fleet Manager Role (New)
+        $fleetManagerRole = Role::firstOrCreate(['name' => 'Fleet Manager', 'guard_name' => 'admin']);
+        $fleetManagerRole->syncPermissions([
+            'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
+            'manage cars',
+            'view cars',
+            'create cars',
+            'edit cars',
+            'manage brands',
+            'view brands',
+            'manage categories',
+            'view categories',
+            'view bookings',
+            'view booking calendar',
+            // Document management permissions for Fleet Manager
+            'manage documents',
+            'view documents',
+            'upload documents',
+            'edit documents',
+            'manage car documents',
+            'upload car documents',
+            'edit car documents',
+            'view car documents',
+            'view expiring documents',
+            'renew documents',
+            'export documents',
         ]);
 
         // Create super admin
@@ -315,5 +370,17 @@ class AdminSeeder extends Seeder
             'is_active' => true,
         ]);
         $editor->assignRole($editorRole);
+
+        // Create fleet manager
+        $fleetManager = Admin::firstOrCreate([
+            'email' => 'fleet@example.com'
+        ], [
+            'name' => 'Fleet Manager',
+            'password' => Hash::make('password'),
+            'position' => 'Fleet Manager',
+            'department' => 'Operations',
+            'is_active' => true,
+        ]);
+        $fleetManager->assignRole($fleetManagerRole);
     }
 }
