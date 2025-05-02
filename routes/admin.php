@@ -147,7 +147,7 @@ Route::prefix('brands')->name('brands.')->middleware('permission:manage brands')
 // Car Routes
 Route::prefix('cars')->name('cars.')->middleware('permission:manage cars')->group(function () {
     Route::get('/', [CarController::class, 'index'])->name('index');
-    Route::get('/data', [CarController::class, 'data'])->name('data');
+    Route::get('/data', [CarController::class, 'datatable'])->name('data');
     Route::post('/', [CarController::class, 'store'])->name('store');
     Route::get('/{car}/edit', [CarController::class, 'edit'])->name('edit');
     Route::put('/{car}', [CarController::class, 'update'])->name('update');

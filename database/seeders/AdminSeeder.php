@@ -37,6 +37,11 @@ class AdminSeeder extends Seeder
             'manage settings',
             'access dashboard',
             
+            // Profile and password permissions
+            'view profile',
+            'edit profile',
+            'change password',
+            
             // Vehicle management permissions
             'view categories',
             'create categories',
@@ -56,11 +61,12 @@ class AdminSeeder extends Seeder
             'manage vehicles',
             'view vehicles',
 
-            //reviews
+            // Reviews
             'manage reviews',
             'create reviews',
             'edit reviews',
             'delete reviews',
+            'approve reviews',
             
             // Booking permissions
             'manage bookings',
@@ -80,6 +86,7 @@ class AdminSeeder extends Seeder
             'create customers',
             'edit customers',
             'delete customers',
+            'export customers',
             
             // Blog management permissions
             'manage blog categories',
@@ -92,6 +99,7 @@ class AdminSeeder extends Seeder
             'create blog posts',
             'edit blog posts',
             'delete blog posts',
+            'publish blog posts',
             'manage blog tags',
             'view blog tags',
             'create blog tags',
@@ -102,11 +110,16 @@ class AdminSeeder extends Seeder
             'create blog comments',
             'edit blog comments',
             'delete blog comments',
+            'approve blog comments',
             
             // Report permissions
             'manage reports',
             'view reports',
+            'generate reports',
             'export reports',
+            'view revenue reports',
+            'view booking reports',
+            'view vehicle reports',
 
             // Activity Log permissions
             'manage activities',
@@ -114,12 +127,14 @@ class AdminSeeder extends Seeder
             'delete activities',
             'clear activities',
             
-            //testimonials
+            // Testimonials
             'view testimonials',
             'create testimonials',
             'edit testimonials',
             'delete testimonials',
             'manage testimonials',
+            'approve testimonials',
+            'feature testimonials',
             
             // Newsletter permissions
             'manage newsletters',
@@ -134,19 +149,54 @@ class AdminSeeder extends Seeder
             'delete newsletter subscribers',
             'import newsletter subscribers',
             'export newsletter subscribers',
+            
+            // Document management
+            'manage documents',
+            'view documents',
+            'upload documents',
+            'edit documents',
+            'delete documents',
+            
+            // Maintenance
+            'manage maintenance',
+            'view maintenance',
+            'create maintenance',
+            'edit maintenance',
+            'delete maintenance',
+            
+            // Contracts
+            'manage contracts',
+            'view contracts',
+            'create contracts',
+            'edit contracts',
+            'delete contracts',
+            'approve contracts',
+            
+            // Two-factor authentication
+            'manage two-factor',
+            'enable two-factor',
+            'disable two-factor',
+            
+            // System
+            'clear cache',
+            'view system info',
+            'manage backups',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission, 'guard_name' => 'admin']);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'admin']);
         }
 
         // Create roles and assign permissions
-        $superAdminRole = Role::create(['name' => 'Super Admin', 'guard_name' => 'admin']);
-        $superAdminRole->givePermissionTo(Permission::where('guard_name', 'admin')->get());
+        $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'admin']);
+        $superAdminRole->syncPermissions(Permission::where('guard_name', 'admin')->get());
 
-        $adminRole = Role::create(['name' => 'Admin', 'guard_name' => 'admin']);
-        $adminRole->givePermissionTo([
+        $adminRole = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'admin']);
+        $adminRole->syncPermissions([
             'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
             'view admins',
             'view roles',
             'manage settings',
@@ -168,11 +218,19 @@ class AdminSeeder extends Seeder
             'edit newsletters',
             'send newsletters',
             'view newsletter subscribers',
+            'view reports',
+            'generate reports',
+            'view activities',
+            'manage reviews',
+            'manage testimonials',
         ]);
 
-        $managerRole = Role::create(['name' => 'Manager', 'guard_name' => 'admin']);
-        $managerRole->givePermissionTo([
+        $managerRole = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'admin']);
+        $managerRole->syncPermissions([
             'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
             'view admins',
             'view bookings',
             'create bookings',
@@ -180,12 +238,41 @@ class AdminSeeder extends Seeder
             'view booking calendar',
             'view customers',
             'view cars',
+            'view reports',
+            'view activities',
+            'manage reviews',
+        ]);
+
+        // Content Editor Role
+        $editorRole = Role::firstOrCreate(['name' => 'Content Editor', 'guard_name' => 'admin']);
+        $editorRole->syncPermissions([
+            'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
+            'manage blog posts',
+            'view blog posts',
+            'create blog posts',
+            'edit blog posts',
+            'publish blog posts',
+            'manage blog categories',
+            'view blog categories',
+            'manage blog tags',
+            'view blog tags',
+            'manage blog comments',
+            'view blog comments',
+            'approve blog comments',
+            'manage testimonials',
+            'view testimonials',
+            'create testimonials',
+            'edit testimonials',
         ]);
 
         // Create super admin
-        $superAdmin = Admin::create([
+        $superAdmin = Admin::firstOrCreate([
+            'email' => 'superadmin@example.com'
+        ], [
             'name' => 'Super Admin',
-            'email' => 'superadmin@example.com',
             'password' => Hash::make('password'),
             'position' => 'CTO',
             'department' => 'IT',
@@ -194,9 +281,10 @@ class AdminSeeder extends Seeder
         $superAdmin->assignRole($superAdminRole);
 
         // Create normal admin
-        $admin = Admin::create([
+        $admin = Admin::firstOrCreate([
+            'email' => 'admin@example.com'
+        ], [
             'name' => 'Admin User',
-            'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'position' => 'Administrator',
             'department' => 'Operations',
@@ -205,14 +293,27 @@ class AdminSeeder extends Seeder
         $admin->assignRole($adminRole);
 
         // Create manager
-        $manager = Admin::create([
+        $manager = Admin::firstOrCreate([
+            'email' => 'manager@example.com'
+        ], [
             'name' => 'Manager User',
-            'email' => 'manager@example.com',
             'password' => Hash::make('password'),
             'position' => 'Manager',
             'department' => 'Sales',
             'is_active' => true,
         ]);
         $manager->assignRole($managerRole);
+
+        // Create content editor
+        $editor = Admin::firstOrCreate([
+            'email' => 'editor@example.com'
+        ], [
+            'name' => 'Content Editor',
+            'password' => Hash::make('password'),
+            'position' => 'Content Editor',
+            'department' => 'Marketing',
+            'is_active' => true,
+        ]);
+        $editor->assignRole($editorRole);
     }
 }

@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Carbon\Carbon;
 use App\Models\Car;
 use App\Models\Brand;
 use App\Models\CarImage;
 use App\Models\Category;
 use Illuminate\Support\Str;
+use App\Models\CarDocuments;
 use Illuminate\Http\Request;
-use Intervention\Image\Image;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Validator;
+use Spatie\Activitylog\Models\Activity;
 
 class CarController extends Controller
 {
@@ -33,7 +35,9 @@ class CarController extends Controller
      */
     public function datatable(Request $request)
     {
-        $cars = Car::with(['category', 'brand', 'images'])->latest();
+        $cars = Car::with(['category', 'brand', 'images'])
+            ->select('cars.*') 
+            ->latest();
         
         return DataTables::of($cars)
             ->addColumn('image', function (Car $car) {
@@ -43,56 +47,76 @@ class CarController extends Controller
                 return '<div class="bg-light text-center p-2" style="width:80px;height:60px;"><i class="fas fa-car fa-2x text-muted"></i></div>';
             })
             ->addColumn('brand_model', function (Car $car) {
-                return ($car->brand ? $car->brand->name : '') . ' ' . $car->name;
+                $brandName = $car->brand ? $car->brand->name : ($car->brand_name ?: '');
+                return $brandName . ' ' . $car->name . ' (' . $car->year . ')';
             })
             ->addColumn('status', function (Car $car) {
-                return $car->is_available 
-                    ? '<span class="badge bg-success">Available</span>'
-                    : '<span class="badge bg-danger">Unavailable</span>';
+                $statusClass = [
+                    'available' => 'success',
+                    'rented' => 'primary',
+                    'maintenance' => 'warning',
+                    'unavailable' => 'danger'
+                ][$car->status] ?? 'secondary';
+                
+                return '<span class="badge bg-' . $statusClass . '">' . ucfirst($car->status) . '</span>';
             })
             ->addColumn('price', function (Car $car) {
-                $output = '$' . number_format($car->price_per_day, 2) . '/day';
+                $output = number_format($car->price_per_day, 2) . ' MAD/day';
                 
                 if ($car->discount_percentage > 0) {
                     $discountedPrice = $car->price_per_day * (1 - ($car->discount_percentage / 100));
-                    $output .= '<br><span class="text-success">$' . number_format($discountedPrice, 2) . ' after ' . $car->discount_percentage . '% discount</span>';
+                    $output .= '<br><small class="text-success">' . number_format($discountedPrice, 2) . ' MAD after ' . $car->discount_percentage . '% off</small>';
+                }
+                
+                if ($car->weekly_price) {
+                    $output .= '<br><small class="text-muted">Weekly: ' . number_format($car->weekly_price, 2) . ' MAD</small>';
+                }
+                
+                if ($car->monthly_price) {
+                    $output .= '<br><small class="text-muted">Monthly: ' . number_format($car->monthly_price, 2) . ' MAD</small>';
                 }
                 
                 return $output;
             })
-            ->addColumn('category_name', function (Car $car) {
-                return $car->category ? $car->category->name : '';
-            })
-            ->addColumn('brand_name', function (Car $car) {
-                return $car->brand ? $car->brand->name : '';
-            })
-            ->addColumn('booking_count', function (Car $car) {
-                return $car->bookings()->count();
+            ->addColumn('documents', function (Car $car) {
+                // Get document info from CarDocuments
+                $carDocs = CarDocuments::where('car_id', $car->id)->first();
+                $docs = [];
+                
+                if ($carDocs) {
+                    if ($carDocs->assurance_number) $docs[] = 'Insurance';
+                    if ($carDocs->carte_grise_number) $docs[] = 'Carte Grise';
+                    if ($carDocs->vignette_expiry_date) $docs[] = 'Vignette';
+                    if ($carDocs->visite_technique_expiry_date) $docs[] = 'Visit Technique';
+                }
+                
+                return implode(', ', $docs) ?: 'None';
             })
             ->addColumn('actions', function (Car $car) {
-                $buttons = '<div class="btn-group" role="group">';
+                $buttons = '';
                 
                 // View button
-                $buttons .= '<a href="' . route('admin.cars.show', $car->id) . '" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>';
+                $buttons .= '<a href="'.route('admin.cars.show', $car->id).'" class="btn btn-sm btn-info me-1" title="View">
+                    <i class="fas fa-eye"></i>
+                </a>';
                 
-                // Edit button (with permission check)
-                if (Auth::guard('admin')->user()->can('edit cars')) {
-                    $buttons .= '<button type="button" class="btn btn-sm btn-primary btn-edit" data-id="'.$car->id.'" title="Edit">
+                // Edit button (if permission)
+                if (auth()->guard('admin')->user()->can('edit cars')) {
+                    $buttons .= '<button class="btn btn-sm btn-primary me-1 btn-edit" data-id="'.$car->id.'" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>';
                 }
                 
-                // Delete button (with permission check)
-                if (Auth::guard('admin')->user()->can('delete cars')) {
-                    $buttons .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="'.$car->id.'" data-name="'.$car->name.'" title="Delete">
+                // Delete button (if permission)
+                if (auth()->guard('admin')->user()->can('delete cars')) {
+                    $buttons .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$car->id.'" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>';
                 }
                 
-                $buttons .= '</div>';
-                return $buttons;
+                return '<div class="btn-group">'.$buttons.'</div>';
             })
-            ->rawColumns(['image', 'status', 'price', 'actions'])
+            ->rawColumns(['image', 'status', 'price', 'documents', 'actions'])
             ->make(true);
     }
 
@@ -103,7 +127,17 @@ class CarController extends Controller
     {
         return view('admin.cars.create');
     }
-
+    private function logActivity(Car $car, $type, $title, $description, array $properties = [])
+    {
+        return \App\Models\Activity::log(
+            $type,
+            $title,
+            $description,
+            Auth::guard('admin')->user(),
+            $car,
+            $properties
+        );
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -117,26 +151,56 @@ class CarController extends Controller
             ], 403);
         }
         
-        // Validate input
+        // Validate input with all fields including Moroccan-specific ones
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'required|exists:brands,id',
+            'model' => 'required|string|max:255',
+            'year' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+1),
+            'chassis_number' => 'required|string|unique:cars,chassis_number',
+            'matricule' => [
+                'required',
+                'string',
+                'unique:cars,matricule', // No car ID needed for new entries
+                function ($attribute, $value, $fail) {
+                    // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
+                    $normalized = preg_replace('/[-|]/', '', $value);
+                    
+                    // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
+                    if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
+                        $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
+                    }
+                },
+            ],
+            'color' => 'nullable|string|max:100',
+            'mise_en_service_date' => 'required|date',
+            'status' => 'required|in:available,rented,maintenance,unavailable',
             'price_per_day' => 'required|numeric|min:0',
+            'weekly_price' => 'nullable|numeric|min:0',
+            'monthly_price' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'seats' => 'required|integer|min:1|max:50',
-            'transmission' => 'required|string|in:automatic,manual,semi-automatic',
-            'fuel_type' => 'required|string|in:petrol,diesel,electric,hybrid,lpg',
-            'mileage' => 'nullable|integer|min:0',
-            'engine_capacity' => 'nullable|string',
+            'fuel_type' => 'required|in:diesel,gasoline,electric,hybrid,petrol',
+            'transmission' => 'required|in:manual,automatic,semi-automatic',
+            'mileage' => 'required|integer|min:0',
+            'engine_capacity' => 'nullable|string|max:50',
+            'seats' => 'required|integer|min:1|max:20',
             'features' => 'nullable|array',
-            'is_available' => 'boolean',
-            'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'meta_keywords' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:500',
+            'meta_keywords' => 'nullable|string|max:255',
+            // Document fields validation - these will go to CarDocuments model
+            'insurance_number' => 'required|string|max:100',
+            'vignette_date' => 'required|date|after_or_equal:today',
+            'technical_inspection_date' => 'required|date|after_or_equal:today',
+            'grey_card_number' => 'required|string|max:100',
+            'main_image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ], [
+            'matricule.regex' => 'The license plate format is invalid. Moroccan format: numbers-letter-region code',
+            'vignette_date.after_or_equal' => 'Vignette must be valid (today or future date)',
+            'technical_inspection_date.after_or_equal' => 'Technical inspection must be valid (today or future date)',
         ]);
         
         if ($validator->fails()) {
@@ -147,11 +211,26 @@ class CarController extends Controller
         }
 
         try {
-            $data = $request->except(['main_image', 'images', '_token']);
+            // Prepare car data - exclude document fields and images
+            $data = $request->except([
+                'main_image', 'images', '_token', 
+                'insurance_number', 'grey_card_number', 'vignette_date', 'technical_inspection_date',
+                'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
+            ]);
+            
             $data['slug'] = Str::slug($request->name);
             $data['features'] = $request->features ?? [];
-            $data['rating'] = 0;
-            $data['review_count'] = 0;
+            $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
+            
+            // Set daily_price equal to price_per_day to maintain consistency
+            $data['daily_price'] = $request->price_per_day;
+            
+            // Set is_available based on status
+            $data['is_available'] = ($request->status === 'available');
+            
+            // Handle automatic pricing if weekly/monthly not provided
+            $data['weekly_price'] = $request->weekly_price ?? $request->price_per_day * 5; // Default weekly discount
+            $data['monthly_price'] = $request->monthly_price ?? $request->price_per_day * 22; // Default monthly discount
             
             // Handle main image upload
             if ($request->hasFile('main_image')) {
@@ -160,6 +239,9 @@ class CarController extends Controller
             
             // Create the car
             $car = Car::create($data);
+            
+            // Create or update CarDocuments
+            $this->syncCarDocuments($car, $request);
             
             // Handle additional images upload
             if ($request->hasFile('images')) {
@@ -171,24 +253,27 @@ class CarController extends Controller
                         'image_path' => $imagePath,
                         'alt_text' => $car->name . ' - Image ' . ($index + 1),
                         'sort_order' => $index,
-                        'is_featured' => $index === 0 // First image is featured by default
+                        'is_featured' => $index === 0
                     ]);
                 }
             }
             
-            // Log activity if spatie activity-log package is installed
-            if (method_exists(app(), 'activity')) {
-                activity()
-                    ->causedBy(Auth::guard('admin')->user())
-                    ->performedOn($car)
-                    ->withProperties(['car_name' => $car->name])
-                    ->log('Created car');
-            }
-            
+            // Log activity
+            $activity = new Activity();
+            $activity->log_name = 'cars';
+            $activity->description = 'Created car';
+             // Log activity using your custom Activity model
+        $this->logActivity(
+            $car,
+            'car_created',
+            'Car Created',
+            'Created a new car: ' . $car->name,
+            ['car_name' => $car->name]
+        );
             return response()->json([
                 'success' => true,
                 'message' => 'Car created successfully.',
-                'car' => $car
+                'redirect' => route('admin.cars.show', $car->id)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -235,26 +320,53 @@ class CarController extends Controller
             ], 403);
         }
         
-        // Validate input
+        // Validate input with all fields including Moroccan-specific ones
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'required|exists:brands,id',
+            'model' => 'required|string|max:255',
+            'year' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+1),
+            'chassis_number' => 'required|string|unique:cars,chassis_number,'.$car->id,
+            'matricule' => [
+                'required',
+                'string',
+                'unique:cars,matricule,'.$car->id, // Exclude current car from unique check
+                function ($attribute, $value, $fail) {
+                    // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
+                    $normalized = preg_replace('/[-|]/', '', $value);
+                    
+                    // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
+                    if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
+                        $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
+                    }
+                },
+            ],
+            'color' => 'nullable|string|max:100',
+            'mise_en_service_date' => 'required|date',
+            'status' => 'required|in:available,rented,maintenance,unavailable',
             'price_per_day' => 'required|numeric|min:0',
+            'weekly_price' => 'nullable|numeric|min:0',
+            'monthly_price' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'seats' => 'required|integer|min:1|max:50',
-            'transmission' => 'required|string|in:automatic,manual,semi-automatic',
-            'fuel_type' => 'required|string|in:petrol,diesel,electric,hybrid,lpg',
-            'mileage' => 'nullable|integer|min:0',
-            'engine_capacity' => 'nullable|string',
+            'fuel_type' => 'required|in:diesel,gasoline,electric,hybrid,petrol',
+            'transmission' => 'required|in:manual,automatic,semi-automatic',
+            'mileage' => 'required|integer|min:0',
+            'engine_capacity' => 'nullable|string|max:50',
+            'seats' => 'required|integer|min:1|max:20',
             'features' => 'nullable|array',
-            'is_available' => 'boolean',
+            'description' => 'nullable|string',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:500',
+            'meta_keywords' => 'nullable|string|max:255',
+            // Document fields validation - these will go to CarDocuments model
+            'insurance_number' => 'required|string|max:100',
+            'vignette_date' => 'required|date',
+            'technical_inspection_date' => 'required|date',
+            'grey_card_number' => 'required|string|max:100',
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'meta_keywords' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'removed_images' => 'nullable|string', // comma-separated IDs of images to remove
         ]);
         
         if ($validator->fails()) {
@@ -263,11 +375,33 @@ class CarController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
+    
         try {
-            $data = $request->except(['main_image', 'images', '_token', '_method', 'removed_images']);
+            // Prepare car data - exclude document fields and images
+            $data = $request->except([
+                'main_image', 'images', '_token', '_method', 'removed_images',
+                'insurance_number', 'grey_card_number', 'vignette_date', 'technical_inspection_date',
+                'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
+            ]);
+            
             $data['slug'] = Str::slug($request->name);
             $data['features'] = $request->features ?? [];
+            $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
+            
+            // Set daily_price equal to price_per_day to maintain consistency
+            $data['daily_price'] = $request->price_per_day;
+            
+            // Set is_available based on status
+            $data['is_available'] = ($request->status === 'available');
+            
+            // Handle automatic pricing if weekly/monthly not provided
+            if (empty($data['weekly_price'])) {
+                $data['weekly_price'] = $data['price_per_day'] * 5; // 5 days instead of 7 as business discount
+            }
+            
+            if (empty($data['monthly_price'])) {
+                $data['monthly_price'] = $data['price_per_day'] * 22; // 22 days instead of 30
+            }
             
             // Handle main image upload
             if ($request->hasFile('main_image')) {
@@ -282,17 +416,30 @@ class CarController extends Controller
             // Update the car
             $car->update($data);
             
+            // Create or update CarDocuments
+            $this->syncCarDocuments($car, $request);
+            
             // Handle removed images
-            if ($request->has('removed_images') && !empty($request->removed_images)) {
-                $removedImages = explode(',', $request->removed_images);
-                $imagesToDelete = CarImage::whereIn('id', $removedImages)->where('car_id', $car->id)->get();
+            if ($request->filled('removed_images')) {
+                $removedImages = array_filter(explode(',', $request->removed_images));
                 
-                foreach ($imagesToDelete as $image) {
-                    // Delete image file
-                    Storage::disk('public')->delete($image->image_path);
+                if (!empty($removedImages)) {
+                    $imagesToDelete = CarImage::whereIn('id', $removedImages)
+                        ->where('car_id', $car->id)
+                        ->get();
                     
-                    // Delete record
-                    $image->delete();
+                    foreach ($imagesToDelete as $image) {
+                        Storage::disk('public')->delete($image->image_path);
+                        $image->delete();
+                    }
+                    
+                    // If we deleted the featured image, assign a new one
+                    if ($imagesToDelete->where('is_featured', true)->count() > 0) {
+                        $newFeatured = $car->images()->first();
+                        if ($newFeatured) {
+                            $newFeatured->update(['is_featured' => true]);
+                        }
+                    }
                 }
             }
             
@@ -307,26 +454,40 @@ class CarController extends Controller
                     CarImage::create([
                         'car_id' => $car->id,
                         'image_path' => $imagePath,
-                        'alt_text' => $car->name . ' - Image ' . ($index + 1),
+                        'alt_text' => $car->name . ' - Image ' . ($maxOrder + $index + 1),
                         'sort_order' => $maxOrder + $index + 1,
-                        'is_featured' => false
+                        'is_featured' => $car->images()->count() === 0 // Make featured if no other images
                     ]);
                 }
             }
             
-            // Log activity if spatie activity-log package is installed
-            if (method_exists(app(), 'activity')) {
-                activity()
-                    ->causedBy(Auth::guard('admin')->user())
-                    ->performedOn($car)
-                    ->withProperties(['car_name' => $car->name])
-                    ->log('Updated car');
+            // Check and alert for document expirations
+            $carDocuments = CarDocuments::where('car_id', $car->id)->first();
+            if ($carDocuments && method_exists($carDocuments, 'hasExpiringDocuments') && $carDocuments->hasExpiringDocuments()) {
+                $alerts = $carDocuments->getExpiringDocuments();
+                
+                $this->logActivity(
+                    $car,
+                    'document_expiry_warning',
+                    'Document Expiration Warning',
+                    'Car ' . $car->name . ' has documents that will expire soon',
+                    ['alerts' => $alerts]
+                );
             }
+            
+           // Log car update activity
+        $this->logActivity(
+            $car,
+            'car_updated',
+            'Car Updated',
+            'Updated car: ' . $car->name,
+            ['changes' => $car->getChanges()]
+        );
             
             return response()->json([
                 'success' => true,
                 'message' => 'Car updated successfully.',
-                'car' => $car
+                'car' => $car->fresh(['images', 'category', 'brand'])
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -374,15 +535,19 @@ class CarController extends Controller
                 Storage::disk('public')->delete($image->image_path);
             }
             
+            // Delete associated documents
+            CarDocuments::where('car_id', $car->id)->delete();
+            
             $car->delete();
             
-            // Log activity if spatie activity-log package is installed
-            if (method_exists(app(), 'activity')) {
-                activity()
-                    ->causedBy(Auth::guard('admin')->user())
-                    ->withProperties($carData)
-                    ->log('Deleted car');
-            }
+            // Log activity for car deletion
+            $activity = new Activity();
+            $activity->log_name = 'cars';
+            $activity->description = 'Deleted car';
+            $activity->causer_type = get_class(Auth::guard('admin')->user());
+            $activity->causer_id = Auth::guard('admin')->user()->id;
+            $activity->properties = $carData;
+            $activity->save();
             
             return response()->json([
                 'success' => true,
@@ -540,7 +705,7 @@ class CarController extends Controller
         }
     }
     
-    /**
+   /**
      * Update image order.
      */
     public function updateImageOrder(Request $request)
@@ -597,11 +762,141 @@ class CarController extends Controller
             ->map(function ($car) {
                 return [
                     'id' => $car->id,
-                    'text' => ($car->brand ? $car->brand->name . ' ' : '') . $car->name . ' - $' . number_format($car->price_per_day, 2) . '/day',
+                    'text' => ($car->brand ? $car->brand->name . ' ' : '') . $car->name . ' - ' . number_format($car->price_per_day, 2) . ' MAD/day',
                 ];
             });
             
         return response()->json($cars);
+    }
+
+    /**
+     * Check document expiration dates and set alerts for soon-to-expire documents
+     * 
+     * @param Car $car
+     * @return void
+     */
+    private function checkDocumentExpirations(Car $car)
+    {
+        // Now get expirations from CarDocuments model
+        $carDocs = CarDocuments::where('car_id', $car->id)->first();
+        if (!$carDocs) {
+            return;
+        }
+        
+        $alerts = [];
+        $warningThreshold = 30; // days
+        $today = now();
+        
+        // Check vignette
+        if ($carDocs->vignette_expiry_date) {
+            $daysUntilExpiry = $today->diffInDays($carDocs->vignette_expiry_date, false);
+            if ($daysUntilExpiry < 0) {
+                $alerts[] = 'Vignette has already expired on ' . $carDocs->vignette_expiry_date->format('d/m/Y');
+            } elseif ($daysUntilExpiry < $warningThreshold) {
+                $alerts[] = 'Vignette will expire in ' . $daysUntilExpiry . ' days';
+            }
+        }
+        
+        // Check technical inspection
+        if ($carDocs->visite_technique_expiry_date) {
+            $daysUntilExpiry = $today->diffInDays($carDocs->visite_technique_expiry_date, false);
+            if ($daysUntilExpiry < 0) {
+                $alerts[] = 'Technical inspection has already expired on ' . $carDocs->visite_technique_expiry_date->format('d/m/Y');
+            } elseif ($daysUntilExpiry < $warningThreshold) {
+                $alerts[] = 'Technical inspection will expire in ' . $daysUntilExpiry . ' days';
+            }
+        }
+        
+        // If alerts exist, log them for admin notification
+        if (!empty($alerts)) {
+            $activity = new Activity();
+            $activity->log_name = 'cars';
+            $activity->description = 'Document expiration warning';
+            $activity->subject_type = get_class($car);
+            $activity->subject_id = $car->id;
+            $activity->causer_type = get_class(Auth::guard('admin')->user());
+            $activity->causer_id = Auth::guard('admin')->user()->id;
+            $activity->properties = ['alerts' => $alerts];
+            $activity->save();
+        }
+    }
+    
+    /**
+     * Sync car documents with the CarDocuments model
+     * 
+     * @param Car $car
+     * @param Request $request
+     * @return void
+     */
+    private function syncCarDocuments(Car $car, Request $request)
+    {
+        // Find existing document record or create new one
+        $document = CarDocuments::firstOrNew(['car_id' => $car->id]);
+        
+        // Set document data
+        $document->car_id = $car->id;
+        $document->carte_grise_number = $request->grey_card_number;
+        $document->carte_grise_expiry_date = $request->carte_grise_expiry_date ?? null;
+        $document->assurance_number = $request->insurance_number;
+        $document->assurance_company = $request->insurance_company ?? '';
+        $document->assurance_expiry_date = $request->insurance_expiry_date ?? Carbon::parse($request->vignette_date);
+        $document->visite_technique_date = Carbon::now();
+        $document->visite_technique_expiry_date = Carbon::parse($request->technical_inspection_date);
+        $document->vignette_expiry_date = Carbon::parse($request->vignette_date);
+        
+        // Handle file uploads if present
+        if ($request->hasFile('file_carte_grise')) {
+            if ($document->file_carte_grise) {
+                Storage::disk('public')->delete($document->file_carte_grise);
+            }
+            $document->file_carte_grise = $this->storeDocumentFile($request->file('file_carte_grise'), 'car-documents/carte-grise');
+        }
+        
+        if ($request->hasFile('file_assurance')) {
+            if ($document->file_assurance) {
+                Storage::disk('public')->delete($document->file_assurance);
+            }
+            $document->file_assurance = $this->storeDocumentFile($request->file('file_assurance'), 'car-documents/assurance');
+        }
+        
+        if ($request->hasFile('file_visite_technique')) {
+            if ($document->file_visite_technique) {
+                Storage::disk('public')->delete($document->file_visite_technique);
+            }
+            $document->file_visite_technique = $this->storeDocumentFile($request->file('file_visite_technique'), 'car-documents/visite-technique');
+        }
+        
+        if ($request->hasFile('file_vignette')) {
+            if ($document->file_vignette) {
+                Storage::disk('public')->delete($document->file_vignette);
+            }
+            $document->file_vignette = $this->storeDocumentFile($request->file('file_vignette'), 'car-documents/vignette');
+        }
+        
+        $document->save();
+    }
+    
+    /**
+     * Store a document file and return the path
+     * 
+     * @param \Illuminate\Http\UploadedFile $file
+     * @param string $directory
+     * @return string
+     */
+    private function storeDocumentFile($file, $directory)
+    {
+        $filename = Str::random(10) . '-' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $directory . '/' . $filename;
+        
+        // Create directory if it doesn't exist
+        if (!Storage::exists('public/' . $directory)) {
+            Storage::makeDirectory('public/' . $directory);
+        }
+        
+        // Store the file
+        $file->storeAs('public/' . $directory, $filename);
+        
+        return $path;
     }
 
     /**
@@ -625,18 +920,268 @@ class CarController extends Controller
             Storage::makeDirectory('public/' . $directory);
         }
         
-        // Process and optimize the image
-        $img = Image::make($file->getRealPath());
+        // Process and optimize the image using Intervention Image
+        try {
+            // Use the proper Intervention Image instantiation
+            $img = \Intervention\Image\Facades\Image::make($file->getRealPath());
+            
+            // Resize to a reasonable dimension while maintaining aspect ratio
+            $img->resize(1200, null, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+            
+            // Save with medium quality to reduce file size
+            $img->save(storage_path('app/public/' . $path), 80);
+            
+            return $path;
+        } catch (\Exception $e) {
+            // Fallback to regular file storage if image manipulation fails
+            $file->storeAs('public/' . $directory, $filename);
+            return $path;
+        }
+    }
+    
+    /**
+     * Format Moroccan license plate
+     * 
+     * @param string $value
+     * @return string
+     */
+    private function formatMatricule($value)
+    {
+        if (!$value) return $value;
         
-        // Resize to a reasonable dimension while maintaining aspect ratio
-        $img->resize(1200, null, function ($constraint) {
-            $constraint->aspectRatio();
-            $constraint->upsize();
+        // First normalize by removing all separators
+        $normalized = preg_replace('/[-|]/', '', $value);
+        
+        // Check if it matches the Moroccan pattern for digits + letter + region
+        // Supporting both Arabic and Latin letters
+        $moroccanPlateRegex = '/^(\d{1,5})([A-Za-z]|[\x{0600}-\x{06FF}])(\d{1,2})$/u';
+        
+        if (preg_match($moroccanPlateRegex, $normalized, $matches)) {
+            if (count($matches) === 4) {
+                $digits = $matches[1];
+                $letter = $matches[2]; 
+                $regionCode = $matches[3];
+                
+                // Format with hyphens for better readability
+                return $digits . '-' . $letter . '-' . $regionCode;
+            }
+        }
+        
+        return $value;
+    }
+    
+    /**
+     * Validate Moroccan license plate
+     * 
+     * @param string $value
+     * @return bool
+     */
+    private function validateMatricule($value)
+    {
+        if (!$value) return true; // Empty is handled by required attribute
+        
+        // Accept different separator styles
+        $normalized = preg_replace('/[-|]/', '', $value);
+        
+        // Pattern: digits + letter (Arabic or Latin) + region code
+        $moroccanPlateRegex = '/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u';
+        
+        return preg_match($moroccanPlateRegex, $normalized) === 1;
+    }
+    
+    /**
+     * Get expiring documents for dashboard alerts
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getExpiringDocuments()
+    {
+        $warningThreshold = now()->addDays(30);
+        
+        return CarDocuments::where('vignette_expiry_date', '<=', $warningThreshold)
+            ->orWhere('visite_technique_expiry_date', '<=', $warningThreshold)
+            ->orWhere('assurance_expiry_date', '<=', $warningThreshold)
+            ->with('car.brand')
+            ->get()
+            ->map(function ($carDoc) {
+                $alerts = [];
+                
+                if ($carDoc->vignette_expiry_date && $carDoc->vignette_expiry_date <= now()->addDays(30)) {
+                    $daysLeft = now()->diffInDays($carDoc->vignette_expiry_date, false);
+                    $status = $daysLeft < 0 ? 'expired' : 'expiring';
+                    $alerts[] = [
+                        'type' => 'vignette',
+                        'document' => 'Vignette',
+                        'days_left' => $daysLeft,
+                        'status' => $status,
+                        'date' => $carDoc->vignette_expiry_date->format('d/m/Y')
+                    ];
+                }
+                
+                if ($carDoc->visite_technique_expiry_date && $carDoc->visite_technique_expiry_date <= now()->addDays(30)) {
+                    $daysLeft = now()->diffInDays($carDoc->visite_technique_expiry_date, false);
+                    $status = $daysLeft < 0 ? 'expired' : 'expiring';
+                    $alerts[] = [
+                        'type' => 'technical_inspection',
+                        'document' => 'Technical Inspection',
+                        'days_left' => $daysLeft,
+                        'status' => $status,
+                        'date' => $carDoc->visite_technique_expiry_date->format('d/m/Y')
+                    ];
+                }
+                
+                if ($carDoc->assurance_expiry_date && $carDoc->assurance_expiry_date <= now()->addDays(30)) {
+                    $daysLeft = now()->diffInDays($carDoc->assurance_expiry_date, false);
+                    $status = $daysLeft < 0 ? 'expired' : 'expiring';
+                    $alerts[] = [
+                        'type' => 'assurance',
+                        'document' => 'Insurance',
+                        'days_left' => $daysLeft,
+                        'status' => $status,
+                        'date' => $carDoc->assurance_expiry_date->format('d/m/Y')
+                    ];
+                }
+                
+                return [
+                    'car' => $carDoc->car,
+                    'alerts' => $alerts
+                ];
+            })
+            ->filter(function ($item) {
+                return count($item['alerts']) > 0 && isset($item['car']);
+            });
+    }
+    
+    /**
+     * Generate car export for reports
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function export(Request $request)
+    {
+        // Check permission
+        if (!Auth::guard('admin')->user()->can('export cars')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to export cars.'
+            ], 403);
+        }
+        
+        // Get filtered cars
+        $cars = Car::with(['category', 'brand', 'bookings'])
+            ->when($request->filled('status'), function ($query) use ($request) {
+                return $query->where('status', $request->status);
+            })
+            ->when($request->filled('category_id'), function ($query) use ($request) {
+                return $query->where('category_id', $request->category_id);
+            })
+            ->when($request->filled('brand_id'), function ($query) use ($request) {
+                return $query->where('brand_id', $request->brand_id);
+            })
+            ->get();
+            
+        // Create export data
+        $exportData = $cars->map(function ($car) {
+            // Get document data
+            $carDocs = CarDocuments::where('car_id', $car->id)->first();
+            
+            return [
+                'ID' => $car->id,
+                'Name' => $car->name,
+                'Brand' => $car->brand ? $car->brand->name : $car->brand_name,
+                'Model' => $car->model,
+                'Year' => $car->year,
+                'Category' => $car->category ? $car->category->name : '',
+                'Status' => ucfirst($car->status),
+                'Price/Day' => number_format($car->price_per_day, 2) . ' MAD',
+                'Matricule' => $car->matricule,
+                'Mileage' => number_format($car->mileage) . ' km',
+                'Fuel Type' => ucfirst($car->fuel_type),
+                'Transmission' => ucfirst($car->transmission),
+                'Vignette Expiry' => $carDocs && $carDocs->vignette_expiry_date ? $carDocs->vignette_expiry_date->format('d/m/Y') : 'N/A',
+                'Tech. Inspection' => $carDocs && $carDocs->visite_technique_expiry_date ? $carDocs->visite_technique_expiry_date->format('d/m/Y') : 'N/A',
+                'Insurance Expiry' => $carDocs && $carDocs->assurance_expiry_date ? $carDocs->assurance_expiry_date->format('d/m/Y') : 'N/A',
+                'Total Bookings' => $car->bookings->count(),
+                'Revenue' => number_format($car->bookings->sum('total_amount'), 2) . ' MAD'
+            ];
         });
         
-        // Save with medium quality to reduce file size
-        $img->save(storage_path('app/public/' . $path), 80);
+        // Export based on requested format
+        $format = $request->format ?? 'csv';
         
-        return $path;
+        switch ($format) {
+            case 'xlsx':
+                return $this->exportExcel($exportData);
+            case 'pdf':
+                return $this->exportPdf($exportData);
+            case 'csv':
+            default:
+                return $this->exportCsv($exportData);
+        }
+    }
+    
+    /**
+     * Export data as CSV
+     * 
+     * @param Collection $data
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    private function exportCsv($data)
+    {
+        $filename = 'cars-export-' . date('Y-m-d') . '.csv';
+        $headers = array_keys($data->first());
+        
+        $callback = function() use ($data, $headers) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $headers);
+            
+            foreach ($data as $row) {
+                fputcsv($file, $row);
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+    
+    /**
+     * Export data as Excel (requires laravel-excel package)
+     * 
+     * @param Collection $data
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    private function exportExcel($data)
+    {
+        // This would require the Laravel Excel package to be installed
+        // Example implementation if you have the package:
+        // return Excel::download(new CarsExport($data), 'cars-export-' . date('Y-m-d') . '.xlsx');
+        
+        // Fallback to CSV if Excel export is not available
+        return $this->exportCsv($data);
+    }
+    
+    /**
+     * Export data as PDF (requires laravel-dompdf or similar)
+     * 
+     * @param Collection $data
+     * @return \Illuminate\Http\Response
+     */
+    private function exportPdf($data)
+    {
+        // This would require a PDF generation package like DomPDF
+        // Example implementation if you have the package:
+        // $pdf = PDF::loadView('admin.cars.export-pdf', ['cars' => $data]);
+        // return $pdf->download('cars-export-' . date('Y-m-d') . '.pdf');
+        
+        // Fallback to CSV if PDF export is not available
+        return $this->exportCsv($data);
     }
 }

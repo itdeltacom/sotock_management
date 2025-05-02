@@ -51,6 +51,7 @@
                 </div>
                 <form id="carForm" enctype="multipart/form-data">
                     @csrf
+                    <input type="hidden" name="_method" id="method" value="POST">
                     <input type="hidden" name="car_id" id="car_id">
                     <div class="modal-body">
                         <ul class="nav nav-tabs" id="carTabs" role="tablist">
@@ -66,6 +67,11 @@
                                 <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features"
                                     type="button" role="tab" aria-controls="features"
                                     aria-selected="false">Features</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents"
+                                    type="button" role="tab" aria-controls="documents"
+                                    aria-selected="false">Documents</button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images"
@@ -101,6 +107,21 @@
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
+                                        <label for="model" class="form-label">Model</label>
+                                        <input type="text" class="form-control" id="model" name="model" required>
+                                        <div class="invalid-feedback" id="model-error"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="year" class="form-label">Year</label>
+                                        <input type="number" class="form-control" id="year" name="year" min="1900"
+                                            max="{{ date('Y') + 1 }}" required>
+                                        <div class="invalid-feedback" id="year-error"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label for="category_id" class="form-label">Category</label>
                                         <select class="form-select" id="category_id" name="category_id" required>
                                             <option value="">Select Category</option>
@@ -112,35 +133,88 @@
                                     </div>
 
                                     <div class="col-md-6 mb-3">
-                                        <label for="price_per_day" class="form-label">Price/Day ($)</label>
-                                        <input type="number" class="form-control" id="price_per_day" name="price_per_day"
-                                            min="0" step="0.01" required>
-                                        <div class="invalid-feedback" id="price_per_day-error"></div>
+                                        <label for="color" class="form-label">Color</label>
+                                        <input type="text" class="form-control" id="color" name="color">
+                                        <div class="invalid-feedback" id="color-error"></div>
                                     </div>
                                 </div>
 
                                 <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="matricule" class="form-label">Matricule (License Plate)</label>
+                                        <input type="text" class="form-control" id="matricule" name="matricule" required>
+                                        <div class="invalid-feedback" id="matricule-error"></div>
+                                        <small class="form-text text-muted">Examples: 12345-أ-6, 12345-A-6
+                                            (numbers-letter-region)</small>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="chassis_number" class="form-label">Chassis Number</label>
+                                        <input type="text" class="form-control" id="chassis_number" name="chassis_number"
+                                            required>
+                                        <div class="invalid-feedback" id="chassis_number-error"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="price_per_day" class="form-label">Price/Day (MAD)</label>
+                                        <input type="number" class="form-control" id="price_per_day" name="price_per_day"
+                                            min="0" step="0.01" required>
+                                        <div class="invalid-feedback" id="price_per_day-error"></div>
+                                    </div>
+
                                     <div class="col-md-6 mb-3">
                                         <label for="discount_percentage" class="form-label">Discount (%)</label>
                                         <input type="number" class="form-control" id="discount_percentage"
                                             name="discount_percentage" min="0" max="100" step="0.01" value="0">
                                         <div class="invalid-feedback" id="discount_percentage-error"></div>
                                     </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="weekly_price" class="form-label">Weekly Price (MAD)</label>
+                                        <input type="number" class="form-control" id="weekly_price" name="weekly_price"
+                                            min="0" step="0.01">
+                                        <div class="invalid-feedback" id="weekly_price-error"></div>
+                                        <small class="form-text text-muted">Leave empty for automatic calculation (5
+                                            days)</small>
+                                    </div>
 
                                     <div class="col-md-6 mb-3">
-                                        <label for="is_available" class="form-label">Availability</label>
-                                        <select class="form-select" id="is_available" name="is_available">
-                                            <option value="1">Available</option>
-                                            <option value="0">Unavailable</option>
+                                        <label for="monthly_price" class="form-label">Monthly Price (MAD)</label>
+                                        <input type="number" class="form-control" id="monthly_price" name="monthly_price"
+                                            min="0" step="0.01">
+                                        <div class="invalid-feedback" id="monthly_price-error"></div>
+                                        <small class="form-text text-muted">Leave empty for automatic calculation (22
+                                            days)</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-select" id="status" name="status" required>
+                                            <option value="available">Available</option>
+                                            <option value="rented">Rented</option>
+                                            <option value="maintenance">Maintenance</option>
+                                            <option value="unavailable">Unavailable</option>
                                         </select>
-                                        <div class="invalid-feedback" id="is_available-error"></div>
+                                        <div class="invalid-feedback" id="status-error"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="mise_en_service_date" class="form-label">Mise en Service Date</label>
+                                        <input type="date" class="form-control" id="mise_en_service_date"
+                                            name="mise_en_service_date" required>
+                                        <div class="invalid-feedback" id="mise_en_service_date-error"></div>
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="description" class="form-label">Description</label>
-                                    <textarea class="form-control ckeditor" id="description" name="description"
-                                        rows="6"></textarea>
+                                    <textarea class="form-control" id="description" name="description" rows="6"></textarea>
                                     <div class="invalid-feedback" id="description-error"></div>
                                 </div>
                             </div>
@@ -168,11 +242,11 @@
                                     <div class="col-md-3 mb-3">
                                         <label for="fuel_type" class="form-label">Fuel Type</label>
                                         <select class="form-select" id="fuel_type" name="fuel_type" required>
-                                            <option value="petrol">Petrol</option>
                                             <option value="diesel">Diesel</option>
+                                            <option value="gasoline">Gasoline</option>
                                             <option value="electric">Electric</option>
                                             <option value="hybrid">Hybrid</option>
-                                            <option value="lpg">LPG</option>
+                                            <option value="petrol">Petrol</option>
                                         </select>
                                         <div class="invalid-feedback" id="fuel_type-error"></div>
                                     </div>
@@ -201,8 +275,79 @@
 
                                 <div class="mb-3">
                                     <label for="mileage" class="form-label">Mileage (km)</label>
-                                    <input type="number" class="form-control" id="mileage" name="mileage" min="0">
+                                    <input type="number" class="form-control" id="mileage" name="mileage" min="0" required>
                                     <div class="invalid-feedback" id="mileage-error"></div>
+                                </div>
+                            </div>
+
+                            <!-- Documents Tab -->
+                            <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="insurance_number" class="form-label">Insurance Number</label>
+                                        <input type="text" class="form-control" id="insurance_number"
+                                            name="insurance_number" required>
+                                        <div class="invalid-feedback" id="insurance_number-error"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="grey_card_number" class="form-label">Carte Grise Number</label>
+                                        <input type="text" class="form-control" id="grey_card_number"
+                                            name="grey_card_number" required>
+                                        <div class="invalid-feedback" id="grey_card_number-error"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="vignette_date" class="form-label">Vignette Expiry Date</label>
+                                        <input type="date" class="form-control" id="vignette_date" name="vignette_date"
+                                            required>
+                                        <div class="invalid-feedback" id="vignette_date-error"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="technical_inspection_date" class="form-label">Technical Inspection
+                                            Date</label>
+                                        <input type="date" class="form-control" id="technical_inspection_date"
+                                            name="technical_inspection_date" required>
+                                        <div class="invalid-feedback" id="technical_inspection_date-error"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Optional Document Files -->
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="file_carte_grise" class="form-label">Carte Grise Document
+                                            (Optional)</label>
+                                        <input type="file" class="form-control" id="file_carte_grise"
+                                            name="file_carte_grise" accept="application/pdf,image/*">
+                                        <div class="invalid-feedback" id="file_carte_grise-error"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="file_assurance" class="form-label">Insurance Document (Optional)</label>
+                                        <input type="file" class="form-control" id="file_assurance" name="file_assurance"
+                                            accept="application/pdf,image/*">
+                                        <div class="invalid-feedback" id="file_assurance-error"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="file_vignette" class="form-label">Vignette Document (Optional)</label>
+                                        <input type="file" class="form-control" id="file_vignette" name="file_vignette"
+                                            accept="application/pdf,image/*">
+                                        <div class="invalid-feedback" id="file_vignette-error"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="file_visite_technique" class="form-label">Technical Inspection Document
+                                            (Optional)</label>
+                                        <input type="file" class="form-control" id="file_visite_technique"
+                                            name="file_visite_technique" accept="application/pdf,image/*">
+                                        <div class="invalid-feedback" id="file_visite_technique-error"></div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -331,7 +476,7 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="images" class="form-label">Additional Images</label>
+                                    <label for="additional_images" class="form-label">Additional Images</label>
                                     <input type="file" class="form-control" id="additional_images" name="images[]"
                                         accept="image/*" multiple>
                                     <div class="invalid-feedback" id="images-error"></div>

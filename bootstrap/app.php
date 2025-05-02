@@ -11,14 +11,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // ===== Middleware Aliases =====
         $middleware->alias([
-            'admin.two-factor' => \App\Http\Middleware\TwoFactorMiddleware::class,
+            'auth' => \App\Http\Middleware\Authenticate::class,
             'auth.admin' => \App\Http\Middleware\AdminAuthenticate::class,
-    'auth' => \App\Http\Middleware\Authenticate::class, 
+            'admin.two-factor' => \App\Http\Middleware\TwoFactorMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+
+        // ===== Middleware Groups =====
         $middleware->group('admin', [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
@@ -27,8 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\ActivityLogger::class,
+            \App\Http\Middleware\AdminAuthenticate::class, // Ensures admin auth
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
-    })->create();
+        // Custom exception handling (if needed)
+    })
+    ->create();

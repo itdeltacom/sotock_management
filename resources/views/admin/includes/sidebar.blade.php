@@ -4,9 +4,9 @@
         <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none"
             aria-hidden="true" id="iconSidenav"></i>
         <a class="navbar-brand m-0" href="{{ route('admin.dashboard') }}">
-            <img src="{{ asset('assets/img/logo-ct-dark.png') }}" width="26px" height="26px"
-                class="navbar-brand-img h-100" alt="main_logo">
-            <span class="ms-1 font-weight-bold">{{ config('app.name') }}</span>
+            <img src="{{asset('site/img/logo.png')}}" width="96px" height="96px" class="navbar-brand-img h-100"
+                alt="main_logo">
+            {{-- <span class="ms-1 font-weight-bold">{{ config('app.name') }}</span> --}}
         </a>
     </div>
     <hr class="horizontal dark mt-0">
