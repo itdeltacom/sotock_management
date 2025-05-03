@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Car;
-use App\Models\Client;
+use App\Models\User;
 use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -93,13 +93,21 @@ class ContractController extends Controller
             ->make(true);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('admin.contracts.create');
-    }
+   /**
+ * Show the form for creating a new contract.
+ * 
+ * @return \Illuminate\Http\Response
+ */
+public function create()
+{
+    // Get all active clients
+    $clients = User::where('status', 'active')->get();
+    
+    // Get all available cars
+    $availableCars = Car::where('status', 'available')->get();
+    
+    return view('admin.contracts.create', compact('clients', 'availableCars'));
+}
 
     /**
      * Store a newly created resource in storage.
@@ -533,4 +541,48 @@ class ContractController extends Controller
                 ->rawColumns(['overdue_days', 'estimated_penalty', 'actions'])
                 ->make(true);
         }
+    /**
+ * Get contract statistics for the dashboard.
+ * 
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function getStats()
+{
+    try {
+        // Count active contracts
+        $active = Contract::where('status', 'active')->count();
+        
+        // Count contracts ending soon (within next 2 days)
+        $endingSoon = Contract::where('status', 'active')
+            ->whereDate('end_date', '<=', now()->addDays(2))
+            ->whereDate('end_date', '>=', now())
+            ->count();
+        
+        // Count overdue contracts
+        $overdue = Contract::where('status', 'active')
+            ->whereDate('end_date', '<', now())
+            ->count();
+        
+        // Calculate monthly revenue (completed contracts in current month)
+        $monthlyRevenue = Contract::where('status', 'completed')
+            ->whereMonth('updated_at', now()->month)
+            ->whereYear('updated_at', now()->year)
+            ->sum('total_amount');
+        
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'active' => $active,
+                'ending_soon' => $endingSoon,
+                'overdue' => $overdue,
+                'monthly_revenue' => $monthlyRevenue
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error retrieving contract statistics: ' . $e->getMessage()
+        ]);
+    }
+}
     }

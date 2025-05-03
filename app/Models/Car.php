@@ -124,4 +124,161 @@ class Car extends Model
 {
     return $this->hasOne(CarDocuments::class);
 }
+
+/**
+ * Get all maintenance records for the car.
+ */
+public function maintenance()
+{
+    return $this->hasMany(CarMaintenance::class);
+}
+
+/**
+ * Get the most recent maintenance record.
+ */
+public function lastMaintenance()
+{
+    return $this->hasOne(CarMaintenance::class)->latest('date_performed');
+}
+
+/**
+ * Get all maintenance records that are due soon or overdue.
+ */
+public function dueMaintenance()
+{
+    return $this->maintenance()
+        ->where(function($query) {
+            $query->whereDate('next_due_date', '<=', now()->addDays(15))
+                ->orWhereRaw('next_due_mileage - ? <= 500', [$this->mileage]);
+        });
+}
+
+/**
+ * Get all overdue maintenance records.
+ */
+public function overdueMaintenance()
+{
+    return $this->maintenance()
+        ->where(function($query) {
+            $query->whereDate('next_due_date', '<', now())
+                ->orWhereRaw('next_due_mileage <= ?', [$this->mileage]);
+        });
+}
+
+/**
+ * Check if car has any maintenance due soon or overdue.
+ * 
+ * @return bool
+ */
+public function hasMaintenanceDue()
+{
+    return $this->dueMaintenance()->count() > 0;
+}
+
+/**
+ * Check if the car is in need of maintenance based on time or mileage.
+ * 
+ * @return bool
+ */
+public function needsMaintenance()
+{
+    // Check if any maintenance is overdue
+    if ($this->overdueMaintenance()->count() > 0) {
+        return true;
+    }
+    
+    // Check when was the last oil change
+    $lastOilChange = $this->maintenance()
+        ->where('maintenance_type', 'oil_change')
+        ->latest('date_performed')
+        ->first();
+        
+    if ($lastOilChange) {
+        // If last oil change was more than 6 months ago or 10,000 km
+        if ($lastOilChange->date_performed->addMonths(6)->isPast() ||
+            ($this->mileage - $lastOilChange->mileage_at_service) >= 10000) {
+            return true;
+        }
+    } else {
+        // No oil change record found, assume maintenance needed
+        return true;
+    }
+    
+    // Check for general service
+    $lastGeneralService = $this->maintenance()
+        ->where('maintenance_type', 'general_service')
+        ->latest('date_performed')
+        ->first();
+        
+    if ($lastGeneralService) {
+        // If last general service was more than 12 months ago or 15,000 km
+        if ($lastGeneralService->date_performed->addMonths(12)->isPast() ||
+            ($this->mileage - $lastGeneralService->mileage_at_service) >= 15000) {
+            return true;
+        }
+    } else {
+        // No general service record found, assume maintenance needed
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Get the next scheduled maintenance date.
+ * 
+ * @return \Carbon\Carbon|null
+ */
+public function getNextMaintenanceDateAttribute()
+{
+    $nextMaintenance = $this->maintenance()
+        ->whereNotNull('next_due_date')
+        ->orderBy('next_due_date')
+        ->first();
+        
+    return $nextMaintenance ? $nextMaintenance->next_due_date : null;
+}
+
+/**
+ * Get the next scheduled maintenance mileage.
+ * 
+ * @return int|null
+ */
+public function getNextMaintenanceMileageAttribute()
+{
+    $nextMaintenance = $this->maintenance()
+        ->whereNotNull('next_due_mileage')
+        ->orderBy('next_due_mileage')
+        ->first();
+        
+    return $nextMaintenance ? $nextMaintenance->next_due_mileage : null;
+}
+
+/**
+ * Get maintenance status label.
+ * 
+ * @return string
+ */
+public function getMaintenanceStatusAttribute()
+{
+    if ($this->overdueMaintenance()->count() > 0) {
+        return 'overdue';
+    }
+    
+    if ($this->dueMaintenance()->count() > 0) {
+        return 'due_soon';
+    }
+    
+    return 'ok';
+}
+
+/**
+ * Total maintenance cost.
+ * 
+ * @return float
+ */
+public function getTotalMaintenanceCostAttribute()
+{
+    return $this->maintenance()->sum('cost');
+}
 }

@@ -69,7 +69,7 @@ class CarListingController extends Controller
         ), [
             'pageTitle' => 'Car Listing',
             'currentPage' => 'Listing'
-        ]))->with('perPage', self::PER_PAGE);
+        ]));
     }
     
     /**
@@ -92,42 +92,45 @@ class CarListingController extends Controller
     }
     
 
-    /**
-     * Display the car detail page
-     *
-     * @param string $slug
-     * @return \Illuminate\View\View
-     */
-    public function show($slug)
-    {
-        // Find the car by slug or return 404
-        $car = Car::with(['brand', 'category', 'images', 'reviews.user'])
-            ->where('slug', $slug)
-            ->where('is_available', true)
-            ->firstOrFail();
-            
-        // Get related cars (same category or brand, but not the current car)
-        $relatedCars = Car::with(['brand', 'category'])
-            ->where('is_available', true)
-            ->where(function($query) use ($car) {
-                $query->where('category_id', $car->category_id)
-                      ->orWhere('brand_id', $car->brand_id);
-            })
-            ->where('id', '!=', $car->id)
-            ->orderBy('rating', 'desc')
-            ->limit(3)
-            ->get();
-            
-            return view('site.cars.show', array_merge(compact('car', 'relatedCars'), [
-                'pageTitle' => $car->name,
-                'currentPage' => $car->name,
-                'parentPage' => [
-                    'name' => 'Cars',
-                    'url' => route('cars.index')
-                ]
-            ]));
-            }
-    
+   /**
+ * Display the car detail page
+ *
+ * @param string $slug
+ * @return \Illuminate\View\View
+ */
+public function show($slug)
+{
+    // Find the car by slug or return 404
+    $car = Car::with(['brand', 'category', 'images', 'reviews.user'])
+        ->where('slug', $slug)
+        ->where('is_available', true)
+        ->firstOrFail();
+        
+    // Get related cars (same category or brand, but not the current car)
+    $relatedCars = Car::with(['brand', 'category'])
+        ->where('is_available', true)
+        ->where(function($query) use ($car) {
+            $query->where('category_id', $car->category_id)
+                  ->orWhere('brand_id', $car->brand_id);
+        })
+        ->where('id', '!=', $car->id)
+        ->orderBy('rating', 'desc')
+        ->limit(3)
+        ->get();
+        
+    return view('site.cars.show', array_merge(
+        compact('car', 'relatedCars'), 
+        [
+            'pageTitle' => $car->name,
+            'currentPage' => $car->name,
+            'parentPage' => [
+                'name' => 'Cars',
+                'url' => route('cars.index')
+            ],
+            'scrollToBooking' => session('scroll-to-booking', false)
+        ]
+    ));
+}
     /**
      * Search for cars based on query parameters
      *
@@ -284,4 +287,12 @@ class CarListingController extends Controller
         // Paginate results
         return $query->paginate(self::PER_PAGE);
     }
+/**
+ * Show the booking form.
+ */
+public function create(Car $car)
+{
+    // Redirect to the car detail page where the booking form exists
+    return redirect()->route('cars.show', $car->slug)->with('scroll-to-booking', true);
+}
 }

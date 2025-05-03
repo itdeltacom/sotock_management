@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BlogPostController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Admin\CarDocumentController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\Auth\AdminAuthController;
+use App\Http\Controllers\Admin\CarMaintenanceController;
 use App\Http\Controllers\Admin\NewsletterAdminController;
 
 /*
@@ -172,6 +174,38 @@ Route::prefix('cars')->name('cars.')->middleware('permission:manage cars')->grou
     Route::get('documents/expiring', [CarDocumentController::class, 'expiringDocuments'])->name('documents.expiring');
     Route::get('documents/expiring/data', [CarDocumentController::class, 'expiringDocumentsDatatable'])->name('documents.expiring.data');
 });
+// Car Maintenance Routes
+Route::prefix('cars/maintenance')->name('cars.maintenance.')->group(function () {
+    // Due Soon Dashboard
+    Route::get('/due-soon', [CarMaintenanceController::class, 'maintenanceDueSoon'])
+        ->name('due-soon');
+    Route::get('/datatable/due-soon', [CarMaintenanceController::class, 'maintenanceDueSoonDatatable'])
+        ->name('due-soon.datatable');
+    
+    // Export and Print for Due Soon
+    Route::get('/due-soon/print', [CarMaintenanceController::class, 'printDueMaintenance'])
+        ->name('due-soon.print');
+    Route::get('/due-soon/export-csv', [CarMaintenanceController::class, 'exportDueMaintenanceCsv'])
+        ->name('due-soon.export-csv');
+    
+    // Maintenance Counters API
+    Route::get('/counters', [CarMaintenanceController::class, 'getMaintenanceCounters'])
+        ->name('counters');
+    
+    // Car-specific maintenance routes
+    Route::prefix('/{car}')->group(function () {
+        Route::get('/', [CarMaintenanceController::class, 'index'])->name('index');
+        Route::get('/datatable', [CarMaintenanceController::class, 'datatable'])->name('datatable');
+        Route::post('/', [CarMaintenanceController::class, 'store'])->name('store');
+        Route::get('/{maintenance}/edit', [CarMaintenanceController::class, 'edit'])->name('edit');
+        Route::put('/{maintenance}', [CarMaintenanceController::class, 'update'])->name('update');
+        Route::delete('/{maintenance}', [CarMaintenanceController::class, 'destroy'])->name('destroy');
+        
+        // Export and Print for specific car
+        Route::get('/print', [CarMaintenanceController::class, 'printMaintenanceHistory'])->name('print');
+        Route::get('/export-csv', [CarMaintenanceController::class, 'exportCsv'])->name('export-csv');
+    });
+});
 
 // Booking Management Routes
 Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permission:manage bookings'])->group(function () {
@@ -190,6 +224,59 @@ Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permiss
     Route::patch('/{booking}/update-payment-status', [BookingController::class, 'updatePaymentStatus'])->name('update-payment-status');
     Route::get('/dashboard-stats', [BookingController::class, 'dashboardStats'])->name('dashboard-stats');
     Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
+});
+
+// Additional Contract Routes
+Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permission:manage contracts'])->group(function () {
+    // Basic contract management
+    Route::get('/', [ContractController::class, 'index'])->name('index');
+    // Get contract statistics for dashboard
+    Route::get('/stats', [ContractController::class, 'getStats'])->name('stats');
+    
+    // Add the missing create route
+    Route::get('/create', [ContractController::class, 'create'])->name('create');
+    
+    Route::get('/data', [ContractController::class, 'datatable'])->name('datatable');
+    Route::post('/', [ContractController::class, 'store'])->name('store');
+    Route::get('/{contract}/edit', [ContractController::class, 'edit'])->name('edit');
+    Route::get('/{contract}', [ContractController::class, 'show'])->name('show');
+    Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
+    Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
+    Route::post('/{contract}/upload-document', [ContractController::class, 'uploadDocument'])->name('upload-document');
+    Route::delete('/{contract}/delete-document', [ContractController::class, 'deleteDocument'])->name('delete-document');
+    // Contract actions
+    Route::post('/{contract}/complete', [ContractController::class, 'complete'])->name('complete');
+    Route::post('/{contract}/cancel', [ContractController::class, 'cancel'])->name('cancel');
+    Route::post('/{contract}/extend', [ContractController::class, 'extend'])->name('extend');
+    
+    // Special contract views
+    Route::get('/ending-soon', [ContractController::class, 'endingSoon'])->name('ending-soon');
+    Route::get('/ending-soon/data', [ContractController::class, 'endingSoonDatatable'])->name('ending-soon.datatable');
+    Route::get('/overdue', [ContractController::class, 'overdue'])->name('overdue');
+    Route::get('/overdue/data', [ContractController::class, 'overdueDatatable'])->name('overdue.datatable');
+});
+
+// API endpoints for contract management
+Route::prefix('api')->name('api.')->middleware(['auth:admin'])->group(function () {
+    // Get available clients
+    Route::get('/clients', [CustomerController::class, 'getClientsList'])->name('clients.list');
+    
+    // Get available cars
+    Route::get('/cars/available', [CarController::class, 'getAvailableCars'])->name('cars.available');
+});
+
+Route::prefix('clients')->name('clients.')->middleware('permission:manage clients')->group(function () {
+    Route::get('/', [CustomerController::class, 'index'])->name('index');
+    Route::get('/create', [CustomerController::class, 'create'])->name('create');
+    Route::post('/', [CustomerController::class, 'store'])->name('store');
+    Route::get('/{client}', [CustomerController::class, 'show'])->name('show');
+    Route::get('/{client}/edit', [CustomerController::class, 'edit'])->name('edit');
+    Route::put('/{client}', [CustomerController::class, 'update'])->name('update');
+    Route::delete('/{client}', [CustomerController::class, 'destroy'])->name('destroy');
+    Route::get('/data', [CustomerController::class, 'datatable'])->name('datatable');
+    Route::post('/validate-field', [CustomerController::class, 'validateField'])->name('validate-field');
+    Route::get('/get-clients', [CustomerController::class, 'getClientsList'])->name('list');
+
 });
 // Review Management
 Route::prefix('reviews')->name('reviews.')->middleware('permission:manage reviews')->group(function () {

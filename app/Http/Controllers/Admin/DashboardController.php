@@ -250,4 +250,111 @@ class DashboardController extends Controller
             'bookingData' => $bookingData
         ]);
     }
+
+/**
+ * Get maintenance alerts for dashboard
+ *
+ * @return array
+ */
+public function getMaintenanceAlerts()
+{
+    // Get all maintenance records due soon or overdue
+    $maintenances = \App\Models\CarMaintenance::with('car')
+        ->where(function($query) {
+            $query->whereDate('next_due_date', '<=', now()->addDays(15))
+                ->orWhereRaw('next_due_mileage - (SELECT mileage FROM cars WHERE cars.id = car_maintenances.car_id) <= 500');
+        })
+        ->get();
+    
+    // Group by urgency
+    $overdue = $maintenances->filter(function($maintenance) {
+        return $maintenance->isOverdue();
+    });
+    
+    $dueThisWeek = $maintenances->filter(function($maintenance) {
+        if ($maintenance->isOverdue()) {
+            return false;
+        }
+        
+        $daysLeft = $maintenance->next_due_date ? now()->diffInDays($maintenance->next_due_date, false) : null;
+        $kmLeft = $maintenance->next_due_mileage && $maintenance->car ? $maintenance->next_due_mileage - $maintenance->car->mileage : null;
+        
+        return ($daysLeft !== null && $daysLeft <= 7) || ($kmLeft !== null && $kmLeft <= 200);
+    });
+    
+    $comingUp = $maintenances->filter(function($maintenance) {
+        if ($maintenance->isOverdue()) {
+            return false;
+        }
+        
+        $daysLeft = $maintenance->next_due_date ? now()->diffInDays($maintenance->next_due_date, false) : null;
+        $kmLeft = $maintenance->next_due_mileage && $maintenance->car ? $maintenance->next_due_mileage - $maintenance->car->mileage : null;
+        
+        return !(($daysLeft !== null && $daysLeft <= 7) || ($kmLeft !== null && $kmLeft <= 200));
+    });
+    
+    // Format for dashboard display
+    $formattedOverdue = $this->formatMaintenanceAlerts($overdue);
+    $formattedDueThisWeek = $this->formatMaintenanceAlerts($dueThisWeek);
+    $formattedComingUp = $this->formatMaintenanceAlerts($comingUp);
+    
+    return [
+        'overdue' => [
+            'count' => $overdue->count(),
+            'items' => $formattedOverdue
+        ],
+        'due_this_week' => [
+            'count' => $dueThisWeek->count(),
+            'items' => $formattedDueThisWeek
+        ],
+        'coming_up' => [
+            'count' => $comingUp->count(),
+            'items' => $formattedComingUp
+        ]
+    ];
+}
+
+/**
+ * Format maintenance alerts for dashboard display
+ *
+ * @param \Illuminate\Support\Collection $maintenances
+ * @return array
+ */
+private function formatMaintenanceAlerts($maintenances)
+{
+    return $maintenances->map(function($maintenance) {
+        $daysLeft = $maintenance->next_due_date ? now()->diffInDays($maintenance->next_due_date, false) : null;
+        $kmLeft = $maintenance->next_due_mileage && $maintenance->car ? $maintenance->next_due_mileage - $maintenance->car->mileage : null;
+        
+        return [
+            'id' => $maintenance->id,
+            'car_id' => $maintenance->car_id,
+            'car_name' => $maintenance->car->brand_name . ' ' . $maintenance->car->model,
+            'matricule' => $maintenance->car->matricule,
+            'maintenance_type' => ucfirst(str_replace('_', ' ', $maintenance->maintenance_type)),
+            'days_left' => $daysLeft,
+            'km_left' => $kmLeft,
+            'days_text' => $daysLeft !== null ? ($daysLeft < 0 ? 'Overdue by ' . abs($daysLeft) . ' days' : $daysLeft . ' days left') : null,
+            'km_text' => $kmLeft !== null ? ($kmLeft < 0 ? 'Overdue by ' . abs($kmLeft) . ' km' : $kmLeft . ' km left') : null,
+            'url' => route('admin.cars.maintenance.index', $maintenance->car_id)
+        ];
+    })->take(5)->toArray(); // Limit to 5 items for dashboard
+}
+
+/**
+ * Add maintenance alerts to dashboard data
+ * 
+ * @param array $data Current dashboard data
+ * @return array Updated dashboard data with maintenance alerts
+ */
+public function addMaintenanceAlertsToDashboard($data)
+{
+    // Get maintenance alerts
+    $maintenanceAlerts = $this->getMaintenanceAlerts();
+    
+    // Add to data
+    $data['maintenance_alerts'] = $maintenanceAlerts;
+    
+    return $data;
+}
 }

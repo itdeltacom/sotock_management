@@ -3,107 +3,115 @@
 @section('title', 'Expiring Documents')
 
 @section('content')
-    <div class="page-header">
-        <h3 class="page-title">Expiring Vehicle Documents</h3>
-        <div class="page-actions">
-            <a href="{{ route('admin.cars.index') }}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Cars
-            </a>
+    <div class="container-fluid py-4">
+        <div class="page-header">
+            <h3 class="page-title">Expiring Vehicle Documents</h3>
+            <div class="page-actions">
+                <a href="{{ route('admin.cars.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Cars
+                </a>
+            </div>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header pb-0">
-                    <h6>Documents expiring within 30 days</h6>
-                    <p class="text-sm text-muted">
-                        This table shows all vehicles with documents that will expire soon or have already expired.
-                        Make sure to update these documents to avoid legal issues.
-                    </p>
-                </div>
-                <div class="card-body px-0 pt-0 pb-2">
-                    <div class="table-responsive p-0">
-                        <table class="table align-items-center mb-0" id="expiring-documents-table">
-                            <thead>
-                                <tr>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                        Vehicle</th>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                        Matricule</th>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                        Documents</th>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                        Status</th>
-                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                        Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Data will be loaded via AJAX -->
-                            </tbody>
-                        </table>
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header pb-0">
+                        <h6>Documents expiring within 30 days</h6>
+                        <p class="text-sm text-muted">
+                            This table shows all vehicles with documents that will expire soon or have already expired.
+                            Make sure to update these documents to avoid legal issues.
+                        </p>
+                    </div>
+                    <div class="card-body px-0 pt-0 pb-2">
+                        <div class="table-responsive p-0">
+                            <table class="table align-items-center mb-0" id="expiring-documents-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
+                                            Vehicle</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
+                                            Matricule</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
+                                            Documents</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
+                                            Status</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Data will be loaded via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Document Update Modal -->
-    <div class="modal fade" id="updateDocumentModal" tabindex="-1" aria-labelledby="updateDocumentModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="updateDocumentModalLabel">Update Document</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <!-- Document Update Modal -->
+        <div class="modal fade" id="updateDocumentModal" tabindex="-1" aria-labelledby="updateDocumentModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="updateDocumentModalLabel">Update Document</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="updateDocumentForm" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="_method" value="POST">
+                        <input type="hidden" name="car_id" id="doc_car_id">
+                        <input type="hidden" name="document_type" id="doc_type">
+
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="doc_number" class="form-label">Document Number</label>
+                                    <input type="text" class="form-control" id="doc_number" name="document_number" required>
+                                    <div class="invalid-feedback" id="doc_number-error"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="doc_expiry_date" class="form-label">Expiry Date</label>
+                                    <input type="date" class="form-control" id="doc_expiry_date" name="expiry_date"
+                                        required>
+                                    <div class="invalid-feedback" id="doc_expiry_date-error"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="doc_file" class="form-label">Document File</label>
+                                <input type="file" class="form-control" id="doc_file" name="document_file"
+                                    accept="application/pdf,image/*">
+                                <div class="invalid-feedback" id="doc_file-error"></div>
+                                <div id="current_doc_file" class="mt-2 d-none">
+                                    <span class="text-sm">Current file: </span>
+                                    <a href="#" id="current_doc_link" target="_blank">View current document</a>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="doc_notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="doc_notes" name="notes" rows="3"></textarea>
+                                <div class="invalid-feedback" id="doc_notes-error"></div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="updateDocBtn">Update Document</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="updateDocumentForm" enctype="multipart/form-data">
-                    @csrf
-                    <input type="hidden" name="_method" value="POST">
-                    <input type="hidden" name="car_id" id="doc_car_id">
-                    <input type="hidden" name="document_type" id="doc_type">
-
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="doc_number" class="form-label">Document Number</label>
-                                <input type="text" class="form-control" id="doc_number" name="document_number" required>
-                                <div class="invalid-feedback" id="doc_number-error"></div>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="doc_expiry_date" class="form-label">Expiry Date</label>
-                                <input type="date" class="form-control" id="doc_expiry_date" name="expiry_date" required>
-                                <div class="invalid-feedback" id="doc_expiry_date-error"></div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="doc_file" class="form-label">Document File</label>
-                            <input type="file" class="form-control" id="doc_file" name="document_file"
-                                accept="application/pdf,image/*">
-                            <div class="invalid-feedback" id="doc_file-error"></div>
-                            <div id="current_doc_file" class="mt-2 d-none">
-                                <span class="text-sm">Current file: </span>
-                                <a href="#" id="current_doc_link" target="_blank">View current document</a>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="doc_notes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="doc_notes" name="notes" rows="3"></textarea>
-                            <div class="invalid-feedback" id="doc_notes-error"></div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="updateDocBtn">Update Document</button>
-                    </div>
-                </form>
             </div>
         </div>
+
     </div>
 @endsection
 

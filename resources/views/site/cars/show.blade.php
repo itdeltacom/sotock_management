@@ -411,33 +411,34 @@
 
     <!-- Structured Data for Car -->
     <script type="application/ld+json">
-                                                    {
-                                                        "@context": "https://schema.org",
-                                                        "@type": "Product",
-                                                        "name": "{{ $car->name }}",
-                                                        "image": "{{ Storage::url($car->main_image) }}",
-                                                        "description": "{{ strip_tags($car->description) }}",
-                                                        "brand": {
-                                                            "@type": "Brand",
-                                                            "name": "{{ $car->brand->name }}"
-                                                        },
-                                                        "category": "{{ $car->category->name }}",
-                                                        "offers": {
-                                                            "@type": "Offer",
-                                                            "price": "{{ $car->price_per_day * (1 - $car->discount_percentage / 100) }}",
-                                                            "priceCurrency": "USD",
-                                                            "availability": "{{ $car->is_available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}"
-                                                        },
-                                                        "aggregateRating": {
-                                                            "@type": "AggregateRating",
-                                                            "ratingValue": "{{ $car->rating }}",
-                                                            "reviewCount": "{{ $car->review_count }}"
-                                                        }
-                                                    }
-                                                    </script>
+                                                            {
+                                                                "@context": "https://schema.org",
+                                                                "@type": "Product",
+                                                                "name": "{{ $car->name }}",
+                                                                "image": "{{ Storage::url($car->main_image) }}",
+                                                                "description": "{{ strip_tags($car->description) }}",
+                                                                "brand": {
+                                                                    "@type": "Brand",
+                                                                    "name": "{{ $car->brand->name }}"
+                                                                },
+                                                                "category": "{{ $car->category->name }}",
+                                                                "offers": {
+                                                                    "@type": "Offer",
+                                                                    "price": "{{ $car->price_per_day * (1 - $car->discount_percentage / 100) }}",
+                                                                    "priceCurrency": "USD",
+                                                                    "availability": "{{ $car->is_available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}"
+                                                                },
+                                                                "aggregateRating": {
+                                                                    "@type": "AggregateRating",
+                                                                    "ratingValue": "{{ $car->rating }}",
+                                                                    "reviewCount": "{{ $car->review_count }}"
+                                                                }
+                                                            }
+                                                            </script>
 @endsection
 
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize date inputs with today and tomorrow
@@ -471,6 +472,92 @@
 
             dropoffDateInput.addEventListener('change', updateRentalSummary);
 
+            // Handle booking form submission
+            const bookingForm = document.getElementById('bookingForm');
+            if (bookingForm) {
+                bookingForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const submitBtn = document.querySelector('#bookingForm button[type="submit"]');
+                    const originalBtnText = submitBtn.innerHTML;
+
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = `
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Processing...
+                        `;
+
+                    try {
+                        const formData = new FormData(bookingForm);
+                        const response = await fetch(bookingForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            // Show success message
+                            Swal.fire({
+                                title: 'Booking Successful!',
+                                html: `
+                                        <div class="text-center">
+                                            <i class="fas fa-check-circle text-success mb-3" style="font-size: 5rem;"></i>
+                                            <p>${data.message}</p>
+                                            <p class="fw-bold">Booking Number: ${data.booking_number}</p>
+                                        </div>
+                                    `,
+                                icon: 'success',
+                                confirmButtonText: 'OK',
+                                willClose: () => {
+                                    // Optional: Redirect to booking confirmation page
+                                    // window.location.href = `/bookings/${data.booking_number}/thankyou`;
+                                }
+                            });
+
+                            // Reset form
+                            bookingForm.reset();
+                            updateRentalSummary();
+                        } else {
+                            // Handle validation errors
+                            let errorMessage = data.message;
+
+                            if (data.errors) {
+                                errorMessage = '<ul class="text-start">';
+                                for (const field in data.errors) {
+                                    errorMessage += `<li>${data.errors[field][0]}</li>`;
+                                }
+                                errorMessage += '</ul>';
+                            }
+
+                            Swal.fire({
+                                title: 'Booking Failed',
+                                html: errorMessage,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An unexpected error occurred. Please try again.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        console.error('Booking error:', error);
+                    } finally {
+                        // Reset button state
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                    }
+                });
+            }
+
             // Function to update rental summary
             function updateRentalSummary() {
                 const pickupDate = new Date(pickupDateInput.value);
@@ -487,8 +574,8 @@
 
                     // Update the DOM
                     document.getElementById('rental-days').textContent = days + ' day' + (days > 1 ? 's' : '');
-                    document.getElementById('rental-subtotal').textContent = subtotal.toFixed(2) + 'MAD';
-                    document.getElementById('rental-total').textContent = subtotal.toFixed(2) + 'MAD';
+                    document.getElementById('rental-subtotal').textContent = subtotal.toFixed(2) + ' MAD';
+                    document.getElementById('rental-total').textContent = subtotal.toFixed(2) + ' MAD';
 
                     // Show the summary
                     document.getElementById('rental-summary').classList.remove('d-none');

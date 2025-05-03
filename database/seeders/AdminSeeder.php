@@ -18,7 +18,7 @@ class AdminSeeder extends Seeder
     {
         // Create permissions
         $permissions = [
-            // Existing admin/role permissions
+            // System & Admin Management
             'manage admins',
             'view admins',
             'create admins',
@@ -36,39 +36,89 @@ class AdminSeeder extends Seeder
             'delete permissions',
             'manage settings',
             'access dashboard',
+            'clear cache',
+            'view system info',
+            'manage backups',
             
-            // Profile and password permissions
+            // Profile
             'view profile',
             'edit profile',
             'change password',
             
-            // Vehicle management permissions
+            // Two-Factor Authentication
+            'manage two-factor',
+            'enable two-factor',
+            'disable two-factor',
+            
+            // Activity Logs
+            'manage activities',
+            'view activities',
+            'delete activities',
+            'clear activities',
+            
+            // Vehicle Management
+            'manage categories',
             'view categories',
             'create categories',
             'edit categories',
             'delete categories',
-            'view cars',
-            'create cars',
-            'edit cars',
-            'delete cars',
-            'manage categories',
-            'manage cars',
-            'manage brands',    
+            'manage brands',
             'view brands',
             'create brands',
             'edit brands',
             'delete brands',
-            'manage vehicles',
-            'view vehicles',
-
-            // Reviews
-            'manage reviews',
-            'create reviews',
-            'edit reviews',
-            'delete reviews',
-            'approve reviews',
+            'manage cars',
+            'view cars',
+            'create cars',
+            'edit cars',
+            'delete cars',
+            'check vehicle availability',
             
-            // Booking permissions
+            // Documents
+            'manage documents',
+            'view documents',
+            'upload documents',
+            'edit documents',
+            'delete documents',
+            'view expiring documents',
+            'renew documents',
+            'export documents',
+            'manage car documents',
+            'upload car documents',
+            'edit car documents',
+            'delete car documents',
+            'download car documents',
+            'view car documents',
+            
+            // Maintenance
+            'manage maintenance',
+            'view maintenance',
+            'create maintenance',
+            'edit maintenance',
+            'delete maintenance',
+            'export maintenance',
+            'print maintenance',
+            'view maintenance history',
+            'view due maintenance',
+            'view overdue maintenance',
+            'schedule maintenance',
+            'update maintenance status',
+            'manage maintenance types',
+            'add maintenance parts',
+            'edit maintenance parts',
+            'delete maintenance parts',
+            'manage oil changes',
+            'manage tire rotations',
+            'manage brake services',
+            'manage general services',
+            'view maintenance reports',
+            'generate maintenance reports',
+            'export maintenance reports',
+            'manage maintenance notifications',
+            'manage maintenance reminders',
+            'view maintenance calendar',
+            
+            // Bookings
             'manage bookings',
             'view bookings',
             'create bookings',
@@ -80,15 +130,89 @@ class AdminSeeder extends Seeder
             'view booking calendar',
             'view booking reports',
             
-            // Customer permissions
+            // Contracts
+            'manage contracts',
+            'view contracts',
+            'create contracts',
+            'edit contracts',
+            'delete contracts',
+            'complete contracts',
+            'cancel contracts',
+            'extend contracts',
+            'view ending contracts',
+            'view overdue contracts',
+            'export contracts',
+            'print contracts',
+            'upload contract documents',
+            'delete contract documents',
+            'manage contract templates',
+            'approve contracts',
+            'reject contracts',
+            'view contract reports',
+            'generate contract reports',
+            'export contract reports',
+            'manage contract terms',
+            'edit contract terms',
+            'view contract history',
+            'manage contract payments',
+            'add contract payments',
+            'edit contract payments',
+            'delete contract payments',
+            'view contract payments',
+            'export contract payments',
+            'print contract payments',
+            'manage contract signatures',
+            'verify contract signatures',
+            'manage contract reminders',
+            'send contract reminders',
+            'manage contract notifications',
+            'view contract calendar',
+            
+            // Customers
             'manage customers',
             'view customers',
             'create customers',
             'edit customers',
             'delete customers',
             'export customers',
+            'view client contracts',
+            'view client details',
+            'manage client documents',
+            'upload client documents',
+            'delete client documents',
+            'verify client identity',
+            'manage client notes',
+            'add client notes',
+            'edit client notes',
+            'delete client notes',
+            'view client history',
+            'manage client blacklist',
+            'add to blacklist',
+            'remove from blacklist',
+            'view blacklisted clients',
+            'manage client ratings',
+            'view client ratings',
+            'update client ratings',
+            'manage client licenses',
+            'verify client licenses',
+            'manage client insurance',
+            'verify client insurance',
             
-            // Blog management permissions
+            // Reviews & Testimonials
+            'manage reviews',
+            'create reviews',
+            'edit reviews',
+            'delete reviews',
+            'approve reviews',
+            'manage testimonials',
+            'view testimonials',
+            'create testimonials',
+            'edit testimonials',
+            'delete testimonials',
+            'approve testimonials',
+            'feature testimonials',
+            
+            // Blog
             'manage blog categories',
             'view blog categories',
             'create blog categories',
@@ -112,31 +236,7 @@ class AdminSeeder extends Seeder
             'delete blog comments',
             'approve blog comments',
             
-            // Report permissions
-            'manage reports',
-            'view reports',
-            'generate reports',
-            'export reports',
-            'view revenue reports',
-            'view booking reports',
-            'view vehicle reports',
-
-            // Activity Log permissions
-            'manage activities',
-            'view activities',
-            'delete activities',
-            'clear activities',
-            
-            // Testimonials
-            'view testimonials',
-            'create testimonials',
-            'edit testimonials',
-            'delete testimonials',
-            'manage testimonials',
-            'approve testimonials',
-            'feature testimonials',
-            
-            // Newsletter permissions
+            // Newsletter
             'manage newsletters',
             'view newsletters',
             'create newsletters',
@@ -150,46 +250,17 @@ class AdminSeeder extends Seeder
             'import newsletter subscribers',
             'export newsletter subscribers',
             
-            // Document management permissions
-            'manage documents',
-            'view documents',
-            'upload documents',
-            'edit documents',
-            'delete documents',
-            'view expiring documents',
-            'renew documents',
-            'export documents',
-            'manage car documents',
-            'upload car documents',
-            'edit car documents',
-            'delete car documents',
-            'download car documents',
-            'view car documents',
-            
-            // Maintenance
-            'manage maintenance',
-            'view maintenance',
-            'create maintenance',
-            'edit maintenance',
-            'delete maintenance',
-            
-            // Contracts
-            'manage contracts',
-            'view contracts',
-            'create contracts',
-            'edit contracts',
-            'delete contracts',
-            'approve contracts',
-            
-            // Two-factor authentication
-            'manage two-factor',
-            'enable two-factor',
-            'disable two-factor',
-            
-            // System
-            'clear cache',
-            'view system info',
-            'manage backups',
+            // Reports
+            'manage reports',
+            'view reports',
+            'generate reports',
+            'export reports',
+            'view revenue reports',
+            'view booking reports',
+            'view vehicle reports',
+            'view contract reports',
+            'view maintenance reports',
+            'view customer reports',
         ];
 
         foreach ($permissions as $permission) {
@@ -218,7 +289,19 @@ class AdminSeeder extends Seeder
             'export bookings',
             'view booking calendar',
             'view booking reports',
+            'manage contracts',
+            'view contracts',
+            'create contracts',
+            'edit contracts',
+            'complete contracts',
+            'cancel contracts',
+            'extend contracts',
+            'view ending contracts',
+            'view overdue contracts',
+            'manage customers',
             'view customers',
+            'create customers',
+            'edit customers',
             'view cars',
             'view categories',
             'view brands',
@@ -232,7 +315,6 @@ class AdminSeeder extends Seeder
             'view activities',
             'manage reviews',
             'manage testimonials',
-            // Document management permissions for Admin
             'manage documents',
             'view documents',
             'upload documents',
@@ -243,6 +325,11 @@ class AdminSeeder extends Seeder
             'view car documents',
             'view expiring documents',
             'renew documents',
+            'view maintenance',
+            'view maintenance history',
+            'view due maintenance',
+            'view overdue maintenance',
+            'view maintenance reports',
         ]);
 
         $managerRole = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'admin']);
@@ -256,18 +343,23 @@ class AdminSeeder extends Seeder
             'create bookings',
             'update booking status',
             'view booking calendar',
+            'view contracts',
+            'create contracts',
+            'edit contracts',
             'view customers',
             'view cars',
             'view reports',
             'view activities',
             'manage reviews',
-            // Document management permissions for Manager
             'view documents',
             'view car documents',
             'view expiring documents',
+            'view maintenance',
+            'view maintenance history',
+            'view due maintenance',
+            'view maintenance reports',
         ]);
 
-        // Content Editor Role
         $editorRole = Role::firstOrCreate(['name' => 'Content Editor', 'guard_name' => 'admin']);
         $editorRole->syncPermissions([
             'access dashboard',
@@ -292,7 +384,6 @@ class AdminSeeder extends Seeder
             'edit testimonials',
         ]);
 
-        // Fleet Manager Role (New)
         $fleetManagerRole = Role::firstOrCreate(['name' => 'Fleet Manager', 'guard_name' => 'admin']);
         $fleetManagerRole->syncPermissions([
             'access dashboard',
@@ -309,7 +400,6 @@ class AdminSeeder extends Seeder
             'view categories',
             'view bookings',
             'view booking calendar',
-            // Document management permissions for Fleet Manager
             'manage documents',
             'view documents',
             'upload documents',
@@ -321,6 +411,97 @@ class AdminSeeder extends Seeder
             'view expiring documents',
             'renew documents',
             'export documents',
+            'manage maintenance',
+            'view maintenance',
+            'create maintenance',
+            'edit maintenance',
+            'delete maintenance',
+            'export maintenance',
+            'print maintenance',
+            'view maintenance history',
+            'view due maintenance',
+            'view overdue maintenance',
+            'schedule maintenance',
+            'update maintenance status',
+            'add maintenance parts',
+            'edit maintenance parts',
+            'delete maintenance parts',
+            'manage oil changes',
+            'manage tire rotations',
+            'manage brake services',
+            'manage general services',
+            'view maintenance reports',
+            'export maintenance reports',
+            'manage maintenance reminders',
+            'view maintenance calendar',
+        ]);
+
+        $maintenanceManagerRole = Role::firstOrCreate(['name' => 'Maintenance Manager', 'guard_name' => 'admin']);
+        $maintenanceManagerRole->syncPermissions([
+            'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
+            'view cars',
+            'manage maintenance',
+            'view maintenance',
+            'create maintenance',
+            'edit maintenance',
+            'delete maintenance',
+            'export maintenance',
+            'print maintenance',
+            'view maintenance history',
+            'view due maintenance',
+            'view overdue maintenance',
+            'schedule maintenance',
+            'update maintenance status',
+            'manage maintenance types',
+            'add maintenance parts',
+            'edit maintenance parts',
+            'delete maintenance parts',
+            'manage oil changes',
+            'manage tire rotations',
+            'manage brake services',
+            'manage general services',
+            'view maintenance reports',
+            'generate maintenance reports',
+            'export maintenance reports',
+            'manage maintenance notifications',
+            'manage maintenance reminders',
+            'view maintenance calendar',
+            'view car documents',
+            'view expiring documents',
+        ]);
+
+        $contractManagerRole = Role::firstOrCreate(['name' => 'Contract Manager', 'guard_name' => 'admin']);
+        $contractManagerRole->syncPermissions([
+            'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
+            'manage contracts',
+            'view contracts',
+            'create contracts',
+            'edit contracts',
+            'delete contracts',
+            'complete contracts',
+            'cancel contracts',
+            'extend contracts',
+            'view ending contracts',
+            'view overdue contracts',
+            'export contracts',
+            'print contracts',
+            'upload contract documents',
+            'delete contract documents',
+            'approve contracts',
+            'view contract reports',
+            'manage customers',
+            'view customers',
+            'create customers',
+            'edit customers',
+            'view cars',
+            'view booking calendar',
+            'view reports',
         ]);
 
         // Create super admin
@@ -382,5 +563,29 @@ class AdminSeeder extends Seeder
             'is_active' => true,
         ]);
         $fleetManager->assignRole($fleetManagerRole);
+        
+        // Create maintenance manager
+        $maintenanceManager = Admin::firstOrCreate([
+            'email' => 'maintenance@example.com'
+        ], [
+            'name' => 'Maintenance Manager',
+            'password' => Hash::make('password'),
+            'position' => 'Maintenance Manager',
+            'department' => 'Operations',
+            'is_active' => true,
+        ]);
+        $maintenanceManager->assignRole($maintenanceManagerRole);
+        
+        // Create contract manager
+        $contractManager = Admin::firstOrCreate([
+            'email' => 'contracts@example.com'
+        ], [
+            'name' => 'Contract Manager',
+            'password' => Hash::make('password'),
+            'position' => 'Contract Manager',
+            'department' => 'Legal',
+            'is_active' => true,
+        ]);
+        $contractManager->assignRole($contractManagerRole);
     }
 }

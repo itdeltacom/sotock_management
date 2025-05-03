@@ -23,12 +23,64 @@ class CarController extends Controller
      * Display a listing of the resource.
      */
     public function index()
+{
+    $categories = Category::where('is_active', true)->orderBy('name')->get();
+    $brands = Brand::where('is_active', true)->orderBy('name')->get();
+    
+    // Calculate statistics
+    $totalCars = Car::count();
+    $availableCars = Car::where('status', 'available')->count();
+    $rentedCars = Car::where('status', 'rented')->count();
+    $maintenanceCars = Car::where('status', 'maintenance')->count();
+    
+    // Calculate changes from last month/week
+    $lastMonth = now()->subMonth();
+    $lastWeek = now()->subWeek();
+    
+    $totalCarsLastMonth = Car::where('created_at', '<', $lastMonth)->count();
+    $availableCarsLastWeek = Car::where('status', 'available')
+        ->where('updated_at', '<', $lastWeek)
+        ->count();
+    $rentedCarsYesterday = Car::where('status', 'rented')
+        ->where('updated_at', '<', now()->subDay())
+        ->count();
+    
+    // Calculate percentage changes
+    $totalCarsChange = $totalCarsLastMonth > 0 
+        ? round((($totalCars - $totalCarsLastMonth) / $totalCarsLastMonth) * 100, 1)
+        : 0;
+    
+    $availableCarsChange = $availableCarsLastWeek > 0
+        ? round((($availableCars - $availableCarsLastWeek) / $availableCarsLastWeek) * 100, 1)
+        : 0;
+    
+    $rentedCarsChange = $rentedCarsYesterday > 0
+        ? round((($rentedCars - $rentedCarsYesterday) / $rentedCarsYesterday) * 100, 1)
+        : 0;
+    
+    // Get documents needing attention (expiring in 30 days or expired)
+    $documentsNeedingAttention = $this->getExpiringDocuments()->count();
+    
+    $statistics = [
+        'total_cars' => $totalCars,
+        'total_cars_change' => $totalCarsChange,
+        'available_cars' => $availableCars,
+        'available_cars_change' => $availableCarsChange,
+        'rented_cars' => $rentedCars,
+        'rented_cars_change' => $rentedCarsChange,
+        'maintenance_cars' => $maintenanceCars,
+        'maintenance_cars_needing_attention' => $documentsNeedingAttention,
+    ];
+    
+    return view('admin.cars.cars', compact('categories', 'brands', 'statistics'));
+}
+     /*public function index()
     {
         $categories = Category::where('is_active', true)->orderBy('name')->get();
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         
         return view('admin.cars.cars', compact('categories', 'brands'));
-    }
+    }*/
 
     /**
      * Process DataTables AJAX request.
@@ -39,7 +91,7 @@ class CarController extends Controller
             ->select('cars.*') 
             ->latest();
         
-        return DataTables::of($cars)
+            return DataTables::of($cars)
             ->addColumn('image', function (Car $car) {
                 if ($car->main_image) {
                     return '<img src="' . Storage::url($car->main_image) . '" alt="' . $car->name . '" class="img-thumbnail" width="80">';
@@ -47,8 +99,8 @@ class CarController extends Controller
                 return '<div class="bg-light text-center p-2" style="width:80px;height:60px;"><i class="fas fa-car fa-2x text-muted"></i></div>';
             })
             ->addColumn('brand_model', function (Car $car) {
-                $brandName = $car->brand ? $car->brand->name : ($car->brand_name ?: '');
-                return $brandName . ' ' . $car->name . ' (' . $car->year . ')';
+                $brandName = optional($car->brand)->name ?? $car->brand_name ?? 'Unknown Brand';
+                return "<strong>{$brandName}</strong> {$car->name} ({$car->year})";
             })
             ->addColumn('status', function (Car $car) {
                 $statusClass = [
@@ -57,69 +109,52 @@ class CarController extends Controller
                     'maintenance' => 'warning',
                     'unavailable' => 'danger'
                 ][$car->status] ?? 'secondary';
-                
+        
                 return '<span class="badge bg-' . $statusClass . '">' . ucfirst($car->status) . '</span>';
             })
             ->addColumn('price', function (Car $car) {
                 $output = number_format($car->price_per_day, 2) . ' MAD/day';
-                
+        
                 if ($car->discount_percentage > 0) {
                     $discountedPrice = $car->price_per_day * (1 - ($car->discount_percentage / 100));
                     $output .= '<br><small class="text-success">' . number_format($discountedPrice, 2) . ' MAD after ' . $car->discount_percentage . '% off</small>';
                 }
-                
+        
                 if ($car->weekly_price) {
                     $output .= '<br><small class="text-muted">Weekly: ' . number_format($car->weekly_price, 2) . ' MAD</small>';
                 }
-                
+        
                 if ($car->monthly_price) {
                     $output .= '<br><small class="text-muted">Monthly: ' . number_format($car->monthly_price, 2) . ' MAD</small>';
                 }
-                
+        
                 return $output;
-            })
-            ->addColumn('documents', function (Car $car) {
-                // Get document info from CarDocuments
-                $carDocs = CarDocuments::where('car_id', $car->id)->first();
-                $docs = [];
-                
-                if ($carDocs) {
-                    if ($carDocs->assurance_number) $docs[] = 'Insurance';
-                    if ($carDocs->carte_grise_number) $docs[] = 'Carte Grise';
-                    if ($carDocs->vignette_expiry_date) $docs[] = 'Vignette';
-                    if ($carDocs->visite_technique_expiry_date) $docs[] = 'Visit Technique';
-                }
-                
-                return implode(', ', $docs) ?: 'None';
             })
             ->addColumn('actions', function (Car $car) {
                 $buttons = '';
-                
-                // View button
                 $buttons .= '<a href="'.route('admin.cars.show', $car->id).'" class="btn btn-sm btn-info me-1" title="View">
-                    <i class="fas fa-eye"></i>
-                </a>';
-                
-                // Edit button (if permission)
+                                <i class="fas fa-eye"></i>
+                            </a>';
+        
                 if (auth()->guard('admin')->user()->can('edit cars')) {
                     $buttons .= '<button class="btn btn-sm btn-primary me-1 btn-edit" data-id="'.$car->id.'" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>';
+                                    <i class="fas fa-edit"></i>
+                                </button>';
                 }
-                
-                // Delete button (if permission)
+        
                 if (auth()->guard('admin')->user()->can('delete cars')) {
                     $buttons .= '<button class="btn btn-sm btn-danger btn-delete" data-id="'.$car->id.'" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>';
+                                    <i class="fas fa-trash"></i>
+                                </button>';
                 }
-                
+        
                 return '<div class="btn-group">'.$buttons.'</div>';
             })
-            ->rawColumns(['image', 'status', 'price', 'documents', 'actions'])
+            ->rawColumns(['image', 'status', 'price', 'actions', 'brand_model']) // <-- include brand_model here
             ->make(true);
     }
 
+    
     /**
      * Show the form for creating a new resource.
      */
@@ -138,10 +173,10 @@ class CarController extends Controller
             $properties
         );
     }
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+   /**
+ * Store a newly created resource in storage.
+ */
+public function store(Request $request)
 {
     // Check permission
     if (!Auth::guard('admin')->user()->can('create cars')) {
@@ -151,7 +186,7 @@ class CarController extends Controller
         ], 403);
     }
     
-    // Validate input with all fields including Moroccan-specific ones
+    // Validate input 
     $validator = Validator::make($request->all(), [
         'name' => 'required|string|max:255',
         'category_id' => 'required|exists:categories,id',
@@ -162,12 +197,10 @@ class CarController extends Controller
         'matricule' => [
             'required',
             'string',
-            'unique:cars,matricule', // No car ID needed for new entries
+            'unique:cars,matricule',
             function ($attribute, $value, $fail) {
-                // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
+                // Validation for Moroccan license plate format
                 $normalized = preg_replace('/[-|]/', '', $value);
-                
-                // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
                 if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
                     $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
                 }
@@ -191,7 +224,7 @@ class CarController extends Controller
         'meta_description' => 'nullable|string|max:500',
         'meta_keywords' => 'nullable|string|max:255',
         
-        // Document fields validation - these will go to CarDocuments model
+        // Document fields
         'assurance_number' => 'required|string|max:100',
         'assurance_company' => 'required|string|max:100',
         'assurance_expiry_date' => 'required|date|after_or_equal:today',
@@ -204,16 +237,11 @@ class CarController extends Controller
         'main_image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         
-        // Optional document files
+        // Document files
         'file_carte_grise' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
         'file_assurance' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
         'file_visite_technique' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
         'file_vignette' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
-    ], [
-        'matricule.regex' => 'The license plate format is invalid. Moroccan format: numbers-letter-region code',
-        'assurance_expiry_date.after_or_equal' => 'Insurance must be valid (today or future date)',
-        'vignette_expiry_date.after_or_equal' => 'Vignette must be valid (today or future date)',
-        'visite_technique_expiry_date.after_or_equal' => 'Technical inspection must be valid (today or future date)',
     ]);
     
     if ($validator->fails()) {
@@ -224,7 +252,7 @@ class CarController extends Controller
     }
 
     try {
-        // Prepare car data - exclude document fields and images
+        // Prepare car data
         $data = $request->except([
             'main_image', 'images', '_token', 
             'carte_grise_number', 'carte_grise_expiry_date', 
@@ -238,15 +266,15 @@ class CarController extends Controller
         $data['features'] = $request->features ?? [];
         $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
         
-        // Set daily_price equal to price_per_day to maintain consistency
+        // Set daily_price equal to price_per_day for consistency
         $data['daily_price'] = $request->price_per_day;
         
         // Set is_available based on status
         $data['is_available'] = ($request->status === 'available');
         
         // Handle automatic pricing if weekly/monthly not provided
-        $data['weekly_price'] = $request->weekly_price ?? $request->price_per_day * 5; // Default weekly discount
-        $data['monthly_price'] = $request->monthly_price ?? $request->price_per_day * 22; // Default monthly discount
+        $data['weekly_price'] = $request->weekly_price ?? $request->price_per_day * 5;
+        $data['monthly_price'] = $request->monthly_price ?? $request->price_per_day * 22;
         
         // Handle main image upload
         if ($request->hasFile('main_image')) {
@@ -274,7 +302,7 @@ class CarController extends Controller
             }
         }
         
-        // Log activity using your custom Activity model
+        // Log activity
         $this->logActivity(
             $car,
             'car_created',
@@ -283,28 +311,52 @@ class CarController extends Controller
             ['car_name' => $car->name]
         );
         
-        return response()->json([
-            'success' => true,
-            'message' => 'Car created successfully.',
-            'redirect' => route('admin.cars.show', $car->id)
-        ]);
+        // For AJAX requests, return JSON
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Car created successfully.',
+                'car' => $car->load('images', 'category', 'brand'),
+                'redirect' => route('admin.cars.index')  // Change to index instead of show
+            ]);
+        }
+        
+        // For regular requests (shouldn't happen with modal form)
+        return redirect()->route('admin.cars.index')
+            ->with('success', 'Car created successfully.');
+            
     } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred while creating the car: ' . $e->getMessage()
-        ], 500);
+        // For AJAX requests, return JSON error
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the car: ' . $e->getMessage()
+            ], 500);
+        }
+        
+        // For regular requests (shouldn't happen with modal form)
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'An error occurred while creating the car: ' . $e->getMessage());
     }
 }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(Car $car)
-    {
-        $car->load('images', 'category', 'brand', 'bookings');
-        
-        return view('admin.cars.show', compact('car'));
-    }
+ * Display the specified resource.
+ */
+public function show(Car $car)
+{
+    // Load relationships
+    $car->load('images', 'category', 'brand', 'bookings');
+    
+    // Get maintenance records if any
+    $maintenance = $car->maintenance()->latest()->get();
+    
+    // Get documents
+    $documents = CarDocuments::where('car_id', $car->id)->first();
+    
+    return view('admin.cars.show', compact('car', 'maintenance', 'documents'));
+}
 
     /**
      * Show the form for editing the specified car.

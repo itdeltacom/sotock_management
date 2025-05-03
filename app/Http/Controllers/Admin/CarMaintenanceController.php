@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Models\Car;
-use App\Models\CarMaintenance;
 use Illuminate\Http\Request;
+use App\Models\CarMaintenance;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class CarMaintenanceController extends Controller
@@ -234,4 +235,186 @@ class CarMaintenanceController extends Controller
             ->rawColumns(['due_details', 'actions'])
             ->make(true);
     }
+
+/**
+ * Export maintenance records for a car as CSV
+ *
+ * @param Request $request
+ * @param Car $car
+ * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+ */
+public function exportCsv(Request $request, Car $car)
+{
+    // Load car maintenance records
+    $car->load('maintenance');
+    
+    // Prepare CSV data
+    $headers = [
+        'ID', 'Type', 'Date Performed', 'Mileage', 'Next Due Date', 
+        'Next Due Mileage', 'Cost', 'Performed By', 'Notes'
+    ];
+    
+    // Create CSV content
+    $callback = function() use ($car, $headers) {
+        $file = fopen('php://output', 'w');
+        
+        // Add headers
+        fputcsv($file, $headers);
+        
+        // Add data rows
+        foreach ($car->maintenance as $record) {
+            $row = [
+                $record->id,
+                ucfirst(str_replace('_', ' ', $record->maintenance_type)),
+                $record->date_performed->format('d/m/Y'),
+                number_format($record->mileage_at_service) . ' km',
+                $record->next_due_date ? $record->next_due_date->format('d/m/Y') : 'N/A',
+                $record->next_due_mileage ? number_format($record->next_due_mileage) . ' km' : 'N/A',
+                $record->cost ? number_format($record->cost, 2) . ' MAD' : 'N/A',
+                $record->performed_by ?: 'N/A',
+                $record->notes ?: ''
+            ];
+            
+            fputcsv($file, $row);
+        }
+        
+        fclose($file);
+    };
+    
+    // Set filename
+    $filename = 'maintenance_history_' . $car->matricule . '_' . date('Y-m-d') . '.csv';
+    
+    // Return streaming response
+    return Response::stream($callback, 200, [
+        'Content-Type' => 'text/csv',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+}
+
+/**
+ * Show printable view of maintenance records
+ *
+ * @param Car $car
+ * @return \Illuminate\View\View
+ */
+public function printMaintenanceHistory(Car $car)
+{
+    // Load maintenance records
+    $car->load('maintenance');
+    
+    // Prepare data for view
+    $maintenance = $car->maintenance->sortByDesc('date_performed')->map(function ($record) {
+        return [
+            'ID' => $record->id,
+            'Type' => ucfirst(str_replace('_', ' ', $record->maintenance_type)),
+            'Date Performed' => $record->date_performed->format('d/m/Y'),
+            'Mileage' => number_format($record->mileage_at_service) . ' km',
+            'Next Due Date' => $record->next_due_date ? $record->next_due_date->format('d/m/Y') : 'N/A',
+            'Next Due Mileage' => $record->next_due_mileage ? number_format($record->next_due_mileage) . ' km' : 'N/A',
+            'Cost' => $record->cost ? number_format($record->cost, 2) . ' MAD' : 'N/A',
+            'Performed By' => $record->performed_by ?: 'N/A',
+            'Notes' => $record->notes ?: ''
+        ];
+    });
+    
+    // Return view
+    return view('admin.car-maintenance.print', compact('car', 'maintenance'));
+}
+
+/**
+ * Export due maintenance records as CSV
+ *
+ * @param Request $request
+ * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+ */
+public function exportDueMaintenanceCsv(Request $request)
+{
+    // Get all maintenance records due soon
+    $maintenances = CarMaintenance::with('car')
+        ->where(function($query) {
+            $query->whereDate('next_due_date', '<=', now()->addDays(15))
+                ->orWhereRaw('next_due_mileage - (SELECT mileage FROM cars WHERE cars.id = car_maintenances.car_id) <= 500');
+        })
+        ->get();
+    
+    // Prepare CSV headers
+    $headers = [
+        'Car', 'Maintenance Type', 'Last Performed', 'Current Mileage',
+        'Next Due Date', 'Days Left', 'Next Due Mileage', 'KM Left', 'Status'
+    ];
+    
+    // Create CSV content
+    $callback = function() use ($maintenances, $headers) {
+        $file = fopen('php://output', 'w');
+        
+        // Add headers
+        fputcsv($file, $headers);
+        
+        // Add data rows
+        foreach ($maintenances as $maintenance) {
+            // Calculate days and kilometers left
+            $daysLeft = $maintenance->next_due_date ? now()->diffInDays($maintenance->next_due_date, false) : null;
+            $kmLeft = $maintenance->next_due_mileage && $maintenance->car ? $maintenance->next_due_mileage - $maintenance->car->mileage : null;
+            
+            $row = [
+                $maintenance->car ? $maintenance->car->brand_name . ' ' . $maintenance->car->model . ' (' . $maintenance->car->matricule . ')' : 'N/A',
+                ucfirst(str_replace('_', ' ', $maintenance->maintenance_type)),
+                $maintenance->date_performed->format('d/m/Y'),
+                $maintenance->car ? number_format($maintenance->car->mileage) . ' km' : 'N/A',
+                $maintenance->next_due_date ? $maintenance->next_due_date->format('d/m/Y') : 'N/A',
+                $daysLeft !== null ? ($daysLeft < 0 ? 'Overdue by ' . abs($daysLeft) . ' days' : $daysLeft . ' days left') : 'N/A',
+                $maintenance->next_due_mileage ? number_format($maintenance->next_due_mileage) . ' km' : 'N/A',
+                $kmLeft !== null ? ($kmLeft < 0 ? 'Overdue by ' . abs($kmLeft) . ' km' : $kmLeft . ' km left') : 'N/A',
+                $maintenance->isOverdue() ? 'Overdue' : ($maintenance->isDueSoon() ? 'Due Soon' : 'OK')
+            ];
+            
+            fputcsv($file, $row);
+        }
+        
+        fclose($file);
+    };
+    
+    // Set filename
+    $filename = 'maintenance_due_soon_' . date('Y-m-d') . '.csv';
+    
+    // Return streaming response
+    return Response::stream($callback, 200, [
+        'Content-Type' => 'text/csv',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+}
+
+/**
+ * Show printable view of due maintenance records
+ *
+ * @return \Illuminate\View\View
+ */
+public function printDueMaintenance()
+{
+    // Get all maintenance records due soon
+    $maintenances = CarMaintenance::with('car')
+        ->where(function($query) {
+            $query->whereDate('next_due_date', '<=', now()->addDays(15))
+                ->orWhereRaw('next_due_mileage - (SELECT mileage FROM cars WHERE cars.id = car_maintenances.car_id) <= 500');
+        })
+        ->get();
+    
+    // Prepare data for the view
+    $records = collect();
+    
+    foreach ($maintenances as $maintenance) {
+        // Calculate days and kilometers left
+        $daysLeft = $maintenance->next_due_date ? now()->diffInDays($maintenance->next_due_date, false) : null;
+        $kmLeft = $maintenance->next_due_mileage && $maintenance->car ? $maintenance->next_due_mileage - $maintenance->car->mileage : null;
+        
+        $records->push([
+            'car' => $maintenance->car,
+            'maintenance' => $maintenance,
+            'days_left' => $daysLeft,
+            'km_left' => $kmLeft
+        ]);
+    }
+    
+    return view('admin.car-maintenance.due-soon-print', compact('records'));
+}
 }
