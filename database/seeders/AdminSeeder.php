@@ -261,6 +261,19 @@ class AdminSeeder extends Seeder
             'view contract reports',
             'view maintenance reports',
             'view customer reports',
+            //clients 
+
+            'manage clients',
+            'create clients',
+            'edit clients',
+            'delete clients',
+            'view client contracts',
+            'view client details',
+            'manage client documents',
+            'upload client documents',
+            'delete client documents',
+            'verify client identity',
+            'manage client notes',
         ];
 
         foreach ($permissions as $permission) {

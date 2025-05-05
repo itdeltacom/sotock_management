@@ -222,6 +222,7 @@ Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permiss
     Route::post('/calculate-prices', [BookingController::class, 'calculatePrices'])->name('calculate-prices');
     Route::patch('/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('update-status');
     Route::patch('/{booking}/update-payment-status', [BookingController::class, 'updatePaymentStatus'])->name('update-payment-status');
+    Route::patch('/{booking}/update-deposit-status', [BookingController::class, 'updateDepositStatus'])->name('update-deposit-status');
     Route::get('/dashboard-stats', [BookingController::class, 'dashboardStats'])->name('dashboard-stats');
     Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
 });
