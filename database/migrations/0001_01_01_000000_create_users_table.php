@@ -16,7 +16,18 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+            $table->enum('status', ['active', 'inactive', 'banned'])->default('active');
             $table->string('password');
+            $table->string('phone')->nullable();
+            $table->string('photo')->nullable();
+            $table->string('address')->nullable();
+            $table->string('google_id')->nullable();
+            $table->string('facebook_id')->nullable();
+            $table->string('id_number')->nullable();
+            $table->string('license_number')->nullable();
+            $table->date('license_expiry_date')->nullable();
+            $table->unsignedSmallInteger('credit_score')->nullable()->default(50);
+
             $table->rememberToken();
             $table->timestamps();
         });

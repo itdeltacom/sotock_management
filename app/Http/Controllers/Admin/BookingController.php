@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
+use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -21,7 +22,59 @@ class BookingController extends Controller
     public function index()
     {
         $cars = Car::orderBy('name')->get();
-        return view('admin.bookings.index', compact('cars'));
+
+        // Calculate statistics for the dashboard cards
+        $statistics = [];
+
+        // Total bookings
+        $statistics['total_bookings'] = Booking::count();
+        $lastMonthTotal = Booking::where('created_at', '>=', Carbon::now()->subMonth())
+            ->where('created_at', '<', Carbon::now()->startOfMonth())
+            ->count();
+        $currentMonthTotal = Booking::where('created_at', '>=', Carbon::now()->startOfMonth())->count();
+        $statistics['total_bookings_change'] = $lastMonthTotal > 0
+            ? round((($currentMonthTotal - $lastMonthTotal) / $lastMonthTotal) * 100, 2)
+            : ($currentMonthTotal > 0 ? 100 : 0);
+
+        // Active bookings (pending or confirmed)
+        $statistics['active_bookings'] = Booking::whereIn('status', ['pending', 'confirmed'])->count();
+        $lastWeekActive = Booking::whereIn('status', ['pending', 'confirmed'])
+            ->where('created_at', '>=', Carbon::now()->subWeek())
+            ->where('created_at', '<', Carbon::now()->startOfWeek())
+            ->count();
+        $currentWeekActive = Booking::whereIn('status', ['pending', 'confirmed'])
+            ->where('created_at', '>=', Carbon::now()->startOfWeek())
+            ->count();
+        $statistics['active_bookings_change'] = $lastWeekActive > 0
+            ? round((($currentWeekActive - $lastWeekActive) / $lastWeekActive) * 100, 2)
+            : ($currentWeekActive > 0 ? 100 : 0);
+
+        // Pending payments
+        $statistics['pending_payments'] = Booking::where('payment_status', 'pending')->count();
+        $yesterdayPending = Booking::where('payment_status', 'pending')
+            ->whereDate('created_at', Carbon::yesterday())
+            ->count();
+        $todayPending = Booking::where('payment_status', 'pending')
+            ->whereDate('created_at', Carbon::today())
+            ->count();
+        $statistics['pending_payments_change'] = $yesterdayPending > 0
+            ? round((($todayPending - $yesterdayPending) / $yesterdayPending) * 100, 2)
+            : ($todayPending > 0 ? 100 : 0);
+
+        // Cancelled bookings
+        $statistics['cancelled_bookings'] = Booking::where('status', 'cancelled')->count();
+        $lastMonthCancelled = Booking::where('status', 'cancelled')
+            ->where('created_at', '>=', Carbon::now()->subMonth())
+            ->where('created_at', '<', Carbon::now()->startOfMonth())
+            ->count();
+        $currentMonthCancelled = Booking::where('status', 'cancelled')
+            ->where('created_at', '>=', Carbon::now()->startOfMonth())
+            ->count();
+        $statistics['cancelled_bookings_change'] = $lastMonthCancelled > 0
+            ? round((($currentMonthCancelled - $lastMonthCancelled) / $lastMonthCancelled) * 100, 2)
+            : ($currentMonthCancelled > 0 ? 100 : 0);
+
+        return view('admin.bookings.index', compact('cars', 'statistics'));
     }
 
     /**
@@ -313,14 +366,16 @@ class BookingController extends Controller
             'booking' => $booking
         ]);
     }
-/**
- * Display the booking calendar.
- */
-public function calendar()
-{
-    $cars = Car::orderBy('name')->get();
-    return view('admin.bookings.calendar', compact('cars'));
-}
+
+    /**
+     * Display the booking calendar.
+     */
+    public function calendar()
+    {
+        $cars = Car::orderBy('name')->get();
+        return view('admin.bookings.calendar', compact('cars'));
+    }
+
     /**
      * Update the specified booking in storage.
      */

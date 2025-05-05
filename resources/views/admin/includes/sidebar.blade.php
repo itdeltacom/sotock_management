@@ -6,7 +6,6 @@
         <a class="navbar-brand m-0" href="{{ route('admin.dashboard') }}">
             <img src="{{asset('site/img/logo.png')}}" width="96px" height="96px" class="navbar-brand-img h-100"
                 alt="main_logo">
-            {{-- <span class="ms-1 font-weight-bold">{{ config('app.name') }}</span> --}}
         </a>
     </div>
     <hr class="horizontal dark mt-0">
@@ -43,7 +42,6 @@
                     </li>
                 @endcan
 
-                <!-- Document Management -->
                 @can('manage cars')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.cars.documents.*') ? 'active' : '' }}"
@@ -51,13 +49,12 @@
                             <div
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                                 <i class="ni ni-single-copy-04 text-dark text-sm opacity-10"></i>
-
                             </div>
                             <span class="nav-link-text ms-1">Expiring Documents</span>
                         </a>
                     </li>
                 @endcan
-                <!-- Maintenance Management -->
+
                 @can('manage cars')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.cars.maintenance.due-soon') ? 'active' : '' }}"
@@ -70,6 +67,7 @@
                         </a>
                     </li>
                 @endcan
+
                 @can('manage brands')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.brands.*') ? 'active' : '' }}"
@@ -95,42 +93,43 @@
                         </a>
                     </li>
                 @endcan
-                <!-- Contract Management Section -->
-                @canany(['manage contracts', 'view contracts'])
-                    <li class="nav-item mt-3">
-                        <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Contract Management</h6>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.contracts.*') && !request()->routeIs('admin.contracts.ending-soon') && !request()->routeIs('admin.contracts.overdue') ? 'active' : '' }}"
-                            href="{{ route('admin.contracts.index') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="fas fa-file-signature text-primary text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">All Contracts</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.contracts.ending-soon') ? 'active' : '' }}"
-                            href="{{ route('admin.contracts.ending-soon') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="fas fa-hourglass-end text-warning text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Ending Soon</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.contracts.overdue') ? 'active' : '' }}"
-                            href="{{ route('admin.contracts.overdue') }}">
-                            <div
-                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                                <i class="fas fa-exclamation-triangle text-danger text-sm opacity-10"></i>
-                            </div>
-                            <span class="nav-link-text ms-1">Overdue Contracts</span>
-                        </a>
-                    </li>
-                @endcanany
+            @endcanany
+
+            <!-- Contract Management Section -->
+            @canany(['manage contracts', 'view contracts'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Contract Management</h6>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.contracts.*') && !request()->routeIs('admin.contracts.ending-soon') && !request()->routeIs('admin.contracts.overdue') ? 'active' : '' }}"
+                        href="{{ route('admin.contracts.index') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-file-signature text-primary text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">All Contracts</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.contracts.ending-soon') ? 'active' : '' }}"
+                        href="{{ route('admin.contracts.ending-soon') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-hourglass-end text-warning text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Ending Soon</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.contracts.overdue') ? 'active' : '' }}"
+                        href="{{ route('admin.contracts.overdue') }}">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-exclamation-triangle text-danger text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Overdue Contracts</span>
+                    </a>
+                </li>
             @endcanany
 
             <!-- Booking Management Section -->
@@ -164,20 +163,42 @@
                 @endcan
             @endcanany
 
-            <!-- Customer Management -->
-            @can('manage customers')
+            <!-- Clients Management Section -->
+            @can('manage clients')
                 <li class="nav-item mt-3">
-                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Customer Management</h6>
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Clients Management</h6>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}"
-                        href="{{ route('admin.customers.index') }}">
+                    <a class="nav-link {{ request()->routeIs('admin.clients.*') && !request()->routeIs('admin.clients.payments') && !request()->routeIs('admin.clients.contracts') ? 'active' : '' }}"
+                        href="{{ route('admin.clients.index') }}">
                         <div
                             class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                             <i class="ni ni-single-02 text-dark text-sm opacity-10"></i>
                         </div>
-                        <span class="nav-link-text ms-1">Customers</span>
+                        <span class="nav-link-text ms-1">Clients</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.clients.payments') ? 'active' : '' }}"
+                        href="{{ route('admin.clients.index') }}/payments">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="ni ni-money-coins text-dark text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Payments</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('admin.clients.contracts') ? 'active' : '' }}"
+                        href="{{ route('admin.clients.index') }}/contracts">
+                        <div
+                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                            <i class="ni ni-paper-diploma text-dark text-sm opacity-10"></i>
+                        </div>
+                        <span class="nav-link-text ms-1">Contracts</span>
                     </a>
                 </li>
             @endcan

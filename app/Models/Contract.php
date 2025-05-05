@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\User;
+use App\Models\Payment;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Contract extends Model
 {
@@ -41,10 +43,9 @@ class Contract extends Model
 
     // Relationships
     public function client(): BelongsTo
-    {
-        return $this->belongsTo(Client::class);
-    }
-
+{
+    return $this->belongsTo(User::class, 'client_id');
+}
     public function car(): BelongsTo
     {
         return $this->belongsTo(Car::class);
@@ -88,4 +89,22 @@ class Contract extends Model
         // Assuming penalty is 150% of daily rate
         return $this->getOverdueDaysAttribute() * ($this->rental_fee * 1.5);
     }
+    public function payments()
+{
+    return $this->hasMany(Payment::class);
+}
+
+public function getTotalPaidAttribute()
+{
+    return $this->payments()->sum('amount');
+}
+
+public function getOutstandingBalanceAttribute()
+{
+    return $this->total_amount - $this->total_paid;
+}
+public function contracts()
+{
+    return $this->hasMany(Contract::class, 'client_id');
+}
 }

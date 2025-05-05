@@ -3,164 +3,251 @@
 @section('title', 'Booking Calendar')
 
 @section('content')
-    <div class="page-header">
-        <h3 class="page-title">Booking Calendar</h3>
-        <div class="page-actions">
-            <button type="button" id="createBookingFromCalendar" class="btn btn-primary me-2">
-                    <i class="fas fa-plus"></i> Add New Booking
-                </button>
-                <a href="{{ route('admin.bookings.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-list"></i> List View
-                </a>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title">Calendar View</h5>
-                <div class="header-actions">
-                    <button type="button" id="prevBtn" class="btn btn-sm btn-light me-2">
-                        <i class="fas fa-chevron-left"></i> Previous
-                    </button>
-                    <button type="button" id="todayBtn" class="btn btn-sm btn-primary me-2">
-                        Today
-                    </button>
-                    <button type="button" id="nextBtn" class="btn btn-sm btn-light me-3">
-                        Next <i class="fas fa-chevron-right"></i>
-                    </button>
-                    <div class="btn-group">
-                        <button type="button" id="monthViewBtn" class="btn btn-sm btn-outline-secondary active">Month</button>
-                        <button type="button" id="weekViewBtn" class="btn btn-sm btn-outline-secondary">Week</button>
-                        <button type="button" id="dayViewBtn" class="btn btn-sm btn-outline-secondary">Day</button>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="filterCar" class="form-label">Filter by Car:</label>
-                            <select id="filterCar" class="form-select">
-                                <option value="">All Cars</option>
-                                @foreach(\App\Models\Car::orderBy('name')->get() as $car)
-                                    <option value="{{ $car->id }}">{{ $car->name }}</option>
-                                @endforeach
-                            </select>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header pb-0 p-3">
+                        <div class="row">
+                            <div class="col-6 d-flex align-items-center">
+                                <h6 class="mb-0">Booking Calendar</h6>
+                            </div>
+                            <div class="col-6 text-end">
+                                <button type="button" id="createBookingFromCalendar" class="btn bg-gradient-primary me-2">
+                                    <i class="fas fa-plus"></i> Add New Booking
+                                </button>
+                                <a href="{{ route('admin.bookings.index') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-list"></i> List View
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="filterStatus" class="form-label">Filter by Status:</label>
-                            <select id="filterStatus" class="form-select">
-                                <option value="">All Statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
+                    <div class="card-body px-0 pt-0 pb-2">
+                        <div class="p-3">
+                            <div class="row mb-4">
+                                <div class="col-md-4 mb-3">
+                                    <label for="filterCar" class="form-label">Filter by Car</label>
+                                    <select id="filterCar" class="form-select">
+                                        <option value="">All Cars</option>
+                                        @foreach(\App\Models\Car::orderBy('name')->get() as $car)
+                                            <option value="{{ $car->id }}">{{ $car->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="filterStatus" class="form-label">Filter by Status</label>
+                                    <select id="filterStatus" class="form-select">
+                                        <option value="">All Statuses</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="filterPayment" class="form-label">Filter by Payment</label>
+                                    <select id="filterPayment" class="form-select">
+                                        <option value="">All Payment Statuses</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="unpaid">Unpaid</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div>
+                                    <button type="button" id="prevBtn" class="btn btn-sm btn-outline-secondary me-2">
+                                        <i class="fas fa-chevron-left"></i> Previous
+                                    </button>
+                                    <button type="button" id="todayBtn" class="btn btn-sm bg-gradient-primary me-2">
+                                        Today
+                                    </button>
+                                    <button type="button" id="nextBtn" class="btn btn-sm btn-outline-secondary">
+                                        Next <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                                <div class="btn-group">
+                                    <button type="button" id="monthViewBtn"
+                                        class="btn btn-sm btn-outline-secondary active">Month</button>
+                                    <button type="button" id="weekViewBtn"
+                                        class="btn btn-sm btn-outline-secondary">Week</button>
+                                    <button type="button" id="dayViewBtn"
+                                        class="btn btn-sm btn-outline-secondary">Day</button>
+                                </div>
+                            </div>
+
+                            <div id="calendarTitle" class="h5 text-center mb-4"></div>
+                            <div id="calendar"></div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="filterPayment" class="form-label">Filter by Payment:</label>
-                            <select id="filterPayment" class="form-select">
-                                <option value="">All Payment Statuses</option>
-                                <option value="paid">Paid</option>
-                                <option value="unpaid">Unpaid</option>
-                                <option value="pending">Pending</option>
-                                <option value="refunded">Refunded</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="calendarTitle" class="h4 text-center my-4">March 2025</div>
-
-                <div id="calendar-container">
-                    <!-- Calendar will be rendered here -->
-                    <div id="calendar"></div>
                 </div>
             </div>
         </div>
 
         <!-- Booking Details Modal -->
-        <div class="modal fade" id="bookingDetailsModal" tabindex="-1" aria-labelledby="bookingDetailsModalLabel"
+        <div class="modal fade" id="viewBookingModal" tabindex="-1" aria-labelledby="viewBookingModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="bookingDetailsModalLabel">Booking Details</h5>
+                        <h5 class="modal-title" id="viewBookingModalLabel">Booking Details</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="text-center" id="bookingDetailLoader">
+                    <div class="modal-body" style="position: relative;">
+                        <div id="view-loading-overlay"
+                            class="position-absolute bg-white d-flex justify-content-center align-items-center"
+                            style="left: 0; top: 0; right: 0; bottom: 0; z-index: 10; display: none;">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <div id="bookingDetailContent" style="display: none;">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <h5 id="booking-number" class="mb-2"></h5>
-                                    <div id="booking-status" class="mb-2"></div>
-                                    <p id="booking-dates" class="mb-1"></p>
-                                    <p id="booking-customer" class="mb-0"></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h5 id="car-name" class="mb-2"></h5>
-                                    <p id="booking-locations" class="mb-1"></p>
-                                    <p id="booking-amount" class="mb-0"></p>
-                                </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 id="view-booking-number" class="mb-2"></h6>
+                                <div id="view-status-badge" class="mb-2"></div>
+                                <div id="view-payment-badge" class="mb-2"></div>
+                                <p><strong>Created:</strong> <span id="view-created-at"></span></p>
+                                <p><strong>Updated:</strong> <span id="view-updated-at"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Car Information</h6>
+                                <p><strong>Name:</strong> <span id="view-car-name"></span></p>
+                                <p><span id="view-car-details"></span></p>
                             </div>
                         </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Customer Information</h6>
+                                <p><strong>Name:</strong> <span id="view-customer-name"></span></p>
+                                <p><strong>Email:</strong> <span id="view-customer-email"></span></p>
+                                <p><strong>Phone:</strong> <span id="view-customer-phone"></span></p>
+                                <p><strong>Account:</strong> <span id="view-customer-account"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Rental Details</h6>
+                                <p><strong>Pickup:</strong> <span id="view-pickup-details"></span></p>
+                                <p><strong>Dropoff:</strong> <span id="view-dropoff-details"></span></p>
+                                <p><strong>Duration:</strong> <span id="view-duration"></span></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Payment Information</h6>
+                                <p><strong>Base Price:</strong> <span id="view-base-price"></span></p>
+                                <p><strong>Discount:</strong> <span id="view-discount"></span></p>
+                                <p><strong>Tax:</strong> <span id="view-tax"></span></p>
+                                <p><strong>Total:</strong> <span id="view-total"></span></p>
+                                <p><strong>Method:</strong> <span id="view-payment-method"></span></p>
+                                <p><strong>Transaction ID:</strong> <span id="view-transaction-id"></span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Special Requests</h6>
+                                <p id="view-special-requests"></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div id="view-status-actions" class="mt-3"></div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" id="viewEditBtn" class="btn btn-primary">Edit Booking</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" id="viewEditBtn" class="btn bg-gradient-primary">Edit Booking</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Import the booking modal from the index page -->
+        <!-- Include Booking Modal -->
         @include('admin.bookings._booking_modal', ['cars' => \App\Models\Car::where('is_available', true)->orderBy('name')->get()])
+    </div>
 @endsection
 
 @push('css')
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
     <style>
         #calendar {
-            height: 800px;
+            max-width: 100%;
+            margin: 0 auto;
         }
 
         .fc-event {
             cursor: pointer;
+            border-radius: 0.25rem;
+            padding: 2px 5px;
+            font-size: 0.85rem;
         }
 
-        .fc-day-today {
-            background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+        .fc-daygrid-day.fc-day-today {
+            background-color: rgba(94, 114, 228, 0.1) !important;
         }
 
         .booking-pending {
-            background-color: var(--bs-warning);
-            border-color: var(--bs-warning);
+            background-color: #fb6340 !important;
+            border-color: #fb6340 !important;
+            color: white !important;
         }
 
         .booking-confirmed {
-            background-color: var(--bs-success);
-            border-color: var(--bs-success);
+            background-color: #2dce89 !important;
+            border-color: #2dce89 !important;
+            color: white !important;
         }
 
         .booking-completed {
-            background-color: var(--bs-info);
-            border-color: var(--bs-info);
+            background-color: #11cdef !important;
+            border-color: #11cdef !important;
+            color: white !important;
         }
 
         .booking-cancelled {
-            background-color: var(--bs-danger);
-            border-color: var(--bs-danger);
+            background-color: #f5365c !important;
+            border-color: #f5365c !important;
+            color: white !important;
             text-decoration: line-through;
+        }
+
+        .modal-content {
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-fullscreen .modal-content {
+            border-radius: 0;
+        }
+
+        .modal-fullscreen .modal-body {
+            max-height: calc(100vh - 130px);
+            overflow-y: auto;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #5e72e4;
+            box-shadow: 0 3px 9px rgba(50, 50, 9, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #8392AB;
+        }
+
+        .bg-gradient-primary {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+        }
+
+        .badge {
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
         }
 
         #availability_display .badge {
@@ -171,10 +258,8 @@
 @endpush
 
 @push('js')
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Routes for AJAX calls
         const routes = {
@@ -191,115 +276,62 @@
 
         // CSRF Token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    </script>
 
-    <!-- Include the bookings management JS -->
-    <script src="{{ asset('admin/js/bookings-management.js') }}"></script>
-
-    <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Create Booking Button on Calendar Page
-            const createBookingFromCalendarBtn = document.getElementById('createBookingFromCalendar');
-            if (createBookingFromCalendarBtn) {
-                createBookingFromCalendarBtn.addEventListener('click', function() {
-                    // Call the existing resetForm function from bookings-management.js
-                    resetForm();
-
-                    // Set default dates
-                    const today = new Date().toISOString().split('T')[0];
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-                    document.getElementById('pickup_date').value = today;
-                    document.getElementById('dropoff_date').value = tomorrowStr;
-
-                    // Set default times
-                    document.getElementById('pickup_time').value = '10:00';
-                    document.getElementById('dropoff_time').value = '10:00';
-
-                    // Update modal title
-                    document.getElementById('bookingModalLabel').textContent = 'Add New Booking';
-
-                    // Show modal using Bootstrap 5 modal
-                    const bsModal = new bootstrap.Modal(document.getElementById('bookingModal'));
-                    bsModal.show();
-                });
-            }
-
-            // Handle edit from the details modal
-            const viewEditBtn = document.getElementById('viewEditBtn');
-            if (viewEditBtn) {
-                viewEditBtn.addEventListener('click', function() {
-                    const bookingId = this.getAttribute('data-id');
-                    if (bookingId) {
-                        // Close details modal
-                        const detailsModal = bootstrap.Modal.getInstance(document.getElementById('bookingDetailsModal'));
-                        detailsModal.hide();
-
-                        // Wait for the modal to close then open edit modal
-                        setTimeout(() => {
-                            // Use the existing handleEditBooking function from bookings-management.js
-                            handleEditBooking(bookingId);
-                        }, 500);
-                    }
-                    return false; // Prevent default behavior
-                });
-            }
-
             // Initialize FullCalendar
-            let calendarEl = document.getElementById('calendar');
+            const calendarEl = document.getElementById('calendar');
             let currentView = 'dayGridMonth';
-            let calendar = new FullCalendar.Calendar(calendarEl, {
+            const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: currentView,
-                headerToolbar: false, // We're using our own header
-                height: 'auto',
+                headerToolbar: false,
+                height: '800px',
                 events: function (info, successCallback, failureCallback) {
-                    // Get filter values
                     const carId = document.getElementById('filterCar').value;
                     const status = document.getElementById('filterStatus').value;
                     const paymentStatus = document.getElementById('filterPayment').value;
 
-                    // Fetch events from the server
-                    fetch(`{{ route('admin.bookings.data') }}?start=${info.startStr}&end=${info.endStr}&car_id=${carId}&status=${status}&payment_status=${paymentStatus}`)
+                    fetch(`${routes.dataUrl}?start=${info.startStr}&end=${info.endStr}&car_id=${carId}&status=${status}&payment_status=${paymentStatus}`)
                         .then(response => response.json())
                         .then(data => {
-                            // Transform bookings to calendar events
-                            const events = data.data.map(booking => {
-                                return {
-                                    id: booking.id,
-                                    title: `${booking.car_name} - ${booking.customer_name}`,
-                                    start: `${booking.pickup_date}T${booking.pickup_time}`,
-                                    end: `${booking.dropoff_date}T${booking.dropoff_time}`,
-                                    className: `booking-${booking.status}`,
-                                    extendedProps: {
-                                        bookingNumber: booking.booking_number,
-                                        status: booking.status,
-                                        paymentStatus: booking.payment_status,
-                                        customerName: booking.customer_name,
-                                        customerEmail: booking.customer_email,
-                                        carName: booking.car_name,
-                                        pickupLocation: booking.pickup_location,
-                                        dropoffLocation: booking.dropoff_location,
-                                        totalAmount: booking.total_amount
-                                    }
-                                };
-                            });
+                            const events = data.data.map(booking => ({
+                                id: booking.id,
+                                title: `${booking.car_name} - ${booking.customer_name}`,
+                                start: `${booking.pickup_date}T${booking.pickup_time}`,
+                                end: `${booking.dropoff_date}T${booking.dropoff_time}`,
+                                className: `booking-${booking.status}`,
+                                extendedProps: {
+                                    bookingNumber: booking.booking_number,
+                                    status: booking.status,
+                                    paymentStatus: booking.payment_status,
+                                    customerName: booking.customer_name,
+                                    customerEmail: booking.customer_email,
+                                    carName: booking.car_name,
+                                    pickupLocation: booking.pickup_location,
+                                    dropoffLocation: booking.dropoff_location,
+                                    totalAmount: booking.total_amount
+                                }
+                            }));
                             successCallback(events);
                         })
                         .catch(error => {
                             console.error('Error fetching booking data:', error);
                             failureCallback(error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to load calendar events',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
                         });
                 },
                 eventClick: function (info) {
-                    // Show booking details modal
-                    showBookingDetails(info.event);
+                    handleViewBooking(info.event.id);
                 },
-                dateClick: function(info) {
-                    // When a date is clicked - open create booking modal with that date
+                dateClick: function (info) {
                     resetForm();
-
                     const clickedDate = info.dateStr;
                     const nextDay = new Date(clickedDate);
                     nextDay.setDate(nextDay.getDate() + 1);
@@ -307,15 +339,10 @@
 
                     document.getElementById('pickup_date').value = clickedDate;
                     document.getElementById('dropoff_date').value = nextDayStr;
-
-                    // Set default times
                     document.getElementById('pickup_time').value = '10:00';
                     document.getElementById('dropoff_time').value = '10:00';
 
-                    // Update modal title
                     document.getElementById('bookingModalLabel').textContent = 'Add New Booking';
-
-                    // Show modal using Bootstrap 5 modal
                     const bsModal = new bootstrap.Modal(document.getElementById('bookingModal'));
                     bsModal.show();
                 },
@@ -325,33 +352,22 @@
                     hour12: true
                 },
                 datesSet: function (dateInfo) {
-                    // Update the calendar title
                     updateCalendarTitle(dateInfo.view);
                 }
             });
 
             calendar.render();
-
-            // Make calendar instance available globally for updates after booking changes
             window.calendar = calendar;
 
             // Update initial calendar title
             updateCalendarTitle(calendar.view);
 
-            // Handle navigation buttons
-            document.getElementById('prevBtn').addEventListener('click', function () {
-                calendar.prev();
-            });
+            // Navigation buttons
+            document.getElementById('prevBtn').addEventListener('click', () => calendar.prev());
+            document.getElementById('todayBtn').addEventListener('click', () => calendar.today());
+            document.getElementById('nextBtn').addEventListener('click', () => calendar.next());
 
-            document.getElementById('todayBtn').addEventListener('click', function () {
-                calendar.today();
-            });
-
-            document.getElementById('nextBtn').addEventListener('click', function () {
-                calendar.next();
-            });
-
-            // Handle view change buttons
+            // View change buttons
             document.getElementById('monthViewBtn').addEventListener('click', function () {
                 setActiveViewButton('monthViewBtn');
                 calendar.changeView('dayGridMonth');
@@ -373,20 +389,38 @@
                 updateCalendarTitle(calendar.view);
             });
 
-            // Handle filter changes
-            document.getElementById('filterCar').addEventListener('change', function () {
-                calendar.refetchEvents();
+            // Filter changes
+            document.getElementById('filterCar').addEventListener('change', () => calendar.refetchEvents());
+            document.getElementById('filterStatus').addEventListener('change', () => calendar.refetchEvents());
+            document.getElementById('filterPayment').addEventListener('change', () => calendar.refetchEvents());
+
+            // Create Booking Button
+            document.getElementById('createBookingFromCalendar').addEventListener('click', function () {
+                resetForm();
+                const today = new Date().toISOString().split('T')[0];
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+                document.getElementById('pickup_date').value = today;
+                document.getElementById('dropoff_date').value = tomorrowStr;
+                document.getElementById('pickup_time').value = '10:00';
+                document.getElementById('dropoff_time').value = '10:00';
+
+                document.getElementById('bookingModalLabel').textContent = 'Add New Booking';
+                const bsModal = new bootstrap.Modal(document.getElementById('bookingModal'));
+                bsModal.show();
             });
 
-            document.getElementById('filterStatus').addEventListener('change', function () {
-                calendar.refetchEvents();
+            // Auto-calculate prices on field changes
+            ['car_id', 'pickup_date', 'dropoff_date'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', calculatePrices);
+                }
             });
 
-            document.getElementById('filterPayment').addEventListener('change', function () {
-                calendar.refetchEvents();
-            });
-
-            // Helper functions
+            // Helper Functions
             function setActiveViewButton(activeButtonId) {
                 document.querySelectorAll('.btn-group .btn').forEach(button => {
                     button.classList.remove('active');
@@ -397,7 +431,6 @@
             function updateCalendarTitle(view) {
                 const titleEl = document.getElementById('calendarTitle');
                 let title = '';
-
                 const date = view.currentStart;
                 const month = date.toLocaleString('default', { month: 'long' });
                 const year = date.getFullYear();
@@ -406,8 +439,8 @@
                     title = `${month} ${year}`;
                 } else if (currentView === 'timeGridWeek') {
                     const endDate = new Date(view.currentEnd);
-                    endDate.setDate(endDate.getDate() - 1); // FullCalendar's end date is exclusive
-                    title = `${formatDate(date)} - ${formatDate(endDate)}`;
+                    endDate.setDate(endDate.getDate() - 1);
+                    title = `${formatDate(endDate)}`;
                 } else if (currentView === 'timeGridDay') {
                     title = formatDate(date);
                 }
@@ -423,127 +456,44 @@
                 });
             }
 
-            function showBookingDetails(event) {
-                // Get the modal elements
-                const modal = new bootstrap.Modal(document.getElementById('bookingDetailsModal'));
-                const loader = document.getElementById('bookingDetailLoader');
-                const content = document.getElementById('bookingDetailContent');
-                const editBtn = document.getElementById('viewEditBtn');
-
-                // Show loader, hide content
-                loader.style.display = 'block';
-                content.style.display = 'none';
-
-                // Show the modal
-                modal.show();
-
-                // Get booking data from event
-                const props = event.extendedProps;
-
-                // Set modal content
-                document.getElementById('booking-number').textContent = `Booking #${props.bookingNumber}`;
-
-                // Set status badge
-                const statusClasses = {
-                    'pending': 'bg-warning',
-                    'confirmed': 'bg-success',
-                    'completed': 'bg-info',
-                    'cancelled': 'bg-danger'
-                };
-                const statusClass = statusClasses[props.status] || 'bg-secondary';
-                document.getElementById('booking-status').innerHTML = `
-                        <span class="badge ${statusClass}">${props.status.charAt(0).toUpperCase() + props.status.slice(1)}</span>
-                        <span class="badge ${props.paymentStatus === 'paid' ? 'bg-success' : 'bg-danger'} ms-2">
-                            ${props.paymentStatus.charAt(0).toUpperCase() + props.paymentStatus.slice(1)}
-                        </span>
-                    `;
-
-                // Set dates
-                const startDate = event.start ? event.start.toLocaleString() : 'N/A';
-                const endDate = event.end ? event.end.toLocaleString() : 'N/A';
-                document.getElementById('booking-dates').innerHTML = `
-                        <strong>Pickup:</strong> ${startDate}<br>
-                        <strong>Dropoff:</strong> ${endDate}
-                    `;
-
-                // Set customer info
-                document.getElementById('booking-customer').innerHTML = `
-                        <strong>Customer:</strong> ${props.customerName}<br>
-                        <strong>Email:</strong> ${props.customerEmail}
-                    `;
-
-                // Set car info
-                document.getElementById('car-name').textContent = props.carName;
-
-                // Set locations
-                document.getElementById('booking-locations').innerHTML = `
-                        <strong>Pickup:</strong> ${props.pickupLocation}<br>
-                        <strong>Dropoff:</strong> ${props.dropoffLocation}
-                    `;
-
-                // Set amount
-                document.getElementById('booking-amount').innerHTML = `
-                        <strong>Total Amount:</strong> $${parseFloat(props.totalAmount).toFixed(2)}
-                    `;
-
-                // Set button data-id for editing
-                editBtn.setAttribute('data-id', event.id);
-
-                // Hide loader, show content
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                    content.style.display = 'block';
-                }, 500);
-            }
-
-            // Override the resetForm function to refresh calendar
-            const originalResetForm = window.resetForm;
-            window.resetForm = function() {
-                if (originalResetForm) {
-                    originalResetForm();
-                } else {
-                    // Fallback if the original function isn't available
-                    if (bookingForm) {
-                        bookingForm.reset();
-                        document.getElementById('booking_id').value = '';
-                    }
-                    clearValidationErrors();
-                    document.getElementById('availability_display').innerHTML = '<span class="badge bg-secondary">No car selected</span>';
-                }
+            // Override resetForm to handle modal fields
+            const originalResetForm = window.resetForm || function () {
+                const bookingForm = document.getElementById('bookingForm');
+                if (bookingForm) bookingForm.reset();
+                clearValidationErrors();
+                document.getElementById('availability_display').innerHTML = '<span class="badge bg-secondary">No car selected</span>';
+            };
+            window.resetForm = function () {
+                originalResetForm();
+                document.getElementById('booking_id').value = '';
+                document.getElementById('total_days').value = '';
+                document.getElementById('base_price').value = '';
+                document.getElementById('discount_amount').value = '';
+                document.getElementById('tax_amount').value = '';
+                document.getElementById('total_amount').value = '';
             };
 
-            // Override handleFormSubmit to refresh calendar after successful booking
+            // Override handleFormSubmit to refresh calendar
             const originalHandleFormSubmit = window.handleFormSubmit;
-            window.handleFormSubmit = function(e) {
+            window.handleFormSubmit = function (e) {
                 e.preventDefault();
-
-                // Use the original function implementation but add calendar refresh
-                // Reset validation UI
                 clearValidationErrors();
 
-                // Get form data
                 const formData = new FormData(e.target);
-
-                // Get booking ID and determine if this is an edit operation
                 const bookingId = document.getElementById('booking_id').value;
                 const isEdit = bookingId && bookingId !== '';
 
-                // For PUT requests, Laravel doesn't process FormData the same way as POST
                 if (isEdit) {
                     formData.append('_method', 'PUT');
                 }
 
-                // Set up request URL
                 const url = isEdit ? routes.updateUrl.replace(':id', bookingId) : routes.storeUrl;
-
-                // Show loading state
                 const saveBtn = document.getElementById('saveBtn');
                 if (saveBtn) {
                     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                     saveBtn.disabled = true;
                 }
 
-                // Send request
                 fetch(url, {
                     method: 'POST',
                     body: formData,
@@ -552,75 +502,139 @@
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw { status: response.status, data: data };
-                        });
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw { status: response.status, data: data };
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const bsModal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                            if (bsModal) bsModal.hide();
+                            window.calendar.refetchEvents();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: data.message || 'Booking saved successfully',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        } else {
+                            throw new Error(data.message || 'An error occurred');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        if (error.status === 422 && error.data && error.data.errors) {
+                            displayValidationErrors(error.data.errors);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Validation Error',
+                                text: 'Please check the form for errors',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 5000
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: error.data?.message || 'An error occurred',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 5000
+                            });
+                        }
+                    })
+                    .finally(() => {
+                        if (saveBtn) {
+                            saveBtn.innerHTML = 'Save Booking';
+                            saveBtn.disabled = false;
+                        }
+                    });
+            };
+
+            // Override calculatePrices to handle readonly fields
+            const originalCalculatePrices = window.calculatePrices;
+            window.calculatePrices = function () {
+                const carId = document.getElementById('car_id').value;
+                const pickupDate = document.getElementById('pickup_date').value;
+                const dropoffDate = document.getElementById('dropoff_date').value;
+                const bookingId = document.getElementById('booking_id').value;
+
+                if (!carId || !pickupDate || !dropoffDate) {
+                    resetPricing();
+                    return;
+                }
+
+                if (new Date(pickupDate) > new Date(dropoffDate)) {
+                    document.getElementById('availability_display').innerHTML = `
+                            <span class="badge bg-danger">Invalid Dates</span>
+                        `;
+                    resetPricing();
+                    return;
+                }
+
+                document.getElementById('availability_display').innerHTML = `
+                        <span class="badge bg-secondary">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Checking availability...
+                        </span>
+                    `;
+
+                const formData = new FormData();
+                formData.append('car_id', carId);
+                formData.append('pickup_date', pickupDate);
+                formData.append('dropoff_date', dropoffDate);
+
+                if (bookingId) {
+                    formData.append('booking_id', bookingId);
+                }
+
+                fetch(routes.calculateUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
-                    return response.json();
                 })
-                .then(data => {
-                    if (data.success) {
-                        // Hide modal
-                        const bsModal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-                        if (bsModal) bsModal.hide();
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const isAvailable = data.data.is_available;
+                            document.getElementById('availability_display').innerHTML = isAvailable
+                                ? '<span class="badge bg-success">Car Available</span>'
+                                : '<span class="badge bg-danger">Car Unavailable</span>';
 
-                        // Reload calendar instead of DataTable
-                        if (window.calendar) window.calendar.refetchEvents();
-
-                        // Show success message
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: data.message || 'Booking saved successfully',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
-                    } else {
-                        throw new Error(data.message || 'An error occurred');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-
-                    // Handle validation errors
-                    if (error.status === 422 && error.data && error.data.errors) {
-                        displayValidationErrors(error.data.errors);
-
-                        // Show notification
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Validation Error',
-                            text: 'Please check the form for errors',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 5000
-                        });
-                    } else {
-                        // Show error notification
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: error.data?.message || 'An error occurred',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 5000
-                        });
-                    }
-                })
-                .finally(() => {
-                    // Reset button state
-                    if (saveBtn) {
-                        saveBtn.innerHTML = 'Save Booking';
-                        saveBtn.disabled = false;
-                    }
-                });
+                            document.getElementById('total_days').value = data.data.total_days;
+                            document.getElementById('base_price').value = data.data.base_price.toFixed(2);
+                            document.getElementById('discount_amount').value = data.data.discount_amount.toFixed(2);
+                            document.getElementById('tax_amount').value = data.data.tax_amount.toFixed(2);
+                            document.getElementById('total_amount').value = data.data.total_amount.toFixed(2);
+                        } else {
+                            document.getElementById('availability_display').innerHTML = `
+                                    <span class="badge bg-warning">Error checking availability</span>
+                                `;
+                            resetPricing();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('availability_display').innerHTML = `
+                                <span class="badge bg-danger">Error</span>
+                            `;
+                        resetPricing();
+                    });
             };
         });
     </script>
+    <script src="{{ asset('admin/js/bookings-management.js') }}"></script>
 @endpush

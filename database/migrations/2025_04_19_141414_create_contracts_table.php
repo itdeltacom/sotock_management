@@ -10,8 +10,7 @@ return new class extends Migration
     {
         Schema::create('contracts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('client_id')->constrained()->onDelete('cascade');
-            $table->foreignId('car_id')->constrained()->onDelete('cascade');
+            $table->foreignId('client_id')->constrained('users')->onDelete('cascade');            $table->foreignId('car_id')->constrained()->onDelete('cascade');
             $table->dateTime('start_date');
             $table->dateTime('end_date');
             $table->decimal('rental_fee', 10, 2);
@@ -24,6 +23,7 @@ return new class extends Migration
             $table->integer('extension_days')->default(0);
             $table->decimal('total_amount', 10, 2);
             $table->decimal('discount', 10, 2)->default(0);
+            $table->datetime('due_date')->nullable();
             $table->timestamps();
         });
     }

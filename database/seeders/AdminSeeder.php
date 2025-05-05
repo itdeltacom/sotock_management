@@ -502,6 +502,17 @@ class AdminSeeder extends Seeder
             'view cars',
             'view booking calendar',
             'view reports',
+            'manage clients',
+            'create clients',
+            'edit clients',
+            'delete clients',
+            'view client contracts',
+            'view client details',
+            'manage client documents',
+            'upload client documents',
+            'delete client documents',
+            'verify client identity',
+            'manage client notes',
         ]);
 
         // Create super admin

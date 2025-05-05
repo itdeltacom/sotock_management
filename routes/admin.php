@@ -265,7 +265,7 @@ Route::prefix('api')->name('api.')->middleware(['auth:admin'])->group(function (
     Route::get('/cars/available', [CarController::class, 'getAvailableCars'])->name('cars.available');
 });
 
-Route::prefix('clients')->name('clients.')->middleware('permission:manage clients')->group(function () {
+/*Route::prefix('clients')->name('clients.')->middleware('permission:manage clients')->group(function () {
     Route::get('/', [CustomerController::class, 'index'])->name('index');
     Route::get('/create', [CustomerController::class, 'create'])->name('create');
     Route::post('/', [CustomerController::class, 'store'])->name('store');
@@ -277,7 +277,33 @@ Route::prefix('clients')->name('clients.')->middleware('permission:manage client
     Route::post('/validate-field', [CustomerController::class, 'validateField'])->name('validate-field');
     Route::get('/get-clients', [CustomerController::class, 'getClientsList'])->name('list');
 
+});*/
+
+// Customer Management Routes
+Route::prefix('clients')->name('clients.')->middleware(['auth:admin', 'permission:manage clients'])->group(function () {
+    Route::get('/', [CustomerController::class, 'index'])->name('index');
+    Route::get('/create', [CustomerController::class, 'create'])->name('create');
+    Route::post('/', [CustomerController::class, 'store'])->name('store');
+    Route::get('/api/{id}', [CustomerController::class, 'getClientDetails'])->name('api.show');
+    Route::get('/{client}', [CustomerController::class, 'show'])->name('show');
+    Route::get('/{client}/edit', [CustomerController::class, 'edit'])->name('edit');
+    Route::put('/{client}', [CustomerController::class, 'update'])->name('update');
+    Route::delete('/{client}', [CustomerController::class, 'destroy'])->name('destroy');
+    Route::post('/datatable', [CustomerController::class, 'datatable'])->name('datatable');
+    Route::get('/list/ajax', [CustomerController::class, 'getClientsList'])->name('list');
+    
+    // Additional customer routes
+    Route::get('/{client}/payments', [CustomerController::class, 'payments'])->name('payments');
+    Route::post('/{client}/payments', [CustomerController::class, 'addPayment'])->name('payments.add');
+    Route::get('/{client}/contracts', [CustomerController::class, 'contracts'])->name('contracts');
+    Route::get('/{client}/statistics', [CustomerController::class, 'getStatistics'])->name('statistics');
+    Route::get('/{client}/status', [CustomerController::class, 'checkStatus'])->name('status');
+    Route::post('/{client}/ban', [CustomerController::class, 'ban'])->name('ban');
+    Route::post('/{client}/unban', [CustomerController::class, 'unban'])->name('unban');
+    Route::post('/{client}/notify', [CustomerController::class, 'sendNotification'])->name('sendNotification');
+    Route::get('/export', [CustomerController::class, 'export'])->name('export');
 });
+
 // Review Management
 Route::prefix('reviews')->name('reviews.')->middleware('permission:manage reviews')->group(function () {
     Route::get('/', [ReviewController::class, 'index'])->name('index');

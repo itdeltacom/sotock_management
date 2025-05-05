@@ -1,4 +1,3 @@
-{{-- admin/bookings/_booking_modal.blade.php --}}
 
 <!-- Create/Edit Booking Modal -->
 <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">

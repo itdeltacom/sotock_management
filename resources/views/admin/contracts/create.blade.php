@@ -48,7 +48,7 @@
                                                     <option value="">-- Select Client --</option>
                                                     @foreach($clients as $client)
                                                         <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }}>
-                                                            {{ $client->full_name }} ({{ $client->id_number }})
+                                                            {{ $client->name }} ({{ $client->id }})
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -293,80 +293,104 @@
         </div>
     </div>
 @endsection
-
+@push('css')
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+@endpush
 @push('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
         // Client selection change
         $('#client_id').on('change', function() {
-            const clientId = $(this).val();
-            if (clientId) {
-                // Fetch client details
-                $.ajax({
-                    url: `/admin/clients/${clientId}`,
-                    type: 'GET',
-                    success: function(response) {
-                        if (response.success) {
-                            const client = response.client;
-                            
-                            // Fill client details
-                            $('#client-name').text(client.full_name);
-                            $('#client-contact').text(`${client.phone} • ${client.email}`);
-                            $('#client-id-number').text(client.id_number);
-                            $('#client-license').text(client.license_number);
-                            $('#client-address').text(client.address || 'N/A');
-                            
-                            // Set avatar
-                            if (client.profile_photo) {
-                                $('#client-avatar').attr('src', client.profile_photo);
-                            } else {
-                                $('#client-avatar').attr('src', '/img/default-avatar.png');
-                            }
-                            
-                            // Set status badge
-                            const statusText = client.status === 'active' ? 
-                                '<span class="badge bg-success">Active</span>' : 
-                                '<span class="badge bg-danger">Inactive</span>';
-                            $('#client-status').html(statusText);
-                            
-                            // Check for warnings
-                            if (client.overdue_contracts > 0 || client.active_contracts > 0) {
-                                let alertText = '';
-                                if (client.overdue_contracts > 0) {
-                                    alertText += `Client has ${client.overdue_contracts} overdue contract(s). `;
-                                }
-                                if (client.active_contracts > 0) {
-                                    alertText += `Client already has ${client.active_contracts} active contract(s).`;
-                                }
-                                
-                                $('#client-alert-text').text(alertText);
-                                $('#client-alert').removeClass('d-none');
-                            } else {
-                                $('#client-alert').addClass('d-none');
-                            }
-                            
-                            // Show client details
-                            $('#client-details').removeClass('d-none');
-                        }
-                    },
-                    error: function() {
-                        $('#client-details').addClass('d-none');
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to load client details',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
+    const clientId = $(this).val();
+    console.log('Selected client ID:', clientId); // Debug log
+    
+    if (clientId) {
+        const url = '{{ url("admin/clients/api") }}/' + clientId;
+        console.log('Fetching from URL:', url); // Debug log
+        
+        $.ajax({
+            url: url,
+            type: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            success: function(response) {
+                console.log('Response received:', response); // Debug log
+                
+                if (response.success) {
+                    const client = response.client;
+                    
+                    // Fill client details
+                    $('#client-name').text(client.full_name);
+                    $('#client-contact').text(`${client.phone} • ${client.email}`);
+                    $('#client-id-number').text(client.id_number);
+                    $('#client-license').text(client.license_number);
+                    $('#client-address').text(client.address || 'N/A');
+                    
+                    // Set avatar
+                    if (client.profile_photo) {
+                        $('#client-avatar').attr('src', client.profile_photo);
+                    } else {
+                        $('#client-avatar').attr('src', '/img/default-avatar.png');
                     }
+                    
+                    // Set status badge
+                    const statusText = client.status === 'active' ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-danger">Inactive</span>';
+                    $('#client-status').html(statusText);
+                    
+                    // Check for warnings
+                    if (client.overdue_contracts > 0 || client.active_contracts > 0) {
+                        let alertText = '';
+                        if (client.overdue_contracts > 0) {
+                            alertText += `Client has ${client.overdue_contracts} overdue contract(s). `;
+                        }
+                        if (client.active_contracts > 0) {
+                            alertText += `Client already has ${client.active_contracts} active contract(s).`;
+                        }
+                        
+                        $('#client-alert-text').text(alertText);
+                        $('#client-alert').removeClass('d-none');
+                    } else {
+                        $('#client-alert').addClass('d-none');
+                    }
+                    
+                    // Show client details
+                    $('#client-details').removeClass('d-none');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
                 });
-            } else {
+                
                 $('#client-details').addClass('d-none');
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to load client details',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else {
+                    alert('Failed to load client details');
+                }
             }
         });
-        
+    } else {
+        $('#client-details').addClass('d-none');
+    }
+});
         // Car selection change
         $('#car_id').on('change', function() {
             const carId = $(this).val();

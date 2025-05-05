@@ -3,164 +3,170 @@
 @section('title', 'My Profile')
 
 @section('content')
-    <div class="page-header">
-        <h3 class="page-title">My Profile</h3>
-        <div class="page-actions">
-            <button type="button" id="save-profile" class="btn btn-primary">
-                <i class="fas fa-save"></i> Save Changes
-            </button>
+    <div class="container-fluid py-4">
+        <div class="page-header">
+            <h3 class="page-title">My Profile</h3>
+            <div class="page-actions">
+                <button type="button" id="save-profile" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
         </div>
-    </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header pb-0">
-                    <h6>Personal Information</h6>
-                    <p class="text-sm text-muted">
-                        Update your profile details and manage your account settings.
-                    </p>
-                </div>
-                <div class="card-body">
-                    <form id="profile-form" action="{{ route('admin.profile.update') }}" method="POST"
-                        enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header pb-0">
+                        <h6>Personal Information</h6>
+                        <p class="text-sm text-muted">
+                            Update your profile details and manage your account settings.
+                        </p>
+                    </div>
+                    <div class="card-body">
+                        <form id="profile-form" action="{{ route('admin.profile.update') }}" method="POST"
+                            enctype="multipart/form-data">
+                            @csrf
+                            @method('PUT')
 
-                        <div class="row">
-                            <!-- Profile Image -->
-                            <div class="col-md-3 text-center mb-4">
-                                <div class="profile-image-container">
-                                    <div class="profile-image mb-3">
-                                        @if($admin->profile_image)
-                                            <img src="{{ Storage::url($admin->profile_image) }}" alt="{{ $admin->name }}"
-                                                id="profile-preview" class="img-fluid rounded-circle">
-                                        @else
-                                            <img src="{{ asset('img/default-avatar.png') }}" alt="{{ $admin->name }}"
-                                                id="profile-preview" class="img-fluid rounded-circle">
-                                        @endif
+                            <div class="row">
+                                <!-- Profile Image -->
+                                <div class="col-md-3 text-center mb-4">
+                                    <div class="profile-image-container">
+                                        <div class="profile-image mb-3">
+                                            @if($admin->profile_image)
+                                                <img src="{{ Storage::url($admin->profile_image) }}" alt="{{ $admin->name }}"
+                                                    id="profile-preview" class="img-fluid rounded-circle">
+                                            @else
+                                                <img src="{{ asset('img/default-avatar.png') }}" alt="{{ $admin->name }}"
+                                                    id="profile-preview" class="img-fluid rounded-circle">
+                                            @endif
+                                        </div>
+                                        <div class="profile-image-actions">
+                                            <label for="profile_image" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-upload"></i> Change Image
+                                            </label>
+                                            <input type="file" name="profile_image" id="profile_image" class="d-none"
+                                                accept="image/*">
+                                        </div>
+                                        <div class="text-muted small mt-2">
+                                            Recommended size: 200x200px
+                                        </div>
                                     </div>
-                                    <div class="profile-image-actions">
-                                        <label for="profile_image" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-upload"></i> Change Image
-                                        </label>
-                                        <input type="file" name="profile_image" id="profile_image" class="d-none"
-                                            accept="image/*">
-                                    </div>
-                                    <div class="text-muted small mt-2">
-                                        Recommended size: 200x200px
+                                </div>
+
+                                <!-- Profile Details -->
+                                <div class="col-md-9">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="name" class="form-label">Full Name</label>
+                                            <input type="text" name="name" id="name"
+                                                class="form-control @error('name') is-invalid @enderror"
+                                                value="{{ old('name', $admin->name) }}" required>
+                                            @error('name')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="email" class="form-label">Email Address</label>
+                                            <input type="email" name="email" id="email"
+                                                class="form-control @error('email') is-invalid @enderror"
+                                                value="{{ old('email', $admin->email) }}" required>
+                                            @error('email')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="phone" class="form-label">Phone Number</label>
+                                            <input type="text" name="phone" id="phone"
+                                                class="form-control @error('phone') is-invalid @enderror"
+                                                value="{{ old('phone', $admin->phone) }}">
+                                            @error('phone')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="position" class="form-label">Position</label>
+                                            <input type="text" name="position" id="position"
+                                                class="form-control @error('position') is-invalid @enderror"
+                                                value="{{ old('position', $admin->position) }}">
+                                            @error('position')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label for="department" class="form-label">Department</label>
+                                            <input type="text" name="department" id="department"
+                                                class="form-control @error('department') is-invalid @enderror"
+                                                value="{{ old('department', $admin->department) }}">
+                                            @error('department')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Profile Details -->
-                            <div class="col-md-9">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="name" class="form-label">Full Name</label>
-                                        <input type="text" name="name" id="name"
-                                            class="form-control @error('name') is-invalid @enderror"
-                                            value="{{ old('name', $admin->name) }}" required>
-                                        @error('name')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+                            <hr class="horizontal dark">
 
-                                    <div class="col-md-6 mb-3">
-                                        <label for="email" class="form-label">Email Address</label>
-                                        <input type="email" name="email" id="email"
-                                            class="form-control @error('email') is-invalid @enderror"
-                                            value="{{ old('email', $admin->email) }}" required>
-                                        @error('email')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+                            <!-- Password Section -->
+                            <h6 class="mt-4 mb-3">Change Password</h6>
+                            <p class="text-sm text-muted mb-4">Leave password fields empty if you don't want to change it
+                            </p>
 
-                                    <div class="col-md-6 mb-3">
-                                        <label for="phone" class="form-label">Phone Number</label>
-                                        <input type="text" name="phone" id="phone"
-                                            class="form-control @error('phone') is-invalid @enderror"
-                                            value="{{ old('phone', $admin->phone) }}">
-                                        @error('phone')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="current_password" class="form-label">Current Password</label>
+                                    <div class="input-group">
+                                        <input type="password" name="current_password" id="current_password"
+                                            class="form-control @error('current_password') is-invalid @enderror">
+                                        <button type="button" class="btn btn-outline-secondary password-toggle"
+                                            tabindex="-1">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                     </div>
+                                    @error('current_password')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                </div>
 
-                                    <div class="col-md-6 mb-3">
-                                        <label for="position" class="form-label">Position</label>
-                                        <input type="text" name="position" id="position"
-                                            class="form-control @error('position') is-invalid @enderror"
-                                            value="{{ old('position', $admin->position) }}">
-                                        @error('position')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                                <div class="col-md-4 mb-3">
+                                    <label for="password" class="form-label">New Password</label>
+                                    <div class="input-group">
+                                        <input type="password" name="password" id="password"
+                                            class="form-control @error('password') is-invalid @enderror">
+                                        <button type="button" class="btn btn-outline-secondary password-toggle"
+                                            tabindex="-1">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                     </div>
+                                    @error('password')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
 
-                                    <div class="col-md-6 mb-3">
-                                        <label for="department" class="form-label">Department</label>
-                                        <input type="text" name="department" id="department"
-                                            class="form-control @error('department') is-invalid @enderror"
-                                            value="{{ old('department', $admin->department) }}">
-                                        @error('department')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
+                                    <div class="password-strength-container mt-2 d-none">
+                                        <div class="password-strength-meter"></div>
+                                        <div class="password-strength-text small"></div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="password_confirmation" class="form-label">Confirm New Password</label>
+                                    <div class="input-group">
+                                        <input type="password" name="password_confirmation" id="password_confirmation"
+                                            class="form-control">
+                                        <button type="button" class="btn btn-outline-secondary password-toggle"
+                                            tabindex="-1">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <hr class="horizontal dark">
-
-                        <!-- Password Section -->
-                        <h6 class="mt-4 mb-3">Change Password</h6>
-                        <p class="text-sm text-muted mb-4">Leave password fields empty if you don't want to change it</p>
-
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="current_password" class="form-label">Current Password</label>
-                                <div class="input-group">
-                                    <input type="password" name="current_password" id="current_password"
-                                        class="form-control @error('current_password') is-invalid @enderror">
-                                    <button type="button" class="btn btn-outline-secondary password-toggle" tabindex="-1">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                @error('current_password')
-                                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="password" class="form-label">New Password</label>
-                                <div class="input-group">
-                                    <input type="password" name="password" id="password"
-                                        class="form-control @error('password') is-invalid @enderror">
-                                    <button type="button" class="btn btn-outline-secondary password-toggle" tabindex="-1">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                @error('password')
-                                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                                @enderror
-
-                                <div class="password-strength-container mt-2 d-none">
-                                    <div class="password-strength-meter"></div>
-                                    <div class="password-strength-text small"></div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="password_confirmation" class="form-label">Confirm New Password</label>
-                                <div class="input-group">
-                                    <input type="password" name="password_confirmation" id="password_confirmation"
-                                        class="form-control">
-                                    <button type="button" class="btn btn-outline-secondary password-toggle" tabindex="-1">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

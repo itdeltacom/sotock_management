@@ -150,6 +150,9 @@
             box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
             border-radius: 0.75rem;
         }
+        .modal-dialog-scrollable .modal-content{
+            overflow: scroll !important;
+        }
 
         .card .card-header {
             padding: 1.5rem;
