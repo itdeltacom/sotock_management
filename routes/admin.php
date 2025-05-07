@@ -51,8 +51,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
 Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
 // Password Change
-Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
-Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
+//Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
+//Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
     
     // Two-Factor Authentication Routes
     Route::middleware('auth:admin')->group(function () {
@@ -234,7 +234,7 @@ Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permi
     // Get contract statistics for dashboard
     Route::get('/stats', [ContractController::class, 'getStats'])->name('stats');
     
-    // Add the missing create route
+    // Contract creation and editing
     Route::get('/create', [ContractController::class, 'create'])->name('create');
     
     Route::get('/data', [ContractController::class, 'datatable'])->name('datatable');
@@ -249,7 +249,7 @@ Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permi
     Route::post('/{contract}/complete', [ContractController::class, 'complete'])->name('complete');
     Route::post('/{contract}/cancel', [ContractController::class, 'cancel'])->name('cancel');
     Route::post('/{contract}/extend', [ContractController::class, 'extend'])->name('extend');
-    
+    Route::get('/{contract}/print', [ContractController::class, 'printContract'])->name('print');
     // Special contract views
     Route::get('/ending-soon', [ContractController::class, 'endingSoon'])->name('ending-soon');
     Route::get('/ending-soon/data', [ContractController::class, 'endingSoonDatatable'])->name('ending-soon.datatable');

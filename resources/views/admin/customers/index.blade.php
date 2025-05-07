@@ -814,7 +814,6 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         // Routes for AJAX calls
         const routes = {
@@ -1136,15 +1135,15 @@
                     contracts.forEach(contract => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                                <td class="text-xs font-weight-bold">${contract.id}</td>
-                                <td class="text-xs font-weight-bold">${contract.car}</td>
-                                <td class="text-xs font-weight-bold">${contract.start_date} - ${contract.end_date}</td>
-                                <td class="text-xs font-weight-bold">${contract.total_amount}</td>
-                                <td class="text-xs font-weight-bold"><span class="badge bg-${contract.status === 'active' ? 'success' : 'secondary'}">${contract.status}</span></td>
-                                <td>
-                                    <a href="${contract.view_url}" class="btn btn-sm btn-info mb-0"><i class="fas fa-eye"></i> View</a>
-                                </td>
-                            `;
+                        <td class="text-xs font-weight-bold">${contract.id}</td>
+                        <td class="text-xs font-weight-bold">${contract.car}</td>
+                        <td class="text-xs font-weight-bold">${contract.start_date} - ${contract.end_date}</td>
+                        <td class="text-xs font-weight-bold">${contract.total_amount}</td>
+                        <td class="text-xs font-weight-bold"><span class="badge bg-${contract.status === 'active' ? 'success' : 'secondary'}">${contract.status}</span></td>
+                        <td>
+                            <a href="${contract.view_url}" class="btn btn-sm btn-info mb-0"><i class="fas fa-eye"></i> View</a>
+                        </td>
+                    `;
                         contractsTbody.appendChild(row);
                     });
                 } else {
@@ -1158,13 +1157,13 @@
                     payments.forEach(payment => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                                <td class="text-xs font-weight-bold">${payment.date}</td>
-                                <td class="text-xs font-weight-bold">${payment.contract_id} (${payment.car})</td>
-                                <td class="text-xs font-weight-bold">${payment.amount}</td>
-                                <td class="text-xs font-weight-bold">${payment.method}</td>
-                                <td class="text-xs font-weight-bold">${payment.reference}</td>
-                                <td class="text-xs font-weight-bold"><span class="badge bg-success">Completed</span></td>
-                            `;
+                        <td class="text-xs font-weight-bold">${payment.date}</td>
+                        <td class="text-xs font-weight-bold">${payment.contract_id} (${payment.car})</td>
+                        <td class="text-xs font-weight-bold">${payment.amount}</td>
+                        <td class="text-xs font-weight-bold">${payment.method}</td>
+                        <td class="text-xs font-weight-bold">${payment.reference}</td>
+                        <td class="text-xs font-weight-bold"><span class="badge bg-success">Completed</span></td>
+                    `;
                         paymentsTbody.appendChild(row);
                     });
                 } else {
@@ -1187,6 +1186,21 @@
                 const clientId = document.getElementById('client_id').value;
                 const url = method === 'POST' ? routes.storeUrl : routes.updateUrl.replace(':id', clientId);
 
+                // Client-side validation for photo
+                const photoInput = document.getElementById('photo');
+                if (photoInput.files.length > 0) {
+                    const file = photoInput.files[0];
+                    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+                    if (!file.type.match('image.*')) {
+                        showAlert('Error', 'Please upload a valid image file (e.g., JPG, PNG).', 'error');
+                        return;
+                    }
+                    if (file.size > maxSize) {
+                        showAlert('Error', 'Image size must not exceed 2MB.', 'error');
+                        return;
+                    }
+                }
+
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
@@ -1205,7 +1219,12 @@
                             table.ajax.reload();
                             showAlert('Success', data.message || 'Customer saved successfully', 'success');
                         } else {
-                            throw new Error(data.message || 'Failed to save customer');
+                            if (data.errors && data.errors.photo) {
+                                displayValidationErrors(data.errors);
+                                showAlert('Validation Error', data.errors.photo[0] || 'Please check the photo field.', 'error');
+                            } else {
+                                throw new Error(data.message || 'Failed to save customer');
+                            }
                         }
                     })
                     .catch(error => {
@@ -1335,7 +1354,7 @@
                     const errorElement = document.getElementById(`${field}-error`);
                     const inputElement = document.getElementById(field);
                     if (errorElement && inputElement) {
-                        errorElement.textContent = messages.join(', ');
+                        errorElement.textContent = Array.isArray(messages) ? messages.join(', ') : messages;
                         inputElement.classList.add('is-invalid');
                     }
                 }
@@ -1370,16 +1389,24 @@
             }
 
             /**
-             * Show alert with SweetAlert2
+             * Show alert with SweetAlert2 (Toast style matching brand management)
              */
             function showAlert(title, text, icon) {
-                Swal.fire({
-                    title: title,
-                    text: text,
-                    icon: icon,
-                    confirmButtonColor: '#5e72e4',
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
                     timer: 3000,
-                    timerProgressBar: true
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
+                Toast.fire({
+                    icon: icon,
+                    title: title,
+                    text: text
                 });
             }
         });

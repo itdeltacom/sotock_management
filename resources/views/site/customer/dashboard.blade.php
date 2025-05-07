@@ -145,64 +145,6 @@
     </div>
 @endsection
 
-@section('dashboard-scripts')
-    <script>
-        $(document).ready(function () {
-            // Handle booking cancellation
-            $('.cancel-booking').on('click', function () {
-                const bookingId = $(this).data('id');
-
-                Swal.fire({
-                    title: 'Êtes-vous sûr?',
-                    text: "Cette action ne peut pas être annulée!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Oui, annuler la réservation!',
-                    cancelButtonText: 'Non, retour'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/client/bookings/${bookingId}/cancel`,
-                            type: 'POST',
-                            data: {
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function (response) {
-                                if (response.status === 'success') {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Réservation annulée!',
-                                        text: response.message,
-                                        showConfirmButton: false,
-                                        timer: 2000
-                                    }).then(() => {
-                                        location.reload();
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Erreur',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function (xhr) {
-                                const response = xhr.responseJSON;
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Erreur',
-                                    text: response.message || 'Une erreur est survenue. Veuillez réessayer.'
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-        });
-    </script>
-@endsection
 
 @php
     function getStatusLabel($status)

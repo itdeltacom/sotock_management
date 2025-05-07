@@ -714,7 +714,7 @@ class ContractController extends Controller
     /**
      * Print contract
      */
-    public function print(Contract $contract)
+    public function printContract(Contract $contract)
     {
         $contract->load(['client', 'car', 'payments']);
         return view('admin.contracts.print', compact('contract'));
@@ -773,5 +773,4 @@ class ContractController extends Controller
             ]);
         }
     }
-
 }

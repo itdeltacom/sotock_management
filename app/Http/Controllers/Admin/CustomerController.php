@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Payment;
 use App\Models\Contract;
+use App\Models\Activity; // Add the Activity model import
 use Illuminate\Http\Request;
 use App\Exports\ClientsExport;
 use Illuminate\Validation\Rule;
@@ -227,6 +228,87 @@ class CustomerController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255|unique:users',
+        'password' => 'required|string|min:8|confirmed',
+        'phone' => 'required|string|max:20',
+        'address' => 'nullable|string',
+        'id_number' => 'required|string|max:50|unique:users,id_number',
+        'license_number' => 'required|string|max:50|unique:users,license_number',
+        'license_expiry_date' => 'required|date|after:today',
+        'photo' => 'nullable|image|max:2048',
+        'status' => 'required|in:active,inactive',
+        'notes' => 'nullable|string',
+        'emergency_contact_name' => 'nullable|string|max:255',
+        'emergency_contact_phone' => 'nullable|string|max:20',
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        // Handle photo upload if present
+        if ($request->hasFile('photo')) {
+            // Verify the file is valid
+            if (!$request->file('photo')->isValid()) {
+                throw new \Exception('The uploaded photo is invalid or corrupted.');
+            }
+
+            // Check if the storage directory is writable
+            $storagePath = storage_path('app/public/users');
+            if (!is_dir($storagePath)) {
+                mkdir($storagePath, 0755, true);
+            }
+            if (!is_writable($storagePath)) {
+                throw new \Exception('Storage directory is not writable. Please check permissions.');
+            }
+
+            $validated['photo'] = $request->file('photo')->store('users', 'public');
+        }
+
+        // Hash password
+        $validated['password'] = bcrypt($validated['password']);
+
+        $client = User::create($validated);
+
+        // Log activity using custom Activity model
+        Activity::create([
+            'type' => 'client',
+            'title' => 'Client Created',
+            'description' => 'Created new client: ' . $client->name,
+            'user_type' => get_class(auth()->user()),
+            'user_id' => auth()->id(),
+            'subject_type' => get_class($client),
+            'subject_id' => $client->id,
+            'properties' => null,
+            'ip_address' => request()->ip()
+        ]);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Client created successfully.'
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        // Delete uploaded photo if exists
+        if (isset($validated['photo'])) {
+            Storage::disk('public')->delete($validated['photo']);
+        }
+
+        // Log the error for debugging
+        \Log::error('Error creating client: ' . $e->getMessage(), ['exception' => $e]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error creating client: ' . $e->getMessage()
+        ], 500);
+    }
+}
+     /*public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -257,11 +339,18 @@ class CustomerController extends Controller
 
             $client = User::create($validated);
 
-            // Log activity
-            activity()
-                ->performedOn($client)
-                ->causedBy(auth()->user())
-                ->log('Created new client: ' . $client->name);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'client',
+                'title' => 'Client Created',
+                'description' => 'Created new client: ' . $client->name,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($client),
+                'subject_id' => $client->id,
+                'properties' => null,
+                'ip_address' => request()->ip()
+            ]);
 
             DB::commit();
 
@@ -279,110 +368,20 @@ class CustomerController extends Controller
                 ->withInput()
                 ->with('error', 'Error creating client: ' . $e->getMessage());
         }
-    }
+    }*/
 
     /**
      * Display the specified resource.
      */
     public function show(User $client)
-{
-    Log::info('Show method called with client: ' . $client);
-    
-    if (!$client instanceof User) {
-        $client = User::findOrFail($client);
-    }
-    
-    try {
-        // Get client statistics
-        $stats = $client->getRentalStatistics();
-        
-        // Get payment history
-        $payments = Payment::whereHas('contract', function ($query) use ($client) {
-            $query->where('client_id', $client->id);
-        })->with('contract.car')
-            ->orderBy('payment_date', 'desc')
-            ->take(10)
-            ->get();
-        
-        // Return JSON for AJAX requests
-        if (request()->ajax()) {
-            $eligibility = $client->getRentalEligibilityStatus();
-            
-            return response()->json([
-                'success' => true,
-                'client' => [
-                    'id' => $client->id,
-                    'full_name' => $client->name,
-                    'email' => $client->email,
-                    'phone' => $client->phone,
-                    'address' => $client->address,
-                    'status' => $client->status,
-                    'profile_photo' => $client->photo ? asset('storage/' . $client->photo) : asset('admin/img/default-avatar.png'),
-                    'active_contracts' => $client->active_contracts,
-                    'overdue_contracts' => $client->overdue_contracts,
-                    'total_outstanding' => $client->total_outstanding_balance,
-                    'id_number' => $client->id_number ?? 'N/A',
-                    'license_number' => $client->license_number ?? 'N/A',
-                    'license_expiry_date' => $client->license_expiry_date ? $client->license_expiry_date->format('M d, Y') : 'N/A',
-                    'license_expired' => $client->license_expiry_date && $client->license_expiry_date < now(),
-                    'credit_score' => $client->credit_score,
-                    'can_rent' => $eligibility['can_rent'],
-                    'rental_restriction_reason' => $eligibility['reason'],
-                    'created_at' => $client->created_at->format('M d, Y'),
-                    'emergency_contact_name' => $client->emergency_contact_name ?? null,
-                    'emergency_contact_phone' => $client->emergency_contact_phone ?? null,
-                    'notes' => $client->notes ?? null,
-                ],
-                'stats' => $stats,
-                'payments' => $payments->map(function ($payment) {
-                    return [
-                        'date' => $payment->payment_date->format('M d, Y h:i A'),
-                        'contract_id' => str_pad($payment->contract->id, 5, '0', STR_PAD_LEFT),
-                        'car' => $payment->contract->car->brand_name . ' ' . $payment->contract->car->model,
-                        'amount' => number_format($payment->amount, 2) . ' MAD',
-                        'method' => ucfirst($payment->payment_method),
-                        'reference' => $payment->reference ?? 'N/A',
-                    ];
-                }),
-                'contracts' => $client->contracts()->latest()->take(5)->get()->map(function ($contract) {
-                    return [
-                        'id' => str_pad($contract->id, 5, '0', STR_PAD_LEFT),
-                        'car' => $contract->car->brand_name . ' ' . $contract->car->model,
-                        'start_date' => $contract->start_date->format('M d, Y'),
-                        'end_date' => $contract->end_date->format('M d, Y'),
-                        'total_amount' => number_format($contract->total_amount, 2) . ' MAD',
-                        'total_paid' => number_format($contract->total_paid, 2) . ' MAD',
-                        'status' => ucfirst($contract->status),
-                        'view_url' => route('admin.contracts.show', $contract->id),
-                    ];
-                }),
-            ]);
-        }
-        
-        // For non-AJAX requests, redirect to index (modal will handle display)
-        return redirect()->route('admin.clients.index');
-    } catch (\Exception $e) {
-        \Log::error('Error in client show method: ' . $e->getMessage());
-        
-        if (request()->ajax()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client not found'
-            ], 404);
-        }
-        
-        abort(404, 'Client not found');
-    }
-}
-     
-     /*public function show($id)
     {
+        Log::info('Show method called with client: ' . $client);
+        
+        if (!$client instanceof User) {
+            $client = User::findOrFail($client);
+        }
+        
         try {
-            $client = User::with(['contracts' => function ($query) {
-                $query->with(['car', 'payments'])
-                      ->orderBy('created_at', 'desc');
-            }])->findOrFail($id);
-            
             // Get client statistics
             $stats = $client->getRentalStatistics();
             
@@ -419,6 +418,9 @@ class CustomerController extends Controller
                         'can_rent' => $eligibility['can_rent'],
                         'rental_restriction_reason' => $eligibility['reason'],
                         'created_at' => $client->created_at->format('M d, Y'),
+                        'emergency_contact_name' => $client->emergency_contact_name ?? null,
+                        'emergency_contact_phone' => $client->emergency_contact_phone ?? null,
+                        'notes' => $client->notes ?? null,
                     ],
                     'stats' => $stats,
                     'payments' => $payments->map(function ($payment) {
@@ -449,6 +451,8 @@ class CustomerController extends Controller
             // For non-AJAX requests, redirect to index (modal will handle display)
             return redirect()->route('admin.clients.index');
         } catch (\Exception $e) {
+            \Log::error('Error in client show method: ' . $e->getMessage());
+            
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -458,7 +462,7 @@ class CustomerController extends Controller
             
             abort(404, 'Client not found');
         }
-    }*/
+    }
 
     /**
      * Show the form for editing the specified resource.
@@ -510,11 +514,18 @@ class CustomerController extends Controller
 
             $client->update($validated);
 
-            // Log activity
-            activity()
-                ->performedOn($client)
-                ->causedBy(auth()->user())
-                ->log('Updated client: ' . $client->name);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'client',
+                'title' => 'Client Updated',
+                'description' => 'Updated client: ' . $client->name,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($client),
+                'subject_id' => $client->id,
+                'properties' => null,
+                'ip_address' => request()->ip()
+            ]);
 
             DB::commit();
 
@@ -563,10 +574,18 @@ class CustomerController extends Controller
                 Storage::disk('public')->delete($client->photo);
             }
             
-            // Log activity before deletion
-            activity()
-                ->causedBy(auth()->user())
-                ->log('Deleted client: ' . $client->name);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'client',
+                'title' => 'Client Deleted',
+                'description' => 'Deleted client: ' . $client->name,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => null,
+                'subject_id' => null,
+                'properties' => json_encode(['client_id' => $client->id, 'client_name' => $client->name]),
+                'ip_address' => request()->ip()
+            ]);
             
             $client->delete();
 
@@ -648,11 +667,22 @@ class CustomerController extends Controller
                 'processed_by' => auth()->id()
             ]);
 
-            // Log activity
-            activity()
-                ->performedOn($contract)
-                ->causedBy(auth()->user())
-                ->log('Added payment of ' . number_format($validated['amount'], 2) . ' MAD for contract #' . $contract->id);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'payment',
+                'title' => 'Payment Added',
+                'description' => 'Added payment of ' . number_format($validated['amount'], 2) . ' MAD for contract #' . $contract->id,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($contract),
+                'subject_id' => $contract->id,
+                'properties' => json_encode([
+                    'payment_id' => $payment->id,
+                    'amount' => $validated['amount'],
+                    'method' => $validated['payment_method']
+                ]),
+                'ip_address' => request()->ip()
+            ]);
 
             DB::commit();
 
@@ -713,10 +743,18 @@ class CustomerController extends Controller
         try {
             $client->update(['status' => 'banned']);
             
-            activity()
-                ->performedOn($client)
-                ->causedBy(auth()->user())
-                ->log('Banned client: ' . $client->name);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'client',
+                'title' => 'Client Banned',
+                'description' => 'Banned client: ' . $client->name,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($client),
+                'subject_id' => $client->id,
+                'properties' => null,
+                'ip_address' => request()->ip()
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -738,10 +776,18 @@ class CustomerController extends Controller
         try {
             $client->update(['status' => 'active']);
             
-            activity()
-                ->performedOn($client)
-                ->causedBy(auth()->user())
-                ->log('Unbanned client: ' . $client->name);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'client',
+                'title' => 'Client Unbanned',
+                'description' => 'Unbanned client: ' . $client->name,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($client),
+                'subject_id' => $client->id,
+                'properties' => null,
+                'ip_address' => request()->ip()
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -777,10 +823,21 @@ class CustomerController extends Controller
                 // For example: SMS::send($client->phone, $validated['message']);
             }
             
-            activity()
-                ->performedOn($client)
-                ->causedBy(auth()->user())
-                ->log('Sent ' . $validated['type'] . ' notification to client: ' . $client->name);
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'notification',
+                'title' => 'Notification Sent',
+                'description' => 'Sent ' . $validated['type'] . ' notification to client: ' . $client->name,
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($client),
+                'subject_id' => $client->id,
+                'properties' => json_encode([
+                    'type' => $validated['type'],
+                    'subject' => $validated['subject']
+                ]),
+                'ip_address' => request()->ip()
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -852,15 +909,22 @@ class CustomerController extends Controller
             $oldScore = $client->credit_score;
             $client->update(['credit_score' => $validated['credit_score']]);
             
-            activity()
-                ->performedOn($client)
-                ->causedBy(auth()->user())
-                ->withProperties([
+            // Log activity using custom Activity model
+            Activity::create([
+                'type' => 'client',
+                'title' => 'Credit Score Updated',
+                'description' => 'Updated credit score from ' . $oldScore . ' to ' . $validated['credit_score'],
+                'user_type' => get_class(auth()->user()),
+                'user_id' => auth()->id(),
+                'subject_type' => get_class($client),
+                'subject_id' => $client->id,
+                'properties' => json_encode([
                     'old_score' => $oldScore,
                     'new_score' => $validated['credit_score'],
                     'reason' => $validated['reason']
-                ])
-                ->log('Updated credit score from ' . $oldScore . ' to '  . $validated['credit_score']);
+                ]),
+                'ip_address' => request()->ip()
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -873,59 +937,61 @@ class CustomerController extends Controller
             ], 500);
         }
     }
-// In Send data for creating contact
-public function getClientDetails($id)
-{
-    \Log::info('getClientDetails called with ID: ' . $id);
-    try {
-        $client = User::findOrFail($id);
-        
-        // Get client statistics
-        $stats = $client->getRentalStatistics();
-        
-        // Get payment history
-        $payments = Payment::whereHas('contract', function ($query) use ($client) {
-            $query->where('client_id', $client->id);
-        })->with('contract.car')
-            ->orderBy('payment_date', 'desc')
-            ->take(10)
-            ->get();
-        
-        $eligibility = $client->getRentalEligibilityStatus();
-        
-        return response()->json([
-            'success' => true,
-            'client' => [
-                'id' => $client->id,
-                'full_name' => $client->name,
-                'email' => $client->email,
-                'phone' => $client->phone,
-                'address' => $client->address,
-                'status' => $client->status,
-                'profile_photo' => $client->photo ? asset('storage/' . $client->photo) : asset('admin/img/default-avatar.png'),
-                'active_contracts' => $client->active_contracts,
-                'overdue_contracts' => $client->overdue_contracts,
-                'total_outstanding' => $client->total_outstanding_balance,
-                'id_number' => $client->id_number ?? 'N/A',
-                'license_number' => $client->license_number ?? 'N/A',
-                'license_expiry_date' => $client->license_expiry_date ? $client->license_expiry_date->format('M d, Y') : 'N/A',
-                'license_expired' => $client->license_expiry_date && $client->license_expiry_date < now(),
-                'credit_score' => $client->credit_score,
-                'can_rent' => $eligibility['can_rent'],
-                'rental_restriction_reason' => $eligibility['reason'],
-                'created_at' => $client->created_at->format('M d, Y'),
-                'emergency_contact_name' => $client->emergency_contact_name ?? null,
-                'emergency_contact_phone' => $client->emergency_contact_phone ?? null,
-                'notes' => $client->notes ?? null,
-            ],
-            'stats' => $stats,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Client not found'
-        ], 404);
-    }
-}
 
+    /**
+     * Get client details for API
+     */
+    public function getClientDetails($id)
+    {
+        \Log::info('getClientDetails called with ID: ' . $id);
+        try {
+            $client = User::findOrFail($id);
+            
+            // Get client statistics
+            $stats = $client->getRentalStatistics();
+            
+            // Get payment history
+            $payments = Payment::whereHas('contract', function ($query) use ($client) {
+                $query->where('client_id', $client->id);
+            })->with('contract.car')
+                ->orderBy('payment_date', 'desc')
+                ->take(10)
+                ->get();
+            
+            $eligibility = $client->getRentalEligibilityStatus();
+            
+            return response()->json([
+                'success' => true,
+                'client' => [
+                    'id' => $client->id,
+                    'full_name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'address' => $client->address,
+                    'status' => $client->status,
+                    'profile_photo' => $client->photo ? asset('storage/' . $client->photo) : asset('admin/img/default-avatar.png'),
+                    'active_contracts' => $client->active_contracts,
+                    'overdue_contracts' => $client->overdue_contracts,
+                    'total_outstanding' => $client->total_outstanding_balance,
+                    'id_number' => $client->id_number ?? 'N/A',
+                    'license_number' => $client->license_number ?? 'N/A',
+                    'license_expiry_date' => $client->license_expiry_date ? $client->license_expiry_date->format('M d, Y') : 'N/A',
+                    'license_expired' => $client->license_expiry_date && $client->license_expiry_date < now(),
+                    'credit_score' => $client->credit_score,
+                    'can_rent' => $eligibility['can_rent'],
+                    'rental_restriction_reason' => $eligibility['reason'],
+                    'created_at' => $client->created_at->format('M d, Y'),
+                    'emergency_contact_name' => $client->emergency_contact_name ?? null,
+                    'emergency_contact_phone' => $client->emergency_contact_phone ?? null,
+                    'notes' => $client->notes ?? null,
+                ],
+                'stats' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client not found'
+            ], 404);
+        }
+    }
 }

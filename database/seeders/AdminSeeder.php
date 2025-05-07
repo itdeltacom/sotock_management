@@ -125,6 +125,7 @@ class AdminSeeder extends Seeder
             'edit bookings',
             'delete bookings',
             'update booking status',
+            'create payments',
             'update payment status',
             'export bookings',
             'view booking calendar',

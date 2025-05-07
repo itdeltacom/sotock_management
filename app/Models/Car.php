@@ -125,6 +125,11 @@ class Car extends Model
     return $this->hasOne(CarDocuments::class);
 }
 
+public function getFeaturedImageUrlAttribute(): ?string
+{
+    return $this->featured_image ? asset('storage/' . $this->featured_image) : null;
+}
+
 /**
  * Get all maintenance records for the car.
  */

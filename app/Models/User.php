@@ -29,6 +29,8 @@ class User extends Authenticatable
         'id_number',
         'license_number',
         'notes',
+        'emergency_contact_name',
+        'emergency_contact_phone',
     ];
 
     /**
@@ -43,7 +45,6 @@ class User extends Authenticatable
         'facebook_id',
     ];
 
-    
     /**
      * The attributes that should be cast.
      *
@@ -52,6 +53,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'license_expiry_date' => 'date',
     ];
 
     public function getRouteKeyName()

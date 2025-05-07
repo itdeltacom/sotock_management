@@ -212,7 +212,7 @@
                                 <div class="card-body p-3">
                                     <div class="d-flex mb-3">
                                         <div class="avatar avatar-xl me-3">
-                                            <img src="{{ $contract->client->profile_photo ?? '/img/default-avatar.png' }}" alt="Client Avatar" class="border-radius-lg shadow">
+                                            <img src="{{ $contract->client->photo_url ?? asset('/img/default-avatar.png') }}" alt="Client Avatar" class="border-radius-lg shadow">
                                         </div>
                                         <div class="d-flex flex-column">
                                             <h6 class="mb-1 text-dark">{{ $contract->client->full_name }}</h6>
@@ -262,9 +262,7 @@
                                 </div>
                                 <div class="card-body p-3">
                                     <div class="text-center mb-3">
-                                        <img src="{{ $contract->car->featured_image ?? '/img/default-car.png' }}" 
-                                            alt="Vehicle Image" class="img-fluid border-radius-lg shadow" 
-                                            style="max-height: 150px;">
+                                        <img src="{{ $contract->car->featured_image_url ?? asset('images/default-car.png') }}" alt="Vehicle Image" class="img-fluid border-radius-lg shadow" style="max-height: 150px;">
                                     </div>
                                     
                                     <h6 class="text-center text-dark mb-3">

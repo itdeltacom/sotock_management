@@ -133,7 +133,7 @@
     </div>
 @endsection
 
-@push('dashboard-scripts')
+@push('scripts')
     <script>
         $(document).ready(function () {
             // Handle photo preview

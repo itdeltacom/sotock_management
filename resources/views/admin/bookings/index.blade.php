@@ -846,6 +846,7 @@
         .card {
             box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
             border-radius: 0.75rem;
+            height: 100%;
         }
 
         .card .card-header {

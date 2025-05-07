@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AdminAuthController extends Controller
 {
-   /**
+    /**
      * Show the login form
      */
     public function showLoginForm()
@@ -28,131 +28,131 @@ class AdminAuthController extends Controller
     }
     
     /**
- * Handle admin login request
- */
-public function login(Request $request)
-{
-    // Validate input fields
-    $validator = Validator::make($request->all(), [
-        'login' => 'required',
-        'password' => 'required',
-    ]);
-    
-    if ($validator->fails()) {
-        if ($request->ajax()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-        return back()->withErrors($validator)->withInput();
-    }
-    
-    // Log the request for debugging
-    Log::info('Login attempt', ['login' => $request->login]);
-    
-    // Determine if input is email or phone number
-    $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
-    $credentials = [
-        $loginType => $request->login,
-        'password' => $request->password
-    ];
-    
-    // Log the credentials and guard for debugging
-    Log::info('Login credentials', ['type' => $loginType, 'guard' => 'admin']);
-    
-    if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
-        $admin = Auth::guard('admin')->user();
-        
-        // Log successful login
-        Log::info('Login successful', ['admin_id' => $admin->id]);
-        
-        // Check if admin is active
-        if (!$admin->is_active) {
-            Auth::guard('admin')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            Log::warning('Inactive admin account login attempt', ['admin_id' => $admin->id]);
-            
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your account has been deactivated. Please contact the system administrator.'
-                ], 403);
-            }
-            
-            return back()->withErrors([
-                'login' => 'Your account has been deactivated. Please contact the system administrator.',
-            ]);
-        }
-        
-        // Update last login information
-        $admin->update([
-            'last_login_at' => now(),
-            'last_login_ip' => $request->ip(),
+     * Handle admin login request
+     */
+    public function login(Request $request)
+    {
+        // Validate input fields
+        $validator = Validator::make($request->all(), [
+            'login' => 'required',
+            'password' => 'required',
         ]);
         
-        $request->session()->regenerate();
-        
-        // Check for two-factor authentication
-        if ($admin->two_factor_enabled) {
-            // Log 2FA requirement
-            Log::info('2FA verification required', ['admin_id' => $admin->id]);
-            
+        if ($validator->fails()) {
             if ($request->ajax()) {
-                // Generate redirect URL and log it for debugging
-                $redirectUrl = route('admin.two-factor.verify');
-                Log::info('2FA redirect URL', ['url' => $redirectUrl]);
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+            return back()->withErrors($validator)->withInput();
+        }
+        
+        // Log the request for debugging
+        Log::info('Login attempt', ['login' => $request->login]);
+        
+        // Determine if input is email or phone number
+        $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        $credentials = [
+            $loginType => $request->login,
+            'password' => $request->password
+        ];
+        
+        // Log the credentials and guard for debugging
+        Log::info('Login credentials', ['type' => $loginType, 'guard' => 'admin']);
+        
+        if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
+            $admin = Auth::guard('admin')->user();
+            
+            // Log successful login
+            Log::info('Login successful', ['admin_id' => $admin->id]);
+            
+            // Check if admin is active
+            if (!$admin->is_active) {
+                Auth::guard('admin')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
                 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Logged in successfully. Please complete two-factor authentication.',
-                    'redirect' => $redirectUrl
+                Log::warning('Inactive admin account login attempt', ['admin_id' => $admin->id]);
+                
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your account has been deactivated. Please contact the system administrator.'
+                    ], 403);
+                }
+                
+                return back()->withErrors([
+                    'login' => 'Your account has been deactivated. Please contact the system administrator.',
                 ]);
             }
             
-            // Flash success message for login before redirecting to 2FA page
+            // Update last login information
+            $admin->update([
+                'last_login_at' => now(),
+                'last_login_ip' => $request->ip(),
+            ]);
+            
+            $request->session()->regenerate();
+            
+            // Check for two-factor authentication
+            if ($admin->two_factor_enabled) {
+                // Log 2FA requirement
+                Log::info('2FA verification required', ['admin_id' => $admin->id]);
+                
+                if ($request->ajax()) {
+                    // Generate redirect URL and log it for debugging
+                    $redirectUrl = route('admin.two-factor.verify');
+                    Log::info('2FA redirect URL', ['url' => $redirectUrl]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Logged in successfully. Please complete two-factor authentication.',
+                        'redirect' => $redirectUrl
+                    ]);
+                }
+                
+                // Flash success message for login before redirecting to 2FA page
+                session()->flash('toastr', [
+                    'type' => 'success',
+                    'message' => 'Please complete two-factor authentication.'
+                ]);
+                return redirect()->route('admin.two-factor.verify');
+            }
+            
+            if ($request->ajax()) {
+                // Generate dashboard URL and log it for debugging
+                $dashboardUrl = route('admin.dashboard');
+                Log::info('Dashboard redirect URL', ['url' => $dashboardUrl]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'You have successfully logged in.',
+                    'redirect' => $dashboardUrl
+                ]);
+            }
+            
+            // Flash success message for login
             session()->flash('toastr', [
                 'type' => 'success',
-                'message' => 'Please complete two-factor authentication.'
+                'message' => 'You have successfully logged in.'
             ]);
-            return redirect()->route('admin.two-factor.verify');
+            
+            // Redirect to dashboard with intended URL support
+            return redirect()->intended(route('admin.dashboard'));
         }
+        
+        // Log failed login attempt
+        Log::warning('Failed login attempt', ['login' => $request->login, 'ip' => $request->ip()]);
         
         if ($request->ajax()) {
-            // Generate dashboard URL and log it for debugging
-            $dashboardUrl = route('admin.dashboard');
-            Log::info('Dashboard redirect URL', ['url' => $dashboardUrl]);
-            
             return response()->json([
-                'success' => true,
-                'message' => 'You have successfully logged in.',
-                'redirect' => $dashboardUrl
-            ]);
+                'success' => false,
+                'message' => 'The provided credentials do not match our records.'
+            ], 422);
         }
         
-        // Flash success message for login
-        session()->flash('toastr', [
-            'type' => 'success',
-            'message' => 'You have successfully logged in.'
-        ]);
-        
-        // Redirect to dashboard with intended URL support
-        return redirect()->intended(route('admin.dashboard'));
+        return back()->withErrors([
+            'login' => 'The provided credentials do not match our records.',
+        ])->onlyInput('login');
     }
-    
-    // Log failed login attempt
-    Log::warning('Failed login attempt', ['login' => $request->login, 'ip' => $request->ip()]);
-    
-    if ($request->ajax()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'The provided credentials do not match our records.'
-        ], 422);
-    }
-    
-    return back()->withErrors([
-        'login' => 'The provided credentials do not match our records.',
-    ])->onlyInput('login');
-}
     
     /**
      * Handle admin logout request
@@ -179,84 +179,136 @@ public function login(Request $request)
         return view('admin.auth.forgot-password');
     }
     
-    /**
-     * Handle forgot password request
-     */
-    public function forgotPassword(Request $request)
-    {
-        // Determine if input is email or phone number
-        $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
-        
-        // Real-time validation via AJAX
-        if ($request->ajax()) {
-            $validator = Validator::make($request->all(), [
-                'login' => 'required|exists:admins,' . $loginType,
-            ]);
-            
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
-            
-            return response()->json(['success' => true]);
-        }
-        
-        // Regular form submission
-        $request->validate([
+    
+ /**
+ * Handle forgot password request
+ */
+public function forgotPassword(Request $request)
+{
+    // Determine if input is email or phone number
+    $loginType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+    
+    // Real-time validation via AJAX
+    if ($request->ajax()) {
+        $validator = Validator::make($request->all(), [
             'login' => 'required|exists:admins,' . $loginType,
         ]);
         
-        // For phone numbers, we need to fetch the associated email
-        $admin = Admin::where($loginType, $request->login)->first();
-        $email = $admin->email;
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
         
-        // Delete any existing reset tokens for this email
-        DB::table('password_reset_tokens')
-            ->where('email', $email)
-            ->delete();
+        return response()->json(['success' => true]);
+    }
+    
+    // Regular form submission
+    $request->validate([
+        'login' => 'required|exists:admins,' . $loginType,
+    ]);
+    
+    // For phone numbers, fetch the associated email
+    $admin = Admin::where($loginType, $request->login)->first();
+    
+    if (!$admin) {
+        if ($request->ajax()) {
+            return response()->json([
+                'errors' => ['login' => ['User not found with the provided ' . $loginType . '.']]
+            ], 422);
+        }
         
-        // Generate a new token
-        $token = Str::random(64);
-        
-        // Store the new token
-        DB::table('password_reset_tokens')->insert([
-            'email' => $email,
-            'token' => Hash::make($token),
-            'created_at' => Carbon::now()
+        return back()->withErrors(['login' => 'User not found with the provided ' . $loginType . '.']);
+    }
+    
+    $email = $admin->email;
+    
+    // Make sure we have a valid email
+    if (empty($email)) {
+        Log::error('Admin record has no email address', [
+            'admin_id' => $admin->id,
+            'login_type' => $loginType,
+            'login' => $request->login
         ]);
         
-        // Create reset link
-        $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $email]);
+        if ($request->ajax()) {
+            return response()->json([
+                'errors' => ['login' => ['No email address associated with this account. Please contact support.']]
+            ], 422);
+        }
         
-        // Send email with reset link
-        try {
-            Mail::send('admin.emails.reset-password', ['resetLink' => $resetLink], function($message) use ($email) {
-                $message->to($email);
-                $message->subject('Reset Your Admin Password');
-            });
-            
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => true, 
-                    'message' => 'We have emailed your password reset link!'
-                ]);
-            }
-            
-            session()->flash('toastr', [
-                'type' => 'success',
+        return back()->withErrors(['login' => 'No email address associated with this account. Please contact support.']);
+    }
+    
+    // Delete any existing reset tokens for this email
+    DB::table('password_reset_tokens')
+        ->where('email', $email)
+        ->delete();
+    
+    // Generate a new token
+    $token = Str::random(64);
+    
+    // Store the new token
+    DB::table('password_reset_tokens')->insert([
+        'email' => $email,
+        'token' => Hash::make($token),
+        'created_at' => Carbon::now()
+    ]);
+    
+    // Create reset link
+    $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $email]);
+    
+    // Log attempt to send email
+    Log::info('Attempting to send password reset email', [
+        'email' => $email,
+        'reset_link' => $resetLink
+    ]);
+    
+    // Check mail configuration
+    $mailConfig = config('mail');
+    Log::info('Mail configuration', [
+        'driver' => $mailConfig['mailer'] ?? $mailConfig['driver'] ?? 'unknown',
+        'host' => $mailConfig['host'] ?? 'unknown',
+        'port' => $mailConfig['port'] ?? 'unknown',
+        'from_address' => $mailConfig['from']['address'] ?? 'unknown',
+        'from_name' => $mailConfig['from']['name'] ?? 'unknown'
+    ]);
+    
+    // Send email with reset link using Mail class
+    try {
+        Mail::to($email)->send(new \App\Mail\ResetPasswordMail($resetLink));
+        
+        Log::info('Password reset email sent successfully', ['email' => $email]);
+        
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
                 'message' => 'We have emailed your password reset link!'
             ]);
-            return back();
-            
-        } catch (\Exception $e) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'errors' => ['login' => ['Could not send reset link. Please try again later.']]
-                ], 422);
-            }
-            
-            return back()->withErrors(['login' => 'Could not send reset link. Please try again later.']);
         }
+        
+        session()->flash('toastr', [
+            'type' => 'success',
+            'message' => 'We have emailed your password reset link!'
+        ]);
+        
+        return back();
+        
+    } catch (\Exception $e) {
+        Log::error('Failed to send password reset email', [
+            'email' => $email,
+            'error' => $e->getMessage(),
+            'error_code' => $e->getCode(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        if ($request->ajax()) {
+            return response()->json([
+                'errors' => ['login' => ['Could not send reset link: ' . $e->getMessage()]]
+            ], 422);
+        }
+        
+        return back()->withErrors(['login' => 'Could not send reset link: ' . $e->getMessage()]);
     }
+}
     
     /**
      * Show the reset password form
