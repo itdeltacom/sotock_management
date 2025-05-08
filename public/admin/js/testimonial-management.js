@@ -29,6 +29,12 @@ $(function () {
         ],
         order: [[0, 'desc']],
         responsive: true,
+        language: {
+            paginate: {
+                next: '<i class="fas fa-angle-right"></i>',
+                previous: '<i class="fas fa-angle-left"></i>'
+            }
+        },
         drawCallback: function() {
             // Reattach event handlers after each redraw
             attachEventHandlers();

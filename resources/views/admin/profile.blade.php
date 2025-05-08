@@ -122,7 +122,7 @@
                                     <label for="current_password" class="form-label">Current Password</label>
                                     <div class="input-group">
                                         <input type="password" name="current_password" id="current_password"
-                                            class="form-control @error('current_password') is-invalid @enderror">
+                                            class="form-control input_pass @error('current_password') is-invalid @enderror">
                                         <button type="button" class="btn btn-outline-secondary password-toggle"
                                             tabindex="-1">
                                             <i class="fas fa-eye"></i>
@@ -137,7 +137,7 @@
                                     <label for="password" class="form-label">New Password</label>
                                     <div class="input-group">
                                         <input type="password" name="password" id="password"
-                                            class="form-control @error('password') is-invalid @enderror">
+                                            class="form-control input_pass @error('password') is-invalid @enderror">
                                         <button type="button" class="btn btn-outline-secondary password-toggle"
                                             tabindex="-1">
                                             <i class="fas fa-eye"></i>
@@ -157,7 +157,7 @@
                                     <label for="password_confirmation" class="form-label">Confirm New Password</label>
                                     <div class="input-group">
                                         <input type="password" name="password_confirmation" id="password_confirmation"
-                                            class="form-control">
+                                            class="form-control input_pass">
                                         <button type="button" class="btn btn-outline-secondary password-toggle"
                                             tabindex="-1">
                                             <i class="fas fa-eye"></i>
@@ -250,6 +250,10 @@
             width: 0;
             transition: width 0.3s ease;
             border-radius: 5px;
+        }
+
+        .input_pass {
+            height: 100%;
         }
 
         .password-strength-meter.bg-danger {

@@ -74,13 +74,7 @@ class CarController extends Controller
     
     return view('admin.cars.cars', compact('categories', 'brands', 'statistics'));
 }
-     /*public function index()
-    {
-        $categories = Category::where('is_active', true)->orderBy('name')->get();
-        $brands = Brand::where('is_active', true)->orderBy('name')->get();
-        
-        return view('admin.cars.cars', compact('categories', 'brands'));
-    }*/
+    
 
     /**
      * Process DataTables AJAX request.
@@ -262,7 +256,8 @@ public function store(Request $request)
             'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
         ]);
         
-        $data['slug'] = Str::slug($request->name);
+        $data['slug'] = $this->generateUniqueSlug($request->name, $request->color);
+
         $data['features'] = $request->features ?? [];
         $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
         
@@ -359,18 +354,37 @@ public function show(Car $car)
 }
 
     /**
-     * Show the form for editing the specified car.
-     */
-    public function edit(Car $car)
-    {
-        // Load relationships
-        $car->load('images');
+ * Show the form for editing the specified car.
+ */
+public function edit(Car $car)
+{
+    // Load relationships - add documents relation here
+    $car->load(['images', 'documents']);
+    
+    // Debug info
+    \Log::info('Car data for edit:', [
+        'car_id' => $car->id,
+        'has_documents' => $car->documents ? 'yes' : 'no'
+    ]);
+    
+    // Make sure documents exist, create if missing
+    if (!$car->documents) {
+        \Log::info("No documents found for car ID: {$car->id}. Creating a new document record.");
         
-        return response()->json([
-            'success' => true,
-            'car' => $car
-        ]);
+        // Create a new document record for this car
+        $documents = new CarDocuments();
+        $documents->car_id = $car->id;
+        $documents->save();
+        
+        // Reload the car with the new documents
+        $car->load('documents');
     }
+    
+    return response()->json([
+        'success' => true,
+        'car' => $car
+    ]);
+}
 
     /**
      * Update the specified resource in storage.
@@ -464,7 +478,10 @@ public function show(Car $car)
                 'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
             ]);
             
-            $data['slug'] = Str::slug($request->name);
+            // Update slug if name or color has changed
+        if ($car->name !== $request->name || $car->color !== $request->color) {
+            $data['slug'] = $this->generateUniqueSlug($request->name, $request->color, $car->id);
+        }
             $data['features'] = $request->features ?? [];
             $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
             
@@ -848,6 +865,50 @@ public function show(Car $car)
             
         return response()->json($cars);
     }
+
+    /**
+ * Generate a unique slug for the car
+ *
+ * @param string $name Base name for the slug
+ * @param string|null $color Optional color to include in slug
+ * @param int|null $excludeId Car ID to exclude from uniqueness check (for updates)
+ * @return string
+ */
+private function generateUniqueSlug($name, $color = null, $excludeId = null)
+{
+    // Create base slug from name
+    $baseSlug = Str::slug($name);
+    
+    // If color is provided, append it to make the base slug more unique
+    if ($color) {
+        $baseSlug .= '-' . Str::slug($color);
+    }
+    
+    $slug = $baseSlug;
+    $counter = 1;
+    
+    // Keep checking until we find a unique slug
+    while (true) {
+        // Build query to check for existing slug
+        $query = Car::where('slug', $slug);
+        
+        // If we're updating, exclude the current car
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+        
+        // If no matching slug exists, we're done
+        if ($query->doesntExist()) {
+            break;
+        }
+        
+        // Otherwise, increment counter and try again
+        $slug = $baseSlug . '-' . $counter;
+        $counter++;
+    }
+    
+    return $slug;
+}
 
     /**
      * Check document expiration dates and set alerts for soon-to-expire documents

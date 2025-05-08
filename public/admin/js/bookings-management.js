@@ -87,10 +87,8 @@ document.addEventListener('DOMContentLoaded', function () {
             zeroRecords: "Aucun élément à afficher",
             emptyTable: "Aucune donnée disponible dans le tableau",
             paginate: {
-                first: "Premier",
-                previous: "Précédent",
-                next: "Suivant",
-                last: "Dernier"
+                next: '<i class="fas fa-angle-right"></i>',
+                previous: '<i class="fas fa-angle-left"></i>'
             },
             aria: {
                 sortAscending: ": activer pour trier la colonne par ordre croissant",

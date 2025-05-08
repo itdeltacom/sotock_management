@@ -3,90 +3,92 @@
 @section('title', 'Blog Management')
 
 @section('content')
-    <div class="page-header">
-        <h3 class="page-title">Blog Management</h3>
-        <div class="page-actions">
-            @can('create blog posts')
-                <button type="button" class="btn btn-primary" id="createBlogBtn">
-                    <i class="fas fa-plus"></i> Add New Post
-                </button>
-            @endcan
-        </div>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title">Filter Posts</h5>
-        </div>
-        <div class="card-body">
-            <form id="filterForm" class="row g-3">
-                <div class="col-md-3">
-                    <label for="statusFilter" class="form-label">Status</label>
-                    <select class="form-select" id="statusFilter" name="status">
-                        <option value="">All Statuses</option>
-                        <option value="published">Published</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="draft">Draft</option>
-                    </select>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
+                    <div class="card-header pb-0 p-3">
+                        <div class="row">
+                            <div class="col-6 d-flex align-items-center">
+                                <h6 class="mb-0">Blog Management</h6>
+                            </div>
+                            <div class="col-6 text-end">
+                                @can('create blog posts')
+                                    <button type="button" class="btn bg-gradient-primary" id="createBlogBtn">
+                                        <i class="fas fa-plus"></i> Add New Post
+                                    </button>
+                                @endcan
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="card-header pb-0 p-3">
+                        <form id="filterForm" class="row g-3">
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm" id="statusFilter" name="status">
+                                    <option value="">All Statuses</option>
+                                    <option value="published">Published</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="draft">Draft</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm" id="categoryFilter" name="category_id">
+                                    <option value="">All Categories</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm" id="featuredFilter" name="is_featured">
+                                    <option value="">All Posts</option>
+                                    <option value="1">Featured Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-flex">
+                                    <button type="submit" class="btn btn-sm bg-gradient-info me-2">
+                                        <i class="fas fa-filter"></i> Apply
+                                    </button>
+                                    <button type="button" id="resetFilterBtn" class="btn btn-sm bg-gradient-secondary">
+                                        <i class="fas fa-undo"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="card-body px-0 pt-0 pb-2">
+                        <div class="table-responsive p-0">
+                            <table class="table align-items-center mb-0" id="blogs-table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">ID</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Image</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Title</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Category</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Author</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Published Date</th>
+                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Comments</th>
+                                        @if(auth()->guard('admin')->user()->can('edit blog posts') || auth()->guard('admin')->user()->can('delete blog posts'))
+                                            <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
+                                        @endif
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label for="categoryFilter" class="form-label">Category</label>
-                    <select class="form-select" id="categoryFilter" name="category_id">
-                        <option value="">All Categories</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="featuredFilter" class="form-label">Featured</label>
-                    <select class="form-select" id="featuredFilter" name="is_featured">
-                        <option value="">All Posts</option>
-                        <option value="1">Featured Only</option>
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-filter"></i> Apply
-                    </button>
-                    <button type="button" id="resetFilterBtn" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title">All Blog Posts</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover" id="blogs-table" width="100%">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Image</th>
-                            <th>Title</th>
-                            <th>Category</th>
-                            <th>Author</th>
-                            <th>Status</th>
-                            <th>Published Date</th>
-                            <th>Comments</th>
-                            @if(auth()->guard('admin')->user()->can('edit blog posts') || auth()->guard('admin')->user()->can('delete blog posts'))
-                                <th>Actions</th>
-                            @endif
-                        </tr>
-                    </thead>
-                </table>
             </div>
         </div>
     </div>
 
     <!-- Create/Edit Blog Modal -->
     <div class="modal fade" id="blogModal" tabindex="-1" aria-labelledby="blogModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="blogModalLabel">Add New Blog Post</h5>
@@ -97,7 +99,7 @@
                     <input type="hidden" name="post_id" id="post_id">
                     <div class="modal-body">
                         <!-- Tab Navigation -->
-                        <ul class="nav nav-tabs" id="blogTabs" role="tablist">
+                        <ul class="nav nav-pills mb-3" id="blogTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab"
                                     data-bs-target="#basic-info" type="button" role="tab" aria-controls="basic-info"
@@ -126,13 +128,13 @@
                                 <div class="row">
                                     <div class="col-md-8">
                                         <div class="mb-3">
-                                            <label for="title" class="form-label">Title <span
+                                            <label for="title" class="form-control-label">Title <span
                                                     class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="title" name="title" required>
                                             <div class="invalid-feedback" id="title-error"></div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="slug" class="form-label">Slug</label>
+                                            <label for="slug" class="form-control-label">Slug</label>
                                             <div class="input-group">
                                                 <input type="text" class="form-control" id="slug" name="slug">
                                                 <button class="btn btn-outline-secondary" type="button"
@@ -144,13 +146,13 @@
                                                 left empty</small>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="editor" class="form-label">Content <span
+                                            <label for="editor" class="form-control-label">Content <span
                                                     class="text-danger">*</span></label>
                                             <textarea class="form-control" id="editor" name="content"></textarea>
                                             <div class="invalid-feedback" id="content-error"></div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="excerpt" class="form-label">Excerpt</label>
+                                            <label for="excerpt" class="form-control-label">Excerpt</label>
                                             <textarea class="form-control" id="excerpt" name="excerpt" rows="3"></textarea>
                                             <div class="invalid-feedback" id="excerpt-error"></div>
                                             <div class="form-text">A short summary of the post (max 500 characters)</div>
@@ -158,9 +160,9 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="mb-3">
-                                            <label for="category_id" class="form-label">Category <span
+                                            <label for="category_id" class="form-control-label">Category <span
                                                     class="text-danger">*</span></label>
-                                            <select class="form-select" id="category_id" name="category_id" required>
+                                            <select class="form-control" id="category_id" name="category_id" required>
                                                 <option value="">Select Category</option>
                                                 @foreach($categories as $category)
                                                     <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -169,8 +171,8 @@
                                             <div class="invalid-feedback" id="category_id-error"></div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="tags" class="form-label">Tags</label>
-                                            <select class="form-select" id="tags" name="tags[]" multiple>
+                                            <label for="tags" class="form-control-label">Tags</label>
+                                            <select class="form-control" id="tags" name="tags[]" multiple>
                                                 @foreach($tags as $tag)
                                                     <option value="{{ $tag->id }}">{{ $tag->name }}</option>
                                                 @endforeach
@@ -178,7 +180,7 @@
                                             <div class="invalid-feedback" id="tags-error"></div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="published_at" class="form-label">Publish Date</label>
+                                            <label for="published_at" class="form-control-label">Publish Date</label>
                                             <input type="datetime-local" class="form-control" id="published_at"
                                                 name="published_at">
                                             <div class="invalid-feedback" id="published_at-error"></div>
@@ -217,7 +219,7 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="featured_image" class="form-label">Featured Image</label>
+                                            <label for="featured_image" class="form-control-label">Featured Image</label>
                                             <input type="file" class="form-control" id="featured_image"
                                                 name="featured_image" accept="image/*">
                                             <div class="invalid-feedback" id="featured_image-error"></div>
@@ -230,7 +232,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="social_image" class="form-label">Social Media Image</label>
+                                            <label for="social_image" class="form-control-label">Social Media Image</label>
                                             <input type="file" class="form-control" id="social_image" name="social_image"
                                                 accept="image/*">
                                             <div class="invalid-feedback" id="social_image-error"></div>
@@ -247,26 +249,26 @@
                             <!-- SEO Tab -->
                             <div class="tab-pane fade" id="seo" role="tabpanel" aria-labelledby="seo-tab">
                                 <div class="mb-3">
-                                    <label for="meta_title" class="form-label">Meta Title</label>
+                                    <label for="meta_title" class="form-control-label">Meta Title</label>
                                     <input type="text" class="form-control" id="meta_title" name="meta_title">
                                     <div class="invalid-feedback" id="meta_title-error"></div>
                                     <div class="form-text">If left blank, the post title will be used</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="meta_description" class="form-label">Meta Description</label>
+                                    <label for="meta_description" class="form-control-label">Meta Description</label>
                                     <textarea class="form-control" id="meta_description" name="meta_description"
                                         rows="3"></textarea>
                                     <div class="invalid-feedback" id="meta_description-error"></div>
                                     <div class="form-text">If left blank, the excerpt will be used</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="meta_keywords" class="form-label">Meta Keywords</label>
+                                    <label for="meta_keywords" class="form-control-label">Meta Keywords</label>
                                     <input type="text" class="form-control" id="meta_keywords" name="meta_keywords">
                                     <div class="invalid-feedback" id="meta_keywords-error"></div>
                                     <div class="form-text">Separate keywords with commas</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="canonical_url" class="form-label">Canonical URL</label>
+                                    <label for="canonical_url" class="form-control-label">Canonical URL</label>
                                     <input type="url" class="form-control" id="canonical_url" name="canonical_url">
                                     <div class="invalid-feedback" id="canonical_url-error"></div>
                                     <div class="form-text">Leave blank to use the default URL</div>
@@ -278,7 +280,7 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="facebook_description" class="form-label">Facebook
+                                            <label for="facebook_description" class="form-control-label">Facebook
                                                 Description</label>
                                             <textarea class="form-control" id="facebook_description"
                                                 name="facebook_description" rows="3"></textarea>
@@ -286,7 +288,7 @@
                                             <div class="form-text">If left blank, the meta description will be used</div>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="twitter_description" class="form-label">Twitter Description</label>
+                                            <label for="twitter_description" class="form-control-label">Twitter Description</label>
                                             <textarea class="form-control" id="twitter_description"
                                                 name="twitter_description" rows="3"></textarea>
                                             <div class="invalid-feedback" id="twitter_description-error"></div>
@@ -295,7 +297,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="form-label">Preview</label>
+                                            <label class="form-control-label">Preview</label>
                                             <div class="social-preview bg-light p-3 rounded">
                                                 <div class="facebook-preview mb-4">
                                                     <h6><i class="fab fa-facebook text-primary"></i> Facebook Preview</h6>
@@ -323,8 +325,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn bg-gradient-primary" id="saveBtn">Save</button>
                     </div>
                 </form>
             </div>
@@ -333,19 +335,23 @@
 
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete the blog post "<strong id="delete-post-title"></strong>"?</p>
-                    <p class="text-danger">This action cannot be undone and will remove all associated comments.</p>
+                    <div class="py-3 text-center">
+                        <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                        <p>Are you sure you want to delete the blog post "<strong id="delete-post-title"></strong>"?</p>
+                        <p class="text-danger">This action cannot be undone and will remove all associated comments.</p>
+                        <div id="delete-warning" class="text-danger mt-3"></div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn bg-gradient-danger" id="confirmDeleteBtn">Delete</button>
                 </div>
             </div>
         </div>
@@ -353,52 +359,20 @@
 @endsection
 
 @push('css')
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
     <style>
-        /* Blog Management Styles - Argon-inspired */
-
-        /* Page Header */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .page-header h3 {
-            margin-bottom: 0;
-            font-size: 1.25rem;
-            color: #344767;
-            font-weight: 600;
-        }
-
-        .page-actions .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        /* Card Styling */
         .card {
             box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
             border-radius: 0.75rem;
         }
 
         .card .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             padding: 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        .card-header h5 {
-            margin-bottom: 0;
-            font-size: 1rem;
-            color: #344767;
-            font-weight: 600;
-        }
-
-        /* Form Styling */
         .form-control,
         .form-select {
             padding: 0.5rem 0.75rem;
@@ -411,54 +385,75 @@
         .form-control:focus,
         .form-select:focus {
             border-color: #5e72e4;
-            box-shadow: 0 3px 9px rgba(0, 0, 0, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
+            box-shadow: 0 3px 9px rgba(50, 50, 9, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
         }
 
-        .form-label {
+        .form-control-label {
             margin-bottom: 0.5rem;
             font-size: 0.875rem;
             font-weight: 600;
             color: #8392AB;
         }
 
-        .form-text {
-            font-size: 0.75rem;
-            color: #8392AB;
+        /* Nav pills styling for tabs */
+        .nav-pills .nav-link {
+            color: #344767;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
         }
 
-        /* Buttons */
-        .btn-primary {
+        .nav-pills .nav-link.active {
+            color: #fff;
             background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
-            border: none;
             box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
         }
 
-        .btn-outline-secondary {
-            border-color: #67748e;
-            color: #67748e;
-            transition: all 0.15s ease;
+        /* Buttons and gradients */
+        .bg-gradient-primary {
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
         }
 
-        .btn-outline-secondary:hover {
-            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
-            color: white;
-            border-color: transparent;
+        .bg-gradient-success {
+            background: linear-gradient(310deg, #2dce89 0%, #2dcecc 100%);
         }
 
-        .btn-secondary {
-            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
-            color: white;
-            border: none;
-        }
-
-        .btn-danger {
+        .bg-gradient-danger {
             background: linear-gradient(310deg, #f5365c 0%, #f56036 100%);
-            border: none;
         }
 
-        /* Table Styling */
-        .table {
-            margin-bottom: 0;
+        .bg-gradient-warning {
+            background: linear-gradient(310deg, #fb6340 0%, #fbb140 100%);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(310deg, #11cdef 0%, #1171ef 100%);
+        }
+        
+        .bg-gradient-secondary {
+            background: linear-gradient(310deg, #627594, #8097bf);
+        }
+
+        /* Modal styling */
+        .modal-content {
+            border: 0;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-dialog-scrollable .modal-content {
+            max-height: 85vh;
+        }
+
+        .modal-dialog-scrollable .modal-body {
+            overflow-y: auto;
+            max-height: calc(85vh - 130px);
+        }
+
+        /* DataTable styling */
+        table.dataTable {
+            margin-top: 0 !important;
         }
 
         .table thead th {
@@ -467,51 +462,40 @@
             letter-spacing: 0.025em;
             font-size: 0.65rem;
             font-weight: 700;
-            color: #8392AB;
-            border-bottom: 1px solid #E9ECEF;
-            vertical-align: middle;
+            border-bottom-width: 1px;
         }
 
         .table td {
-            padding: 0.75rem 1.5rem;
+            white-space: nowrap;
+            padding: 0.5rem 1.5rem;
             font-size: 0.875rem;
             vertical-align: middle;
             border-bottom: 1px solid #E9ECEF;
         }
 
-        /* Modal Styling */
-        .modal-content {
-            border: 0;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
-        }
-
-        .modal-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .modal-footer {
-            padding: 1.25rem 1.5rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        /* Tab Styling */
-        .nav-tabs .nav-link {
-            color: #344767;
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_processing,
+        .dataTables_wrapper .dataTables_paginate {
             font-size: 0.875rem;
-            font-weight: 500;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem 0.5rem 0 0;
-            transition: all 0.15s ease;
+            color: #8392AB;
+            padding: 1rem 1.5rem;
         }
 
-        .nav-tabs .nav-link.active {
-            color: #fff;
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
             background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
-            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
+            color: white !important;
+            border: none;
+            border-radius: 0.5rem;
         }
 
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f6f9fc;
+            color: #5e72e4 !important;
+            border: 1px solid #f6f9fc;
+        }
+        
         /* Image Previews */
         #featured-image-preview img,
         #social-image-preview img {
@@ -549,30 +533,6 @@
             border-color: #5e72e4;
         }
 
-        /* DataTables Styling */
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_processing,
-        .dataTables_wrapper .dataTables_paginate {
-            font-size: 0.875rem;
-            color: #8392AB;
-            padding: 1rem 1.5rem;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
-            color: white !important;
-            border: none;
-            border-radius: 0.5rem;
-        }
-
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background: #f6f9fc;
-            color: #5e72e4 !important;
-            border: 1px solid #f6f9fc;
-        }
-
         /* Loading Overlay */
         #loading-overlay {
             position: absolute;
@@ -600,101 +560,24 @@
             border-color: #5e72e4;
             box-shadow: 0 3px 9px rgba(0, 0, 0, 0), 3px 4px 8px rgba(94, 114, 228, 0.1);
         }
-
-        .modal-dialog {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100% - 3.5rem);
+        
+        /* CKEditor styling */
+        .ck-editor__editable_inline {
+            min-height: 300px !important;
+            border-radius: 0 0 0.5rem 0.5rem !important;
+            border-color: #d2d6da !important;
         }
-
-        .modal-content {
-            border: 0;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
+        
+        .ck-toolbar {
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+            border-color: #d2d6da !important;
         }
-
-        .modal-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            align-items: center;
-        }
-
-        .modal-header .btn-close {
-            background: transparent;
-            opacity: 0.5;
-            margin: -0.5rem -0.5rem -0.5rem auto;
-            padding: 0.5rem;
-        }
-
-        .modal-header .btn-close:hover {
-            opacity: 1;
-            background-color: rgba(0, 0, 0, 0.1);
-        }
-
-        .modal-title {
-            font-weight: 600;
-            color: #344767;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            padding: 1.25rem 1.5rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-        }
-
-        /* Button styles in modal footer */
-        .modal-footer .btn-secondary {
-            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
-            color: white;
-            border: none;
-        }
-
-        .modal-footer .btn-outline-secondary {
-            border-color: #67748e;
-            color: #67748e;
-            transition: all 0.15s ease;
-        }
-
-        .modal-footer .btn-outline-secondary:hover {
-            background: linear-gradient(310deg, #67748e 0%, #344767 100%);
-            color: white;
-            border-color: transparent;
-        }
-
-        .modal-footer .btn-primary,
-        .modal-footer .bg-gradient-primary {
-            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
-            border: none;
-            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
-        }
-
-        .modal-footer .btn-danger,
-        .modal-footer .bg-gradient-danger {
-            background: linear-gradient(310deg, #f5365c 0%, #f56036 100%);
-            border: none;
-        }
-
-        /* Delete Modal Special Styling */
-        #deleteModal .modal-body {
-            text-align: center;
-        }
-
-        #deleteModal .modal-body i {
-            color: #fb6340;
-            margin-bottom: 1rem;
+        
+        .ck.ck-editor__main > .ck-editor__editable:focus {
+            border-color: #5e72e4 !important;
+            box-shadow: 0 3px 9px rgba(50, 50, 9, 0), 3px 4px 8px rgba(94, 114, 228, 0.1) !important;
         }
     </style>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
-        rel="stylesheet" />
 @endpush
 
 @push('js')
@@ -702,6 +585,7 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.ckeditor.com/ckeditor5/38.0.1/classic/ckeditor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // Routes for AJAX calls
@@ -726,11 +610,174 @@
     <!-- Include your blog management JS file -->
     <script src="{{ asset('admin/js/blog-posts-management.js') }}"></script>
 
-    <!-- Modal fix script -->
     <script>
-        // Additional emergency fixes for modal display issues
-        $(document).ready(function () {
-            // Fix for modal content not showing
+        document.addEventListener('DOMContentLoaded', function () {
+            // Configure SweetAlert to use Argon style
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+            
+            // Override showAlert function if needed
+            if (typeof window.showAlert !== 'function') {
+                window.showAlert = function (title, text, icon) {
+                    Toast.fire({
+                        icon: icon,
+                        title: title,
+                        text: text
+                    });
+                };
+            }
+            
+            // Initialize Select2
+            if ($.fn.select2) {
+                $('#tags').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select tags',
+                    allowClear: true,
+                    width: '100%'
+                });
+                
+                $('#category_id').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: 'Select category',
+                    width: '100%'
+                });
+            }
+            
+            // Initialize CKEditor
+            let editor;
+            if (ClassicEditor) {
+                ClassicEditor
+                    .create(document.querySelector('#editor'), {
+                        toolbar: [
+                            'heading', '|', 
+                            'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 
+                            'blockQuote', 'insertTable', 'imageUpload', '|', 
+                            'undo', 'redo'
+                        ],
+                        image: {
+                            upload: {
+                                types: ['jpeg', 'png', 'gif', 'jpg', 'webp'],
+                                url: routes.uploadImageUrl
+                            },
+                            toolbar: [
+                                'imageStyle:alignLeft', 'imageStyle:full', 'imageStyle:alignRight',
+                                '|',
+                                'imageTextAlternative'
+                            ]
+                        }
+                    })
+                    .then(newEditor => {
+                        editor = newEditor;
+                        window.editor = editor;
+                    })
+                    .catch(error => {
+                        console.error('CKEditor initialization error:', error);
+                    });
+            }
+            
+            // Image preview functionality
+            document.getElementById('featured_image')?.addEventListener('change', function() {
+                previewImage(this, 'featured-image-preview');
+            });
+            
+            document.getElementById('social_image')?.addEventListener('change', function() {
+                previewImage(this, 'social-image-preview');
+            });
+            
+            // Generate slug button
+            document.getElementById('generateSlugBtn')?.addEventListener('click', function() {
+                const title = document.getElementById('title').value;
+                if (title) {
+                    fetch(routes.generateSlugUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                        },
+                        body: JSON.stringify({ title: title })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('slug').value = data.slug;
+                            document.getElementById('slug-message').textContent = 'Slug generated successfully';
+                            document.getElementById('slug-message').classList.add('text-success');
+                            document.getElementById('slug-message').classList.remove('text-danger');
+                        } else {
+                            document.getElementById('slug-message').textContent = 'Failed to generate slug';
+                            document.getElementById('slug-message').classList.add('text-danger');
+                            document.getElementById('slug-message').classList.remove('text-success');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('slug-message').textContent = 'Failed to generate slug';
+                        document.getElementById('slug-message').classList.add('text-danger');
+                        document.getElementById('slug-message').classList.remove('text-success');
+                    });
+                } else {
+                    document.getElementById('slug-message').textContent = 'Please enter a title first';
+                    document.getElementById('slug-message').classList.add('text-danger');
+                    document.getElementById('slug-message').classList.remove('text-success');
+                }
+            });
+            
+            // Reset filter button
+            document.getElementById('resetFilterBtn')?.addEventListener('click', function() {
+                document.getElementById('filterForm').reset();
+                document.getElementById('filterForm').dispatchEvent(new Event('submit'));
+            });
+            
+            // Social preview functionality
+            const titleInput = document.getElementById('title');
+            const fbTitleElement = document.getElementById('fb-title');
+            const twTitleElement = document.getElementById('tw-title');
+            const fbDescriptionElement = document.getElementById('fb-description');
+            const twDescriptionElement = document.getElementById('tw-description');
+            const metaDescriptionInput = document.getElementById('meta_description');
+            const facebookDescriptionInput = document.getElementById('facebook_description');
+            const twitterDescriptionInput = document.getElementById('twitter_description');
+            
+            if (titleInput && fbTitleElement && twTitleElement) {
+                titleInput.addEventListener('input', function() {
+                    fbTitleElement.textContent = this.value || 'Your post title will appear here';
+                    twTitleElement.textContent = this.value || 'Your post title will appear here';
+                });
+            }
+            
+            if (metaDescriptionInput && fbDescriptionElement && twDescriptionElement) {
+                metaDescriptionInput.addEventListener('input', function() {
+                    if (!facebookDescriptionInput.value.trim()) {
+                        fbDescriptionElement.textContent = this.value || 'Your Facebook description will appear here';
+                    }
+                    if (!twitterDescriptionInput.value.trim()) {
+                        twDescriptionElement.textContent = this.value || 'Your Twitter description will appear here';
+                    }
+                });
+            }
+            
+            if (facebookDescriptionInput && fbDescriptionElement) {
+                facebookDescriptionInput.addEventListener('input', function() {
+                    fbDescriptionElement.textContent = this.value || (metaDescriptionInput.value ? metaDescriptionInput.value : 'Your Facebook description will appear here');
+                });
+            }
+            
+            if (twitterDescriptionInput && twDescriptionElement) {
+                twitterDescriptionInput.addEventListener('input', function() {
+                    twDescriptionElement.textContent = this.value || (metaDescriptionInput.value ? metaDescriptionInput.value : 'Your Twitter description will appear here');
+                });
+            }
+            
+            // Fix for modal display issues
             $('#blogModal').on('shown.bs.modal', function () {
                 // Ensure the modal is visible
                 $(this).css({
@@ -747,8 +794,8 @@
                 $('#blogTabs .nav-link').removeClass('active');
                 $('#basic-info-tab').addClass('active').attr('aria-selected', 'true');
 
-                $('#blogTabContent .tab-pane').removeClass('active show').css('display', 'none');
-                $('#basic-info').addClass('active show').css('display', 'block');
+                $('#blogTabContent .tab-pane').removeClass('active show');
+                $('#basic-info').addClass('active show');
 
                 // Force CKEditor to be visible
                 setTimeout(function () {
@@ -758,15 +805,52 @@
                     }
 
                     // Refresh CKEditor if it exists
-                    if (typeof editor !== 'undefined') {
+                    if (typeof editor !== 'undefined' && editor) {
                         try {
                             editor.ui.update();
                         } catch (e) {
-                            console.log('CKEditor update failed:', e);
+                            console.error('CKEditor update failed:', e);
                         }
                     }
                 }, 100);
             });
+            
+            // Fix tab navigation in modal
+            $('#blogTabs .nav-link').on('click', function() {
+                const target = $(this).data('bs-target');
+                
+                // Remove active class from all tabs and panes
+                $('#blogTabs .nav-link').removeClass('active').attr('aria-selected', 'false');
+                $('#blogTabContent .tab-pane').removeClass('active show');
+                
+                // Add active class to clicked tab and corresponding pane
+                $(this).addClass('active').attr('aria-selected', 'true');
+                $(target).addClass('active show');
+            });
+            
+            /**
+             * Preview image helper function
+             */
+            function previewImage(input, previewId) {
+                const preview = document.getElementById(previewId);
+                if (!preview) return;
+                
+                if (input.files && input.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const img = preview.querySelector('img');
+                        if (img) {
+                            img.src = e.target.result;
+                            preview.classList.remove('d-none');
+                        }
+                    }
+                    
+                    reader.readAsDataURL(input.files[0]);
+                } else {
+                    preview.classList.add('d-none');
+                }
+            }
         });
     </script>
 @endpush

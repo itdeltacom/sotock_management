@@ -21,6 +21,32 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Filters -->
+                    <div class="card-header pb-0 p-3">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="statusFilter">
+                                    <option value="">All Status</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select form-select-sm" id="carCountFilter">
+                                    <option value="">All Categories</option>
+                                    <option value="1">With Cars</option>
+                                    <option value="0">No Cars</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-sm bg-gradient-info w-100" id="resetFilters">
+                                    <i class="fas fa-undo"></i> Reset Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="card-body px-0 pt-0 pb-2">
                         <div class="table-responsive p-0">
                             <table class="table align-items-center mb-0" id="categories-table" width="100%">
@@ -131,6 +157,7 @@
                     <div class="py-3 text-center">
                         <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
                         <p>Are you sure you want to delete this category? This action cannot be undone.</p>
+                        <div id="delete-warning" class="text-danger mt-3"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -145,7 +172,6 @@
 @push('css')
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <style>
-        /* Argon-style card and shadow effects */
         .card {
             box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
             border-radius: 0.75rem;
@@ -155,7 +181,6 @@
             padding: 1.5rem;
         }
 
-        /* Make inputs look like Argon's */
         .form-control,
         .form-select {
             padding: 0.5rem 0.75rem;
@@ -178,15 +203,72 @@
             color: #8392AB;
         }
 
+        /* Nav pills styling for tabs */
+        .nav-pills .nav-link {
+            color: #344767;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .nav-pills .nav-link.active {
+            color: #fff;
+            background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+            box-shadow: 0 3px 5px -1px rgba(94, 114, 228, 0.2), 0 2px 3px -1px rgba(94, 114, 228, 0.1);
+        }
+
         /* Buttons and gradients */
         .bg-gradient-primary {
             background: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+        }
+
+        .bg-gradient-success {
+            background: linear-gradient(310deg, #2dce89 0%, #2dcecc 100%);
         }
 
         .bg-gradient-danger {
             background: linear-gradient(310deg, #f5365c 0%, #f56036 100%);
         }
 
+        .bg-gradient-warning {
+            background: linear-gradient(310deg, #fb6340 0%, #fbb140 100%);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(310deg, #11cdef 0%, #1171ef 100%);
+        }
+
+        /* Modal styling */
+        .modal-content {
+            border: 0;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-70,
+        .modal-xl {
+            max-width: 70%;
+            margin: 1.75rem auto;
+        }
+
+        .modal-70 .modal-content,
+        .modal-xl .modal-content {
+            max-height: 85vh;
+        }
+
+        .modal-70 .modal-body,
+        .modal-xl .modal-body {
+            overflow-y: auto;
+            max-height: calc(85vh - 130px);
+            padding: 1.5rem;
+        }
+
+        .progress {
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
         /* DataTable styling */
         table.dataTable {
             margin-top: 0 !important;
@@ -230,23 +312,6 @@
             background: #f6f9fc;
             color: #5e72e4 !important;
             border: 1px solid #f6f9fc;
-        }
-
-        /* Modal styling */
-        .modal-content {
-            border: 0;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.15);
-        }
-
-        .modal-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .modal-footer {
-            padding: 1.25rem 1.5rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         /* Loading overlay for AJAX */
@@ -320,6 +385,30 @@
                         }
                     });
                 };
+            }
+            
+            // Initialize filters event handlers if the elements exist
+            if (document.getElementById('statusFilter') && document.getElementById('carCountFilter')) {
+                $('#statusFilter, #carCountFilter').on('change', function () {
+                    if (window.categoriesTable) {
+                        window.categoriesTable.ajax.reload();
+                    }
+                });
+                
+                $('#resetFilters').on('click', function () {
+                    $('#statusFilter, #carCountFilter').val('');
+                    if (window.categoriesTable) {
+                        window.categoriesTable.ajax.reload();
+                    }
+                });
+            }
+            
+            // Add a delete warning element if it doesn't exist
+            if (!document.getElementById('delete-warning') && document.querySelector('.modal-body .py-3.text-center')) {
+                const warningDiv = document.createElement('div');
+                warningDiv.id = 'delete-warning';
+                warningDiv.className = 'text-danger mt-3';
+                document.querySelector('.modal-body .py-3.text-center').appendChild(warningDiv);
             }
         });
     </script>

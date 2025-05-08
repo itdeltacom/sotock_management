@@ -41,7 +41,12 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
         order: [[0, 'desc']],
         pageLength: 10,
-        responsive: true,
+        responsive: true,language: {
+            paginate: {
+                next: '<i class="fas fa-angle-right"></i>',
+                previous: '<i class="fas fa-angle-left"></i>'
+            }
+        },
         createdRow: function(row, data) {
             // Highlight system permissions
             if (systemPermissions.includes(data.name)) {

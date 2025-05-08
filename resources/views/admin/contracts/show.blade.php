@@ -262,7 +262,8 @@
                                 </div>
                                 <div class="card-body p-3">
                                     <div class="text-center mb-3">
-                                        <img src="{{ $contract->car->featured_image_url ?? asset('images/default-car.png') }}" alt="Vehicle Image" class="img-fluid border-radius-lg shadow" style="max-height: 150px;">
+                                        <img src="{{ Storage::url($contract->car->main_image) ?? asset('images/default-car.png') }}" alt="Vehicle Image" class="img-fluid border-radius-lg shadow" style="max-height: 150px;">
+                                        {{-- {{ Storage::url($car->main_image) }}" alt="{{ $car->name }} --}}
                                     </div>
                                     
                                     <h6 class="text-center text-dark mb-3">

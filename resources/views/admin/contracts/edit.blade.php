@@ -49,7 +49,7 @@
                                         <div class="card-body p-3">
                                             <div class="d-flex mb-3">
                                                 <div class="avatar avatar-xl me-3">
-                                                    <img src="{{ $contract->client->profile_photo ?? '/img/default-avatar.png' }}"
+                                                    <img src="{{ $contract->client->photo_url ?? '/img/default-avatar.png' }}"
                                                         alt="Client Avatar" class="border-radius-lg shadow">
                                                 </div>
                                                 <div class="d-flex flex-column">
@@ -99,12 +99,13 @@
                                         <div class="card-body p-3">
                                             <div class="row">
                                                 <div class="col-md-6">
-                                                    <img src="{{ $contract->car->featured_image ?? '/img/default-car.png' }}"
+                                                    <img src="{{ Storage::url($contract->car->main_image) ?? '/img/default-car.png' }}"
                                                         alt="Vehicle Image" class="w-100 border-radius-lg shadow">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <h6 class="mb-1 text-dark">{{ $contract->car->brand_name }}
-                                                        {{ $contract->car->model }} ({{ $contract->car->year }})</h6>
+                                                        {{ $contract->car->model }} ({{ $contract->car->year }})
+                                                    </h6>
                                                     <p class="text-xs mb-1">License Plate: <span
                                                             class="font-weight-bold">{{ $contract->car->matricule }}</span>
                                                     </p>
@@ -126,7 +127,8 @@
                                                     <div class="col-6 text-end">
                                                         <p class="text-xs mb-1">Starting Mileage</p>
                                                         <p class="font-weight-bold mb-0">
-                                                            {{ number_format($contract->start_mileage) }} km</p>
+                                                            {{ number_format($contract->start_mileage) }} km
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -223,22 +225,26 @@
                                                     <div class="col-md-3 mb-2">
                                                         <p class="text-xs text-muted mb-1">Duration</p>
                                                         <p class="font-weight-bold mb-0" id="duration-days">
-                                                            {{ $contract->duration_in_days }} day(s)</p>
+                                                            {{ $contract->duration_in_days }} day(s)
+                                                        </p>
                                                     </div>
                                                     <div class="col-md-3 mb-2">
                                                         <p class="text-xs text-muted mb-1">Daily Rate</p>
                                                         <p class="font-weight-bold mb-0" id="summary-daily-rate">
-                                                            {{ number_format($contract->rental_fee, 2) }} MAD</p>
+                                                            {{ number_format($contract->rental_fee, 2) }} MAD
+                                                        </p>
                                                     </div>
                                                     <div class="col-md-3 mb-2">
                                                         <p class="text-xs text-muted mb-1">Security Deposit</p>
                                                         <p class="font-weight-bold mb-0" id="summary-deposit">
-                                                            {{ number_format($contract->deposit_amount, 2) }} MAD</p>
+                                                            {{ number_format($contract->deposit_amount, 2) }} MAD
+                                                        </p>
                                                     </div>
                                                     <div class="col-md-3 mb-2">
                                                         <p class="text-xs text-muted mb-1">Discount</p>
                                                         <p class="font-weight-bold mb-0" id="summary-discount">
-                                                            {{ number_format($contract->discount, 2) }} MAD</p>
+                                                            {{ number_format($contract->discount, 2) }} MAD
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <hr>
@@ -247,13 +253,15 @@
                                                         <p class="text-xs text-muted mb-1">Subtotal</p>
                                                         <p class="font-weight-bold mb-0" id="summary-subtotal">
                                                             {{ number_format($contract->total_amount + $contract->discount, 2) }}
-                                                            MAD</p>
+                                                            MAD
+                                                        </p>
                                                     </div>
                                                     <div class="col-6 text-end">
                                                         <p class="text-xs text-muted mb-1">Total Amount</p>
                                                         <p class="text-lg font-weight-bold text-success mb-0"
                                                             id="summary-total">
-                                                            {{ number_format($contract->total_amount, 2) }} MAD</p>
+                                                            {{ number_format($contract->total_amount, 2) }} MAD
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>

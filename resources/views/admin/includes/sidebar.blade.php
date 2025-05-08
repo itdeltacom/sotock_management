@@ -204,7 +204,7 @@
             @endcan
 
             <!-- Content Management -->
-            @canany(['manage blog posts', 'manage blog categories', 'manage blog tags', 'manage testimonials'])
+            @canany(['manage blog posts', 'manage blog categories', 'manage blog tags', 'manage blog comments', 'manage testimonials'])
                 <li class="nav-item mt-3">
                     <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Content Management</h6>
                 </li>
@@ -244,6 +244,19 @@
                                 <i class="ni ni-tag text-dark text-sm opacity-10"></i>
                             </div>
                             <span class="nav-link-text ms-1">Blog Tags</span>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('manage blog comments')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.blog-comments.*') ? 'active' : '' }}"
+                            href="{{ route('admin.blog-comments.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-chat-round text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Blog Comments</span>
                         </a>
                     </li>
                 @endcan
