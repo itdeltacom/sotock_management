@@ -42,11 +42,12 @@ Route::get('/blogs/load-more', [BlogController::class, 'loadMorePosts'])->name('
 Route::get('/blogs/{slug}', [BlogController::class, 'show'])->name('blog.show');
 Route::get('/blogs/category/{category}', [BlogController::class, 'category'])->name('blog.category');
 Route::get('/blogs/tag/{tag}', [BlogController::class, 'tag'])->name('blog.tag');
-//blog comments
+
 // Blog comments AJAX routes
 Route::post('/blogs/{slug}/comment', [BlogCommentController::class, 'store'])->name('blog.comment.store');
 Route::post('/blogs/{slug}/comment/{comment}/reply', [BlogCommentController::class, 'reply'])->name('blog.comment.reply');
 Route::get('/blogs/{slug}/comments', [BlogCommentController::class, 'getComments'])->name('blog.comments.get');
+
 // Category routes
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('categories.show');
@@ -55,6 +56,7 @@ Route::get('/api/categories/featured', [CategoryController::class, 'featured'])-
 
 // Reviews
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
 // Testimonial Frontend Routes
 Route::get('testimonials', [TestimonialFrontController::class, 'index'])->name('testimonials');
 Route::get('testimonials/create', function() {
@@ -63,7 +65,6 @@ Route::get('testimonials/create', function() {
 Route::post('testimonials/submit', [TestimonialFrontController::class, 'store'])->name('testimonials.submit');
 Route::post('testimonials/submit-ajax', [HomeController::class, 'submitTestimonialAjax'])->name('testimonials.submit.ajax');
 
-// Frontend Newsletter Routes (add to web.php)
 // Newsletter Routes
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::get('/newsletter/confirm/{token}', [NewsletterController::class, 'confirm'])->name('newsletter.confirm');
@@ -115,5 +116,13 @@ Route::get('/reservations', function() {
 // FAQ Page
 Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
 
-// Payment checkout route - update this to match your payment gateway integration
+// Payment checkout route
 Route::get('/payment/checkout/{booking}', [BookingController::class, 'checkoutPayment'])->name('payment.checkout')->middleware('auth');
+
+// Policy Page
+Route::get('/policy', [HomeController::class, 'policy'])->name('policy');
+// Privacy Page
+Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
+Route::get('/comment-ca-marche', function () {
+    return view('site.how-it-works');
+})->name('how-it-works');

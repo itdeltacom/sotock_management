@@ -21,6 +21,7 @@ class Booking extends Model
         'user_id',
         'car_id',
         'booking_number',
+        'confirmation_code',
         'pickup_location',
         'dropoff_location',
         'pickup_date',
@@ -54,11 +55,14 @@ class Booking extends Model
         'deposit_status', // Deposit payment status
         'notes', // Internal notes for staff
         'cancellation_reason', // Reason for cancellation
-        'confirmation_code', // Unique code for customer confirmation
         'language_preference', // Customer's preferred language (Arabic, French, etc.)
         'gps_enabled', // GPS navigation option
         'child_seat', // Child seat option
         'completed_at', // Date/time when booking is completed
+        'start_mileage', // Starting mileage when car is picked up
+        'end_mileage', // Ending mileage when car is returned
+        'extra_mileage', // Extra mileage beyond the limit
+        'extra_mileage_charges', // Charges for extra mileage
     ];
 
     /**
@@ -77,6 +81,10 @@ class Booking extends Model
         'deposit_amount' => 'float',
         'extra_mileage_cost' => 'float',
         'mileage_limit' => 'integer',
+        'start_mileage' => 'integer',
+        'end_mileage' => 'integer',
+        'extra_mileage' => 'integer',
+        'extra_mileage_charges' => 'float',
         'additional_driver' => 'boolean',
         'gps_enabled' => 'boolean',
         'child_seat' => 'boolean',
@@ -91,6 +99,7 @@ class Booking extends Model
     protected $appends = [
         'formatted_total_amount',
         'status_label',
+        'total_mileage',
     ];
 
     /**
@@ -143,6 +152,18 @@ class Booking extends Model
     }
 
     /**
+     * Calculate total mileage driven during rental period.
+     */
+    public function getTotalMileageAttribute(): int
+    {
+        if (!$this->end_mileage || !$this->start_mileage) {
+            return 0;
+        }
+        
+        return max(0, $this->end_mileage - $this->start_mileage);
+    }
+
+    /**
      * Check if the booking is active.
      */
     public function isActive(): bool
@@ -151,15 +172,43 @@ class Booking extends Model
     }
 
     /**
+     * Calculate extra mileage charges when booking is completed.
+     */
+    public function calculateExtraMileageCharges(): float
+    {
+        if (!$this->end_mileage || !$this->start_mileage || !$this->mileage_limit) {
+            return 0;
+        }
+        
+        $totalMileage = $this->end_mileage - $this->start_mileage;
+        $allowedMileage = $this->mileage_limit * $this->total_days;
+        
+        if ($totalMileage <= $allowedMileage) {
+            return 0;
+        }
+        
+        $extraMileage = $totalMileage - $allowedMileage;
+        $extraMileageCharges = $extraMileage * $this->extra_mileage_cost;
+        
+        $this->extra_mileage = $extraMileage;
+        $this->extra_mileage_charges = $extraMileageCharges;
+        $this->save();
+        
+        return $extraMileageCharges;
+    }
+
+    /**
      * Calculate outstanding balance.
      */
     public function getOutstandingBalanceAttribute(): float
     {
         $totalPaid = $this->payments()->where('status', 'completed')->sum('amount');
-        return max(0, $this->total_amount - $totalPaid);
+        $totalCharges = $this->total_amount + ($this->extra_mileage_charges ?? 0);
+        
+        return max(0, $totalCharges - $totalPaid);
     }
 
-     /**
+    /**
      * Generate a unique confirmation code
      */
     public function generateConfirmationCode()
@@ -174,5 +223,51 @@ class Booking extends Model
     {
         return $query->where('status', 'in_progress')
                      ->where('dropoff_date', '<', now());
+    }
+    
+    /**
+     * Complete the booking with end mileage and update car status
+     */
+    public function completeBooking(int $endMileage): void
+    {
+        $this->end_mileage = $endMileage;
+        $this->status = 'completed';
+        $this->completed_at = now();
+        
+        // Calculate any extra mileage charges
+        $this->calculateExtraMileageCharges();
+        
+        $this->save();
+        
+        // Update car's mileage
+        if ($this->car) {
+            $this->car->mileage = $endMileage;
+            $this->car->status = 'available';
+            $this->car->is_available = true;
+            $this->car->save();
+        }
+    }
+    
+    /**
+     * Start the rental by updating the booking and car status
+     */
+    public function startRental(int $confirmedStartMileage = null): void
+    {
+        // Update booking status
+        $this->status = 'in_progress';
+        
+        // Update start mileage if provided
+        if ($confirmedStartMileage !== null) {
+            $this->start_mileage = $confirmedStartMileage;
+        }
+        
+        $this->save();
+        
+        // Update car status
+        if ($this->car) {
+            $this->car->status = 'rented';
+            $this->car->is_available = false;
+            $this->car->save();
+        }
     }
 }

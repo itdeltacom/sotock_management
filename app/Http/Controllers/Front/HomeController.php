@@ -461,4 +461,13 @@ public function submitTestimonialAjax(Request $request)
         
         return redirect()->back()->with('success', 'Your message has been sent successfully. We will get back to you soon!');
     }
+    public function policy()
+    {
+        return view('site.policy');
+    }
+
+    public function privacy()
+    {
+        return view('site.privacy');
+    }
 }

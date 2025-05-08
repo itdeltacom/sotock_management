@@ -5,65 +5,76 @@
             <div class="col-md-6 col-lg-6 col-xl-3">
                 <div class="footer-item d-flex flex-column">
                     <div class="footer-item">
-                        <h4 class="text-white mb-4">About Cental</h4>
-                        <p class="mb-3">Your trusted car rental service providing quality vehicles and exceptional
-                            customer experience.</p>
+                        <h4 class="text-white mb-4 montserrat">À Propos de Cental</h4>
+                        <p class="mb-3 lato">Votre service de location de voitures de confiance à Casablanca, offrant
+                            des véhicules de qualité et une expérience client exceptionnelle.</p>
                     </div>
                     <div class="position-relative">
                         <form id="newsletterForm">
                             @csrf
                             <div class="input-group">
                                 <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="email" name="email"
-                                    id="newsletter-email" placeholder="Enter your email" required>
+                                    id="newsletter-email" placeholder="Entrez votre email" required>
                                 <button type="submit"
                                     class="btn btn-secondary rounded-pill position-absolute top-0 end-0 py-2 mt-2 me-2"
-                                    id="subscribeBtn">Subscribe</button>
+                                    id="subscribeBtn">S'abonner</button>
                             </div>
                             <div class="invalid-feedback" id="newsletter-email-error"></div>
-                            <div class="form-text text-white mt-1">Subscribe to our newsletter for exclusive deals and
-                                updates.</div>
+                            <div class="form-text text-white mt-1 lato">Abonnez-vous à notre newsletter pour des offres
+                                exclusives et des mises à jour.</div>
                         </form>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-6 col-xl-3">
                 <div class="footer-item d-flex flex-column">
-                    <h4 class="text-white mb-4">Quick Links</h4>
-                    <a href="{{ route('about') }}"><i class="fas fa-angle-right me-2"></i> About</a>
-                    <a href="{{ route('cars.index') }}"><i class="fas fa-angle-right me-2"></i> Our Cars</a>
-                    <a href="{{ route('categories.index') }}"><i class="fas fa-angle-right me-2"></i> Car Categories</a>
-                    <a href="/blogs"><i class="fas fa-angle-right me-2"></i> Blog</a>
-                    <a href="{{ route('contact') }}"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">
-                        <i class="fas fa-angle-right me-2"></i> Terms & Conditions
-                    </a>
+                    <h4 class="text-white mb-4 montserrat">Liens Rapides</h4>
+                    <a href="{{ route('about') }}" class="lato"><i class="fas fa-angle-right me-2"></i> À Propos</a>
+                    <a href="{{ route('cars.index') }}" class="lato"><i class="fas fa-angle-right me-2"></i> Nos
+                        Voitures</a>
+                    <a href="{{ route('categories.index') }}" class="lato"><i class="fas fa-angle-right me-2"></i>
+                        Catégories de Voitures</a>
+                    <a href="{{ route('blog.index') }}" class="lato"><i class="fas fa-angle-right me-2"></i> Blog</a>
+                    <a href="{{ route('testimonials') }}" class="lato"><i class="fas fa-angle-right me-2"></i>
+                        Témoignages</a>
+                    <a href="{{ route('faq') }}" class="lato"><i class="fas fa-angle-right me-2"></i> FAQ</a>
+                    <a href="{{ route('how-it-works') }}" class="lato"><i class="fas fa-angle-right me-2"></i> Comment
+                        Ça Marche</a>
+                    <a href="{{ route('policy') }}" class="lato"><i class="fas fa-angle-right me-2"></i> Conditions
+                        Générales</a>
+                    <a href="{{ route('privacy') }}" class="lato"><i class="fas fa-angle-right me-2"></i> Politique de
+                        Confidentialité</a>
+                    <a href="{{ route('contact') }}" class="lato"><i class="fas fa-angle-right me-2"></i>
+                        Contactez-Nous</a>
                 </div>
             </div>
             <div class="col-md-6 col-lg-6 col-xl-3">
                 <div class="footer-item d-flex flex-column">
-                    <h4 class="text-white mb-4">Business Hours</h4>
+                    <h4 class="text-white mb-4 montserrat">Horaires d'Ouverture</h4>
                     <div class="mb-3">
-                        <h6 class="text-muted mb-0">Mon - Friday:</h6>
-                        <p class="text-white mb-0">09.00 am to 07.00 pm</p>
+                        <h6 class="text-muted mb-0 lato">Lundi - Vendredi :</h6>
+                        <p class="text-white mb-0 lato">09h00 à 19h00</p>
                     </div>
                     <div class="mb-3">
-                        <h6 class="text-muted mb-0">Saturday:</h6>
-                        <p class="text-white mb-0">10.00 am to 05.00 pm</p>
+                        <h6 class="text-muted mb-0 lato">Samedi :</h6>
+                        <p class="text-white mb-0 lato">10h00 à 17h00</p>
                     </div>
                     <div class="mb-3">
-                        <h6 class="text-muted mb-0">Vacation:</h6>
-                        <p class="text-white mb-0">All Sunday is our vacation</p>
+                        <h6 class="text-muted mb-0 lato">Vacances :</h6>
+                        <p class="text-white mb-0 lato">Fermé tous les dimanches</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-6 col-xl-3">
                 <div class="footer-item d-flex flex-column">
-                    <h4 class="text-white mb-4">Contact Info</h4>
-                    <a href="{{ route('contact') }}"><i class="fa fa-map-marker-alt me-2"></i> 123 Street, New York,
-                        USA</a>
-                    <a href="mailto:info@cental.com"><i class="fas fa-envelope me-2"></i> info@cental.com</a>
-                    <a href="tel:+012 345 67890"><i class="fas fa-phone me-2"></i> +012 345 67890</a>
-                    <a href="tel:+012 345 67890" class="mb-3"><i class="fas fa-print me-2"></i> +012 345 67890</a>
+                    <h4 class="text-white mb-4 montserrat">Informations de Contact</h4>
+                    <a href="{{ route('contact') }}" class="lato"><i class="fa fa-map-marker-alt me-2"></i> Casablanca,
+                        Maroc</a>
+                    <a href="mailto:contact@cental.ma" class="lato"><i class="fas fa-envelope me-2"></i>
+                        contact@cental.ma</a>
+                    <a href="tel:+212522XXXXXX" class="lato"><i class="fas fa-phone me-2"></i> +212 5 22 XX XX XX</a>
+                    <a href="https://wa.me/+2126XXXXXXXX" class="lato mb-3"><i class="fab fa-whatsapp me-2"></i> +212 6
+                        XX XX XX XX</a>
                     <div class="d-flex">
                         <a class="btn btn-secondary btn-md-square rounded-circle me-3" href="#"><i
                                 class="fab fa-facebook-f text-white"></i></a>
@@ -88,44 +99,17 @@
             <div class="col-md-6 text-center text-md-start mb-md-0">
                 <span class="text-body">
                     <a href="{{ route('home') }}" class="border-bottom text-white">
-                        <i class="fas fa-copyright text-light me-2"></i>Cental Car Rental
-                    </a>, All rights reserved.
+                        <i class="fas fa-copyright text-light me-2"></i>Cental Location de Voitures
+                    </a>, Tous droits réservés.
                 </span>
             </div>
             <div class="col-md-6 text-center text-md-end text-body">
-                Designed By <a class="border-bottom text-white" href="itdeltacom.com">It Delta Com</a>
-                {{-- Distributed By <a class="border-bottom text-white" href="https://themewagon.com">ThemeWagon</a>
-                --}}
+                Conçu par <a class="border-bottom text-white" href="http://itdeltacom.com">It Delta Com</a>
             </div>
         </div>
     </div>
 </div>
 <!-- Copyright End -->
-
-<!-- Terms and Conditions Modal -->
-<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="termsModalLabel">Terms & Conditions</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>These are the terms and conditions for Cental Car Rental. By using our service, you agree to the
-                    following:</p>
-                <ul>
-                    <li>All rentals are subject to availability</li>
-                    <li>Valid driver's license required</li>
-                    <li>Minimum age requirement applies</li>
-                    <li>Insurance and additional fees may apply</li>
-                </ul>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Back to Top -->
 <a href="#" class="btn btn-secondary btn-lg-square rounded-circle back-to-top"><i class="fa fa-arrow-up"></i></a>
@@ -144,7 +128,7 @@
 
                 if (email && !isValid) {
                     $(this).addClass('is-invalid');
-                    $('#newsletter-email-error').text('Please enter a valid email address').show();
+                    $('#newsletter-email-error').text('Veuillez entrer une adresse email valide').show();
                 } else {
                     $(this).removeClass('is-invalid');
                     $('#newsletter-email-error').hide();
@@ -160,7 +144,7 @@
                 // Validate email again
                 if (!email || !emailRegex.test(email)) {
                     $('#newsletter-email').addClass('is-invalid');
-                    $('#newsletter-email-error').text('Please enter a valid email address').show();
+                    $('#newsletter-email-error').text('Veuillez entrer une adresse email valide').show();
                     return false;
                 }
 
@@ -183,7 +167,7 @@
 
                         // Show success message
                         Swal.fire({
-                            title: 'Success!',
+                            title: 'Succès !',
                             text: response.message,
                             icon: 'success',
                             toast: true,
@@ -205,8 +189,8 @@
                         } else {
                             // Generic error
                             Swal.fire({
-                                title: 'Error',
-                                text: 'Failed to subscribe. Please try again later.',
+                                title: 'Erreur',
+                                text: 'Échec de l\'abonnement. Veuillez réessayer plus tard.',
                                 icon: 'error',
                                 toast: true,
                                 position: 'top-end',
@@ -218,7 +202,7 @@
                     complete: function () {
                         // Re-enable button
                         $('#subscribeBtn').prop('disabled', false)
-                            .text('Subscribe');
+                            .text('S\'abonner');
                     }
                 });
             });
