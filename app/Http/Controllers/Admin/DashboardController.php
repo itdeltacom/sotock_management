@@ -77,9 +77,10 @@ class DashboardController extends Controller
             
         // Get recent bookings with car relationship
         $recentBookings = Booking::with(['car', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+    ->whereHas('user') 
+    ->orderBy('created_at', 'desc')
+    ->limit(5)
+    ->get();
             
         // Get activity types distribution
         $activityTypes = Activity::select('type', DB::raw('COUNT(*) as count'))

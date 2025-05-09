@@ -359,6 +359,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const status = button.getAttribute('data-status');
             if (bookingId && status) handleDepositStatusChange(bookingId, status);
         }
+        
+        // Start rental button
+        if (e.target.closest('.btn-start-rental')) {
+            const button = e.target.closest('.btn-start-rental');
+            const bookingId = button.getAttribute('data-id');
+            if (bookingId) handleStartRental(bookingId);
+        }
+        
+        // Complete rental button
+        if (e.target.closest('.btn-complete-rental')) {
+            const button = e.target.closest('.btn-complete-rental');
+            const bookingId = button.getAttribute('data-id');
+            if (bookingId) handleCompleteRental(bookingId);
+        }
     });
     
     /**
@@ -380,17 +394,23 @@ document.addEventListener('DOMContentLoaded', function () {
      * Calculate prices based on selected car and dates
      */
     function calculatePrices() {
-        const carId = carIdSelect.value;
-        const pickupDate = pickupDateInput.value;
-        const dropoffDate = dropoffDateInput.value;
+        console.log('Calculating prices...'); // Debugging
+
+        const carId = document.getElementById('car_id').value;
+        const pickupDate = document.getElementById('pickup_date').value;
+        const dropoffDate = document.getElementById('dropoff_date').value;
         const bookingId = document.getElementById('booking_id').value;
-        const insurancePlan = insurancePlanSelect ? insurancePlanSelect.value : 'basic';
-        const additionalDriver = additionalDriverCheck ? additionalDriverCheck.checked : false;
-        const deliveryOption = deliveryOptionSelect ? deliveryOptionSelect.value : 'none';
-        const gpsEnabled = gpsEnabledCheck ? gpsEnabledCheck.checked : false;
-        const childSeat = childSeatCheck ? childSeatCheck.checked : false;
         
+        // Get optional parameters if they exist
+        const insurancePlan = document.getElementById('insurance_plan') ? document.getElementById('insurance_plan').value : 'basic';
+        const additionalDriver = document.getElementById('additional_driver') ? document.getElementById('additional_driver').checked : false;
+        const deliveryOption = document.getElementById('delivery_option') ? document.getElementById('delivery_option').value : 'none';
+        const gpsEnabled = document.getElementById('gps_enabled') ? document.getElementById('gps_enabled').checked : false;
+        const childSeat = document.getElementById('child_seat') ? document.getElementById('child_seat').checked : false;
+        
+        // Basic validation
         if (!carId || !pickupDate || !dropoffDate) {
+            console.log('Missing required fields'); // Debugging
             resetPricing();
             return;
         }
@@ -412,6 +432,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </span>
         `;
         
+        // Prepare form data
         const formData = new FormData();
         formData.append('car_id', carId);
         formData.append('pickup_date', pickupDate);
@@ -426,6 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('booking_id', bookingId);
         }
         
+        // Make AJAX request
         fetch(routes.calculateUrl, {
             method: 'POST',
             body: formData,
@@ -434,8 +456,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data); // Debugging
+            
             if (data.success) {
                 // Update availability display
                 const isAvailable = data.data.is_available;
@@ -455,6 +484,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('deposit_amount').value = data.data.deposit_amount.toFixed(2);
                 }
             } else {
+                console.error('Error in calculation response:', data.message); // Debugging
                 document.getElementById('availability_display').innerHTML = `
                     <span class="badge bg-warning">Erreur lors de la vérification</span>
                 `;
@@ -462,12 +492,222 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Fetch error:', error);
             document.getElementById('availability_display').innerHTML = `
                 <span class="badge bg-danger">Erreur</span>
             `;
             resetPricing();
         });
+    }
+
+    /**
+     * Direct fix for the price calculation section
+     */
+    console.log('Initializing booking price calculation...');
+    
+    // Check if we're on a page with the booking form
+    if (!bookingForm) {
+        console.log('No booking form found on this page');
+    } else {
+        // Verify the pricing fields exist
+        const pricingFields = [
+            'car_id', 'pickup_date', 'dropoff_date', 
+            'total_days', 'base_price', 'discount_amount', 
+            'tax_amount', 'total_amount', 'deposit_amount'
+        ];
+        
+        let missingFields = [];
+        pricingFields.forEach(field => {
+            if (!document.getElementById(field)) {
+                missingFields.push(field);
+            }
+        });
+        
+        if (missingFields.length > 0) {
+            console.error('Missing pricing fields:', missingFields);
+        } else {
+            // Check if routes are properly defined
+            if (typeof routes === 'undefined' || !routes.calculateUrl) {
+                console.error('Routes are not properly defined. Make sure routes.calculateUrl is set.');
+            } else {
+                console.log('All pricing fields found, setting up event listeners');
+                
+                // Setup main calculation triggers
+                const carSelect = document.getElementById('car_id');
+                const pickupDateInput = document.getElementById('pickup_date');
+                const dropoffDateInput = document.getElementById('dropoff_date');
+                
+                // Add event listeners to the main calculation triggers
+                carSelect.addEventListener('change', triggerPriceCalculation);
+                pickupDateInput.addEventListener('change', triggerPriceCalculation);
+                dropoffDateInput.addEventListener('change', triggerPriceCalculation);
+                
+                // Add listeners to optional features if they exist
+                const optionalFeatures = [
+                    'insurance_plan', 'additional_driver', 
+                    'delivery_option', 'gps_enabled', 'child_seat'
+                ];
+                
+                optionalFeatures.forEach(feature => {
+                    const element = document.getElementById(feature);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            element.addEventListener('change', triggerPriceCalculation);
+                        } else {
+                            element.addEventListener('change', triggerPriceCalculation);
+                        }
+                    }
+                });
+                
+                // If form is in edit mode (has pre-filled values), calculate prices immediately
+                if (carSelect.value && pickupDateInput.value && dropoffDateInput.value) {
+                    console.log('Form has initial values, triggering immediate calculation');
+                    triggerPriceCalculation();
+                }
+            }
+        }
+    }
+    
+    // The main calculation trigger function
+    function triggerPriceCalculation() {
+        const carSelect = document.getElementById('car_id');
+        const pickupDateInput = document.getElementById('pickup_date');
+        const dropoffDateInput = document.getElementById('dropoff_date');
+        
+        const carId = carSelect.value;
+        const pickupDate = pickupDateInput.value;
+        const dropoffDate = dropoffDateInput.value;
+        
+        // Basic validation
+        if (!carId || !pickupDate || !dropoffDate) {
+            console.log('Missing required fields for calculation');
+            resetPricingFields();
+            return;
+        }
+        
+        // Check date order
+        if (new Date(pickupDate) > new Date(dropoffDate)) {
+            document.getElementById('availability_display').innerHTML = 
+                '<span class="badge bg-danger">Dates Invalides</span>';
+            resetPricingFields();
+            return;
+        }
+        
+        // Show loading indicator
+        document.getElementById('availability_display').innerHTML = 
+            '<span class="badge bg-secondary"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Calcul en cours...</span>';
+        
+        // Collect all form data
+        const formData = new FormData();
+        formData.append('car_id', carId);
+        formData.append('pickup_date', pickupDate);
+        formData.append('dropoff_date', dropoffDate);
+        
+        // Add optional parameters
+        if (document.getElementById('insurance_plan')) {
+            formData.append('insurance_plan', document.getElementById('insurance_plan').value);
+        } else {
+            formData.append('insurance_plan', 'basic'); // Default value
+        }
+        
+        if (document.getElementById('additional_driver')) {
+            formData.append('additional_driver', document.getElementById('additional_driver').checked ? 1 : 0);
+        } else {
+            formData.append('additional_driver', 0); // Default value
+        }
+        
+        if (document.getElementById('delivery_option')) {
+            formData.append('delivery_option', document.getElementById('delivery_option').value);
+        } else {
+            formData.append('delivery_option', 'none'); // Default value
+        }
+        
+        if (document.getElementById('gps_enabled')) {
+            formData.append('gps_enabled', document.getElementById('gps_enabled').checked ? 1 : 0);
+        } else {
+            formData.append('gps_enabled', 0); // Default value
+        }
+        
+        if (document.getElementById('child_seat')) {
+            formData.append('child_seat', document.getElementById('child_seat').checked ? 1 : 0);
+        } else {
+            formData.append('child_seat', 0); // Default value
+        }
+        
+        // Include booking ID if we're editing an existing booking
+        const bookingId = document.getElementById('booking_id').value;
+        if (bookingId) {
+            formData.append('booking_id', bookingId);
+        }
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!csrfToken) {
+            console.error('CSRF token not found!');
+            return;
+        }
+        
+        // Make the AJAX request
+        console.log('Sending price calculation request to:', routes.calculateUrl);
+        
+        fetch(routes.calculateUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Price calculation response:', data);
+            
+            if (data.success) {
+                // Update display with calculated values
+                document.getElementById('total_days').value = data.data.total_days;
+                document.getElementById('base_price').value = data.data.base_price.toFixed(2);
+                document.getElementById('discount_amount').value = data.data.discount_amount.toFixed(2);
+                document.getElementById('tax_amount').value = data.data.tax_amount.toFixed(2);
+                document.getElementById('total_amount').value = data.data.total_amount.toFixed(2);
+                
+                // Update deposit if provided
+                if (data.data.deposit_amount) {
+                    document.getElementById('deposit_amount').value = data.data.deposit_amount.toFixed(2);
+                }
+                
+                // Update availability badge
+                document.getElementById('availability_display').innerHTML = data.data.is_available
+                    ? '<span class="badge bg-success">Véhicule Disponible</span>'
+                    : '<span class="badge bg-danger">Véhicule Indisponible</span>';
+            } else {
+                // Show error
+                document.getElementById('availability_display').innerHTML = 
+                    '<span class="badge bg-warning">Erreur de Calcul</span>';
+                console.error('Calculation error:', data.message || 'Unknown error');
+                resetPricingFields();
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            document.getElementById('availability_display').innerHTML = 
+                '<span class="badge bg-danger">Erreur de Connexion</span>';
+            resetPricingFields();
+        });
+    }
+    
+    // Reset all pricing fields
+    function resetPricingFields() {
+        document.getElementById('total_days').value = '';
+        document.getElementById('base_price').value = '';
+        document.getElementById('discount_amount').value = '';
+        document.getElementById('tax_amount').value = '';
+        document.getElementById('total_amount').value = '';
+        // Leave deposit value as is, usually has a default value
     }
     
     /**
@@ -808,14 +1048,14 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (booking.status === 'confirmed') {
             viewStatusActions.innerHTML += `
-                <button type="button" class="btn btn-sm btn-primary btn-status me-1" data-id="${booking.id}" data-status="in_progress">
+                <button type="button" class="btn btn-sm btn-primary btn-start-rental me-1" data-id="${booking.id}">
                     <i class="fas fa-car"></i> Démarrer
                 </button>`;
         }
         
         if (booking.status === 'in_progress') {
             viewStatusActions.innerHTML += `
-                <button type="button" class="btn btn-sm btn-info btn-status me-1" data-id="${booking.id}" data-status="completed">
+                <button type="button" class="btn btn-sm btn-info btn-complete-rental me-1" data-id="${booking.id}">
                     <i class="fas fa-flag-checkered"></i> Terminer
                 </button>`;
         }
@@ -1108,7 +1348,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-    
     /**
      * Handle status change
      */
@@ -1359,6 +1598,357 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     /**
+     * Handle start rental process
+     * This displays the start rental modal and populates it with booking data
+     */
+    function handleStartRental(bookingId) {
+        // Fetch booking data to populate the modal
+        fetch(routes.showUrl.replace(':id', bookingId), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.booking) {
+                const booking = data.booking;
+                
+                // Set booking details in the start rental modal
+                document.getElementById('start_booking_id').value = booking.id;
+                document.getElementById('start_booking_number').textContent = `Réservation #${booking.booking_number}`;
+                document.getElementById('start_customer_name').textContent = booking.customer_name;
+                document.getElementById('start_car_name').textContent = booking.car ? booking.car.name : 'N/A';
+                document.getElementById('start_car_info').textContent = booking.car ? 
+                    `${booking.car.license_plate || ''} - ${booking.car.color || ''} ${booking.car.model || ''}` : '';
+                
+                // Set expected mileage
+                const mileageLimit = booking.mileage_limit || 200;
+                const totalDays = booking.total_days || 1;
+                document.getElementById('expected_mileage').textContent = mileageLimit * totalDays;
+                
+                // Pre-fill start mileage if car has current mileage
+                if (booking.car && booking.car.mileage) {
+                    document.getElementById('start_mileage').value = booking.car.mileage;
+                } else {
+                    document.getElementById('start_mileage').value = '';
+                }
+                
+                // Set default fuel level to full
+                document.getElementById('fuel_level').value = 100;
+                
+                // Clear notes field
+                document.getElementById('start_notes').value = '';
+                
+                // Show the modal
+                const bsModal = new bootstrap.Modal(document.getElementById('startRentalModal'));
+                bsModal.show();
+                
+                // Close any other open modals
+                const viewModalInstance = bootstrap.Modal.getInstance(viewBookingModal);
+                if (viewModalInstance) viewModalInstance.hide();
+                
+            } else {
+                Swal.fire('Erreur', 'Impossible de charger les données de la réservation', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Erreur', 'Impossible de charger les données de la réservation', 'error');
+        });
+    }
+    
+    /**
+     * Save start rental data
+     */
+    if (document.getElementById('saveStartRentalBtn')) {
+        document.getElementById('saveStartRentalBtn').addEventListener('click', function() {
+            const formElement = document.getElementById('startRentalForm');
+            
+            // Basic form validation
+            if (!formElement.checkValidity()) {
+                formElement.reportValidity();
+                return;
+            }
+            
+            const bookingId = document.getElementById('start_booking_id').value;
+            const startMileage = document.getElementById('start_mileage').value;
+            const fuelLevel = document.getElementById('fuel_level').value;
+            const notes = document.getElementById('start_notes').value;
+            
+            // Disable the button to prevent double submissions
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Traitement...';
+            
+            // Create form data for submission
+            const formData = new FormData();
+            formData.append('start_mileage', startMileage);
+            formData.append('fuel_level', fuelLevel);
+            formData.append('notes', notes);
+            
+            // Define route for start rental endpoint
+            const startRentalUrl = `/admin/bookings/${bookingId}/start-rental`;
+            
+            // Submit the data
+            fetch(startRentalUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Re-enable the button
+                this.disabled = false;
+                this.innerHTML = 'Démarrer la Location';
+                
+                if (data.success) {
+                    // Close the modal
+                    const bsModal = bootstrap.Modal.getInstance(document.getElementById('startRentalModal'));
+                    if (bsModal) bsModal.hide();
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Succès',
+                        text: data.message || 'Location démarrée avec succès',
+                        confirmButtonText: 'OK'
+                    });
+                    
+                    // Reload datatable
+                    table.ajax.reload();
+                } else {
+                    throw new Error(data.message || 'Échec du démarrage de la location');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Re-enable the button
+                this.disabled = false;
+                this.innerHTML = 'Démarrer la Location';
+                
+                // Show error message
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: error.message || 'Une erreur est survenue lors du démarrage de la location',
+                    confirmButtonText: 'OK'
+                });
+            });
+        });
+    }
+    /**
+     * Handle complete rental process
+     * This displays the complete rental modal and populates it with booking data
+     */
+    function handleCompleteRental(bookingId) {
+        // Fetch booking data to populate the modal
+        fetch(routes.showUrl.replace(':id', bookingId), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.booking) {
+                const booking = data.booking;
+                
+                // Make sure booking is in progress and has start mileage
+                if (booking.status !== 'in_progress') {
+                    Swal.fire('Erreur', 'Seules les réservations en cours peuvent être terminées', 'error');
+                    return;
+                }
+                
+                if (!booking.start_mileage) {
+                    Swal.fire('Erreur', 'Le kilométrage de départ n\'a pas été enregistré', 'error');
+                    return;
+                }
+                
+                // Set booking details in the complete rental modal
+                document.getElementById('complete_booking_id').value = booking.id;
+                document.getElementById('complete_booking_number').textContent = `Réservation #${booking.booking_number}`;
+                document.getElementById('complete_customer_name').textContent = booking.customer_name;
+                document.getElementById('complete_car_name').textContent = booking.car ? booking.car.name : 'N/A';
+                document.getElementById('complete_car_info').textContent = booking.car ? 
+                    `${booking.car.license_plate || ''} - ${booking.car.color || ''} ${booking.car.model || ''}` : '';
+                
+                // Set mileage information
+                document.getElementById('starting_mileage').textContent = booking.start_mileage;
+                document.getElementById('mileage_limit').textContent = booking.mileage_limit || 200;
+                document.getElementById('total_mileage_limit').textContent = (booking.mileage_limit || 200) * booking.total_days;
+                document.getElementById('extra_mileage_cost').textContent = booking.extra_mileage_cost || 2;
+                
+                // Set minimum end mileage value
+                document.getElementById('end_mileage').min = booking.start_mileage;
+                document.getElementById('end_mileage').value = booking.start_mileage;
+                
+                // Hide extra mileage info by default
+                document.getElementById('extra_mileage_info').classList.add('d-none');
+                
+                // Add event listener for end mileage changes
+                document.getElementById('end_mileage').addEventListener('input', function() {
+                    updateExtraMileageCalculation(booking);
+                });
+                
+                // Clear fields
+                document.getElementById('complete_fuel_level').value = 100; // Default to full tank
+                document.getElementById('damage_report').value = '';
+                document.getElementById('complete_notes').value = '';
+                
+                // Show the modal
+                const bsModal = new bootstrap.Modal(document.getElementById('completeRentalModal'));
+                bsModal.show();
+                
+                // Close any other open modals
+                const viewModalInstance = bootstrap.Modal.getInstance(viewBookingModal);
+                if (viewModalInstance) viewModalInstance.hide();
+                
+            } else {
+                Swal.fire('Erreur', 'Impossible de charger les données de la réservation', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Erreur', 'Impossible de charger les données de la réservation', 'error');
+        });
+    }
+    
+    /**
+     * Calculate and update extra mileage information
+     */
+    function updateExtraMileageCalculation(booking) {
+        const endMileageField = document.getElementById('end_mileage');
+        const extraMileageInfo = document.getElementById('extra_mileage_info');
+        const totalMileageElement = document.getElementById('total_mileage');
+        const extraMileageElement = document.getElementById('extra_mileage');
+        const extraMileageChargesElement = document.getElementById('extra_mileage_charges');
+        
+        if (!endMileageField.value || endMileageField.value < booking.start_mileage) {
+            extraMileageInfo.classList.add('d-none');
+            return;
+        }
+        
+        // Calculate mileage values
+        const endMileage = parseInt(endMileageField.value);
+        const startMileage = parseInt(booking.start_mileage);
+        const totalMileage = endMileage - startMileage;
+        const mileageLimit = (booking.mileage_limit || 200) * booking.total_days;
+        const extraMileage = Math.max(0, totalMileage - mileageLimit);
+        const extraMileageCost = booking.extra_mileage_cost || 2;
+        const extraMileageCharges = extraMileage * extraMileageCost;
+        
+        // Update display elements
+        totalMileageElement.textContent = totalMileage;
+        extraMileageElement.textContent = extraMileage;
+        extraMileageChargesElement.textContent = extraMileageCharges.toFixed(2);
+        
+        // Show or hide the extra mileage info box
+        if (extraMileage > 0) {
+            extraMileageInfo.classList.remove('d-none');
+        } else {
+            extraMileageInfo.classList.add('d-none');
+        }
+    }
+    
+    /**
+     * Save complete rental data
+     */
+    if (document.getElementById('saveCompleteRentalBtn')) {
+        document.getElementById('saveCompleteRentalBtn').addEventListener('click', function() {
+            const formElement = document.getElementById('completeRentalForm');
+            
+            // Basic form validation
+            if (!formElement.checkValidity()) {
+                formElement.reportValidity();
+                return;
+            }
+            
+            const bookingId = document.getElementById('complete_booking_id').value;
+            const endMileage = document.getElementById('end_mileage').value;
+            const fuelLevel = document.getElementById('complete_fuel_level').value;
+            const damageReport = document.getElementById('damage_report').value;
+            const notes = document.getElementById('complete_notes').value;
+            
+            // Disable the button to prevent double submissions
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Traitement...';
+            
+            // Create form data for submission
+            const formData = new FormData();
+            formData.append('end_mileage', endMileage);
+            formData.append('fuel_level', fuelLevel);
+            formData.append('damage_report', damageReport);
+            formData.append('notes', notes);
+            
+            // Define route for complete rental endpoint
+            const completeRentalUrl = `/admin/bookings/${bookingId}/complete-rental`;
+            
+            // Submit the data
+            fetch(completeRentalUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Re-enable the button
+                this.disabled = false;
+                this.innerHTML = 'Terminer la Location';
+                
+                if (data.success) {
+                    // Close the modal
+                    const bsModal = bootstrap.Modal.getInstance(document.getElementById('completeRentalModal'));
+                    if (bsModal) bsModal.hide();
+                    
+                    let successMessage = data.message || 'Location terminée avec succès';
+                    
+                    // If there were extra mileage charges, add to the message
+                    if (data.extra_mileage_charges && data.extra_mileage_charges > 0) {
+                        successMessage += ` Des frais supplémentaires de ${data.extra_mileage_charges.toFixed(2)} MAD ont été ajoutés pour kilométrage excédentaire.`;
+                    }
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Succès',
+                        text: successMessage,
+                        confirmButtonText: 'OK'
+                    });
+                    
+                    // Reload datatable
+                    table.ajax.reload();
+                } else {
+                    throw new Error(data.message || 'Échec de la terminaison de la location');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Re-enable the button
+                this.disabled = false;
+                this.innerHTML = 'Terminer la Location';
+                
+                // Show error message
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: error.message || 'Une erreur est survenue lors de la terminaison de la location',
+                    confirmButtonText: 'OK'
+                });
+            });
+        });
+    }
+    
+    /**
      * Get status label
      */
     function getStatusLabel(status) {
@@ -1401,7 +1991,6 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         return methodLabels[method] || method.replace(/_/g, ' ');
     }
-    
     /**
      * Get deposit status label
      */
@@ -1515,5 +2104,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!str) return '';
         
         return str.replace(/\b\w/g, l => l.toUpperCase()).replace(/_/g, ' ');
+    }
+    
+    /**
+     * Initialize routes object with rental management endpoints
+     */
+    if (routes) {
+        // Add start and complete rental routes
+        routes.startRentalUrl = "/admin/bookings/:id/start-rental";
+        routes.completeRentalUrl = "/admin/bookings/:id/complete-rental";
+        routes.calculateMileageChargesUrl = "/admin/bookings/:id/calculate-mileage-charges";
     }
 });

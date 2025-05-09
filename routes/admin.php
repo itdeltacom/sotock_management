@@ -213,6 +213,7 @@ Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permiss
     Route::get('/', [BookingController::class, 'index'])->name('index');
     Route::get('/data', [BookingController::class, 'data'])->name('data');
     Route::post('/', [BookingController::class, 'store'])->name('store');
+    Route::get('/{booking}', [BookingController::class, 'show'])->name('show');
     Route::get('/{booking}/edit', [BookingController::class, 'edit'])->name('edit');
     Route::put('/{booking}', [BookingController::class, 'update'])->name('update');
     Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
@@ -225,6 +226,15 @@ Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permiss
     Route::patch('/{booking}/update-deposit-status', [BookingController::class, 'updateDepositStatus'])->name('update-deposit-status');
     Route::get('/dashboard-stats', [BookingController::class, 'dashboardStats'])->name('dashboard-stats');
     Route::get('/calendar', [BookingController::class, 'calendar'])->name('calendar');
+    
+    // Nouvelles routes pour la gestion de location
+    Route::post('/{booking}/start-rental', [BookingController::class, 'startRental'])->name('start-rental');
+    Route::post('/{booking}/complete-rental', [BookingController::class, 'completeRental'])->name('complete-rental');
+    Route::post('/calculate-mileage-charges', [BookingController::class, 'calculateMileageCharges'])->name('calculate-mileage-charges');
+    
+    // Routes optionnelles pour les rapports de kilométrage
+    Route::get('/mileage-report', [BookingController::class, 'mileageReport'])->name('mileage-report');
+    Route::get('/check-mileage-integrity', [BookingController::class, 'checkMileageIntegrity'])->name('check-mileage-integrity');
 });
 
 // Additional Contract Routes

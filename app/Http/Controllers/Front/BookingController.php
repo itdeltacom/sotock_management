@@ -15,6 +15,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
@@ -58,7 +59,9 @@ class BookingController extends Controller
      */
     public function confirmation($bookingNumber)
     {
-        $booking = Booking::where('booking_number', $bookingNumber)->firstOrFail();
+        $booking = Booking::where('booking_number', $bookingNumber)
+            ->with(['car', 'car.brand', 'car.category'])
+            ->firstOrFail();
         
         // Check if user is authorized to view this booking
         if (Auth::check() && Auth::id() !== $booking->user_id && !Auth::user()->isAdmin()) {
@@ -81,6 +84,7 @@ class BookingController extends Controller
             'additional_driver' => 'nullable|boolean',
             'gps_enabled' => 'nullable|boolean',
             'child_seat' => 'nullable|boolean',
+            'start_mileage' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -93,7 +97,6 @@ class BookingController extends Controller
         $car = Car::findOrFail($request->car_id);
         $totalDays = $this->calculateDays($request->pickup_date, $request->dropoff_date);
         $basePrice = $car->price_per_day * $totalDays;
-        $discountAmount = $car->discount_percentage > 0 ? ($basePrice * $car->discount_percentage) / 100 : 0;
         
         // Calculate additional costs
         $insuranceCost = 0;
@@ -114,9 +117,19 @@ class BookingController extends Controller
             $extrasCost += config('booking.child_seat_fee', 15);
         }
 
+        $discountAmount = $car->discount_percentage > 0 ? ($basePrice * $car->discount_percentage) / 100 : 0;
         $subtotal = $basePrice - $discountAmount + $insuranceCost + $extrasCost;
         $taxAmount = ($subtotal * config('booking.tax_rate', 10)) / 100;
         $totalAmount = $subtotal + $taxAmount;
+        
+        // Set mileage limit based on car configuration or default values
+        $mileageLimit = $car->mileage_limit ?? config('booking.default_mileage_limit', 200);
+        
+        // Calculate allowed total mileage for the rental period
+        $totalAllowedMileage = $mileageLimit * $totalDays;
+        
+        // Set extra mileage cost
+        $extraMileageCost = $car->extra_mileage_cost ?? config('booking.extra_mileage_cost', 2);
 
         return response()->json([
             'success' => true,
@@ -128,7 +141,11 @@ class BookingController extends Controller
                 'extras_cost' => $extrasCost,
                 'tax_amount' => $taxAmount,
                 'total_amount' => $totalAmount,
-                'is_available' => $this->checkCarAvailability($car->id, $request->pickup_date, $request->dropoff_date)
+                'mileage_limit' => $mileageLimit,
+                'total_allowed_mileage' => $totalAllowedMileage,
+                'extra_mileage_cost' => $extraMileageCost,
+                'is_available' => $this->checkCarAvailability($car->id, $request->pickup_date, $request->dropoff_date),
+                'start_mileage' => $car->mileage,
             ]
         ]);
     }
@@ -231,7 +248,8 @@ class BookingController extends Controller
             Log::info('Car state before validation', [
                 'car_id' => $car->id,
                 'current_status' => $car->status,
-                'current_is_available' => $car->is_available
+                'current_is_available' => $car->is_available,
+                'current_mileage' => $car->mileage
             ]);
             
             $totalDays = $this->calculateDays($request->pickup_date, $request->dropoff_date);
@@ -278,15 +296,17 @@ class BookingController extends Controller
             }
 
             // Check if user can rent
-            if ($user && !$user->canRent()) {
+            if ($user && method_exists($user, 'canRent') && !$user->canRent()) {
                 DB::rollBack();
                 Log::warning('User cannot rent', [
                     'user_id' => $user->id,
-                    'reason' => $user->getRentalRestrictionReason()
+                    'reason' => method_exists($user, 'getRentalRestrictionReason') ? $user->getRentalRestrictionReason() : 'Unknown restriction'
                 ]);
                 return response()->json([
                     'success' => false,
-                    'message' => $user->getRentalRestrictionReason() ?? 'You are not eligible to rent at this time.'
+                    'message' => method_exists($user, 'getRentalRestrictionReason') ? 
+                        ($user->getRentalRestrictionReason() ?? 'You are not eligible to rent at this time.') : 
+                        'You are not eligible to rent at this time.'
                 ], 422);
             }
 
@@ -311,6 +331,13 @@ class BookingController extends Controller
             if ($request->boolean('child_seat')) {
                 $extrasCost += config('booking.child_seat_fee', 15);
             }
+            
+            // Add delivery fees if applicable
+            if ($request->delivery_option === 'home') {
+                $extrasCost += config('booking.home_delivery_fee', 50);
+            } elseif ($request->delivery_option === 'airport') {
+                $extrasCost += config('booking.airport_delivery_fee', 80);
+            }
 
             $subtotal = $basePrice - $discountAmount + $insuranceCost + $extrasCost;
             $taxAmount = ($subtotal * config('booking.tax_rate', 10)) / 100;
@@ -319,6 +346,12 @@ class BookingController extends Controller
             $confirmationCode = method_exists(Booking::class, 'generateConfirmationCode')
                 ? (new Booking)->generateConfirmationCode()
                 : strtoupper(Str::random(8));
+                
+            // Set mileage limit based on car configuration or default values
+            $mileageLimit = $car->mileage_limit ?? config('booking.mileage_limit', 200);
+            
+            // Set extra mileage cost
+            $extraMileageCost = $car->extra_mileage_cost ?? config('booking.extra_mileage_cost', 2.5);
 
             $booking = new Booking([
                 'user_id' => $user ? $user->id : null,
@@ -348,14 +381,14 @@ class BookingController extends Controller
                 'additional_driver' => $request->boolean('additional_driver'),
                 'additional_driver_name' => $request->additional_driver_name,
                 'additional_driver_license' => $request->additional_driver_license,
-                'delivery_option' => $request->delivery_option,
+                'delivery_option' => $request->delivery_option ?? 'none',
                 'delivery_address' => $request->delivery_address,
                 'fuel_policy' => config('booking.fuel_policy', 'full-to-full'),
-                'mileage_limit' => config('booking.mileage_limit', 200),
-                'extra_mileage_cost' => config('booking.extra_mileage_cost', 2.5),
+                'mileage_limit' => $mileageLimit,
+                'extra_mileage_cost' => $extraMileageCost,
                 'deposit_amount' => config('booking.deposit_amount', 1000),
                 'deposit_status' => 'pending',
-                'language_preference' => $request->language_preference ?? 'fr',
+                'language_preference' => $request->language_preference ?? app()->getLocale(),
                 'gps_enabled' => $request->boolean('gps_enabled'),
                 'child_seat' => $request->boolean('child_seat'),
                 'start_mileage' => (int) $request->start_mileage,
@@ -407,7 +440,7 @@ class BookingController extends Controller
                 // Using an array to update the car instead of forceFill
                 $car->update([
                     'is_available' => false,
-                    'status' => 'rented'
+                    'status' => 'pending'  // Will change to "rented" when pickup occurs
                 ]);
                 Log::info('Car status updated', ['car_id' => $car->id]);
             } catch (\Exception $e) {
@@ -441,7 +474,19 @@ class BookingController extends Controller
             return response()->json([
                 'success' => true,
                 'booking_number' => $booking->booking_number,
-                'message' => 'Your booking has been confirmed! Booking number: ' . $booking->booking_number
+                'message' => 'Your booking has been confirmed! Booking number: ' . $booking->booking_number,
+                'data' => [
+                    'id' => $booking->id,
+                    'booking_number' => $booking->booking_number,
+                    'confirmation_code' => $booking->confirmation_code,
+                    'pickup_date' => $booking->pickup_date->format('Y-m-d'),
+                    'pickup_time' => $booking->pickup_time,
+                    'dropoff_date' => $booking->dropoff_date->format('Y-m-d'),
+                    'dropoff_time' => $booking->dropoff_time,
+                    'total_amount' => $booking->total_amount,
+                    'car_name' => $car->name,
+                    'car_image' => $car->main_image ? Storage::url($car->main_image) : null,
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -459,6 +504,115 @@ class BookingController extends Controller
     }
 
     /**
+     * Display the payment page for a booking
+     */
+    public function payment($bookingNumber)
+    {
+        $booking = Booking::where('booking_number', $bookingNumber)
+            ->with(['car', 'car.brand', 'car.category'])
+            ->firstOrFail();
+        
+        // Check if user is authorized to view this payment page
+        if (Auth::check() && Auth::id() !== $booking->user_id && !Auth::user()->isAdmin()) {
+            return redirect()->route('home')->with('error', 'You are not authorized to view this payment page.');
+        }
+        
+        // Check if booking needs payment
+        if ($booking->payment_status !== 'unpaid' && $booking->payment_status !== 'pending') {
+            return redirect()->route('bookings.show', $booking->booking_number)->with('info', 'This booking has already been paid.');
+        }
+        
+        return view('site.bookings.payment', compact('booking'));
+    }
+
+    /**
+     * Process payment for a booking
+     */
+    public function processPayment(Request $request, $bookingNumber)
+    {
+        $booking = Booking::where('booking_number', $bookingNumber)->firstOrFail();
+        
+        // Check if user is authorized
+        if (Auth::check() && Auth::id() !== $booking->user_id && !Auth::user()->isAdmin()) {
+            return redirect()->route('home')->with('error', 'You are not authorized to make this payment.');
+        }
+        
+        // Check if booking needs payment
+        if ($booking->payment_status !== 'unpaid' && $booking->payment_status !== 'pending') {
+            return redirect()->route('bookings.show', $booking->booking_number)->with('info', 'This booking has already been paid.');
+        }
+        
+        // Validate payment data
+        $validator = Validator::make($request->all(), [
+            'payment_method' => 'required|in:credit_card,paypal,bank_transfer',
+            'card_number' => 'required_if:payment_method,credit_card|nullable|string',
+            'card_holder' => 'required_if:payment_method,credit_card|nullable|string',
+            'card_expiry' => 'required_if:payment_method,credit_card|nullable|string',
+            'card_cvv' => 'required_if:payment_method,credit_card|nullable|string',
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        try {
+            DB::beginTransaction();
+            
+            // In a real application, this would integrate with a payment gateway
+            // For now, we'll simulate a successful payment
+            $transactionId = 'TRANS-' . strtoupper(Str::random(10));
+            
+            // Create payment record
+            $payment = new Payment([
+                'booking_id' => $booking->id,
+                'amount' => $booking->total_amount,
+                'payment_method' => $request->payment_method,
+                'transaction_id' => $transactionId,
+                'status' => 'completed',
+                'payment_date' => now(),
+            ]);
+            $payment->save();
+            
+            // Update booking status
+            $booking->update([
+                'payment_status' => 'paid',
+                'status' => 'confirmed',
+                'transaction_id' => $transactionId
+            ]);
+            
+            // If booking was pending and now confirmed, make sure car status is updated
+            if ($booking->car && $booking->car->status === 'available') {
+                $booking->car->update([
+                    'is_available' => false,
+                    'status' => 'pending'
+                ]);
+            }
+            
+            DB::commit();
+            
+            // Send payment confirmation email
+            try {
+                $this->sendPaymentConfirmation($booking, $payment);
+            } catch (\Exception $e) {
+                // Log error but don't fail the transaction
+                Log::warning('Failed to send payment confirmation email: ' . $e->getMessage());
+            }
+            
+            return redirect()->route('bookings.confirmation', $booking->booking_number)
+                ->with('success', 'Payment processed successfully.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Payment processing failed: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->with('error', 'Failed to process payment. Please try again.');
+        }
+    }
+
+    /**
      * Cancel a booking
      */
     public function cancel(Request $request, $bookingNumber)
@@ -466,7 +620,7 @@ class BookingController extends Controller
         $booking = Booking::where('booking_number', $bookingNumber)->firstOrFail();
         
         // Check if user is authorized to cancel this booking
-        if (Auth::id() !== $booking->user_id && !Auth::user()->isAdmin()) {
+        if (Auth::id() !== $booking->user_id && !Auth::user()->isAdmin() && (!method_exists(Auth::user(), 'isStaff') || !Auth::user()->isStaff())) {
             return redirect()->back()->with('error', 'You are not authorized to cancel this booking.');
         }
         
@@ -488,10 +642,12 @@ class BookingController extends Controller
             ]);
             
             // Update car availability
-            $booking->car->update([
-                'status' => 'available',
-                'is_available' => true,
-            ]);
+            if ($booking->car) {
+                $booking->car->update([
+                    'status' => 'available',
+                    'is_available' => true,
+                ]);
+            }
             
             // Process refund if payment was made
             if ($booking->payment_status === 'paid') {
@@ -537,6 +693,92 @@ class BookingController extends Controller
     }
     
     /**
+     * Start a booking (record pickup)
+     */
+    public function startRental(Request $request, $bookingNumber)
+    {
+        $booking = Booking::where('booking_number', $bookingNumber)->firstOrFail();
+        
+        // Check if user is authorized (admin or staff)
+        if (!Auth::user()->isAdmin() && (!method_exists(Auth::user(), 'isStaff') || !Auth::user()->isStaff())) {
+            return redirect()->back()->with('error', 'You are not authorized to start this rental.');
+        }
+        
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'start_mileage' => 'required|integer|min:0',
+            'fuel_level' => 'required|integer|min:0|max:100',
+            'notes' => 'nullable|string',
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        // Check if booking is in a valid state to start
+        if ($booking->status !== 'confirmed') {
+            return redirect()->back()->with('error', 'This booking cannot be started. Current status: ' . $booking->status_label);
+        }
+        
+        try {
+            DB::beginTransaction();
+            
+            // Update start mileage if provided value is different
+            if ($booking->start_mileage != $request->start_mileage) {
+                $booking->start_mileage = $request->start_mileage;
+            }
+            
+            // Start the rental
+            $booking->status = 'in_progress';
+            $booking->save();
+            
+            // Update car status
+            if ($booking->car) {
+                $booking->car->update([
+                    'status' => 'rented',
+                    'is_available' => false,
+                    'mileage' => $request->start_mileage  // Update car mileage to match rental start
+                ]);
+            }
+            
+            // Add rental start notes if provided
+            if ($request->filled('notes')) {
+                // If a "notes" field already exists on the booking model, use it directly
+                if (array_key_exists('notes', $booking->getAttributes())) {
+                    $booking->notes = ($booking->notes ? $booking->notes . "\n\n" : '') . 
+                        "Pickup notes (" . now()->format('Y-m-d H:i') . "): " . $request->notes;
+                    $booking->save();
+                } else {
+                    // Otherwise create a separate rental note record if you have that model
+                    // This is just placeholder code - adjust based on your actual model structure
+                    if (class_exists('App\Models\RentalNote')) {
+                        \App\Models\RentalNote::create([
+                            'booking_id' => $booking->id,
+                            'user_id' => Auth::id(),
+                            'note_type' => 'pickup',
+                            'content' => $request->notes,
+                        ]);
+                    }
+                }
+            }
+            
+            DB::commit();
+            
+            return redirect()->route('admin.bookings.show', $booking->id)
+                ->with('success', 'Rental started successfully. Start mileage recorded: ' . number_format($request->start_mileage) . ' km');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Rental start failed: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->with('error', 'Failed to start the rental. Please try again.');
+        }
+    }
+    
+    /**
      * Complete a booking (for staff use)
      */
     public function complete(Request $request, $bookingNumber)
@@ -544,14 +786,16 @@ class BookingController extends Controller
         $booking = Booking::where('booking_number', $bookingNumber)->firstOrFail();
         
         // Check if user is authorized (admin or staff)
-        if (!Auth::user()->isAdmin() && !Auth::user()->isStaff()) {
+        if (!Auth::user()->isAdmin() && (!method_exists(Auth::user(), 'isStaff') || !Auth::user()->isStaff())) {
             return redirect()->back()->with('error', 'You are not authorized to complete this booking.');
         }
         
         // Validate request
         $validator = Validator::make($request->all(), [
             'end_mileage' => 'required|integer|min:' . $booking->start_mileage,
+            'fuel_level' => 'required|integer|min:0|max:100',
             'notes' => 'nullable|string',
+            'damage_report' => 'nullable|string',
         ]);
         
         if ($validator->fails()) {
@@ -563,20 +807,94 @@ class BookingController extends Controller
         try {
             DB::beginTransaction();
             
-            // Complete the booking
-            $booking->completeBooking((int) $request->end_mileage);
+            // Record end mileage
+            $booking->end_mileage = $request->end_mileage;
             
-            // Add staff notes if provided
-            if ($request->filled('notes')) {
-                $booking->update([
-                    'notes' => $request->notes,
+            // Calculate total mileage
+            $totalMileage = $booking->end_mileage - $booking->start_mileage;
+            
+            // Calculate if there's extra mileage beyond the limit
+            $allowedMileage = $booking->mileage_limit * $booking->total_days;
+            $extraMileage = max(0, $totalMileage - $allowedMileage);
+            
+            // Calculate extra mileage charges if applicable
+            $extraMileageCharges = 0;
+            if ($extraMileage > 0) {
+                $extraMileageCharges = $extraMileage * $booking->extra_mileage_cost;
+                $booking->extra_mileage = $extraMileage;
+                $booking->extra_mileage_charges = $extraMileageCharges;
+            }
+            
+            // Complete the booking
+            $booking->status = 'completed';
+            $booking->completed_at = now();
+            $booking->save();
+            
+            // Update car status and mileage
+            if ($booking->car) {
+                $booking->car->update([
+                    'status' => 'available',
+                    'is_available' => true,
+                    'mileage' => $request->end_mileage  // Update car with current mileage
                 ]);
+            }
+            
+            // Add completion notes if provided
+            if ($request->filled('notes') || $request->filled('damage_report')) {
+                $completionNotes = "Dropoff notes (" . now()->format('Y-m-d H:i') . "): ";
+                
+                if ($request->filled('notes')) {
+                    $completionNotes .= $request->notes;
+                }
+                
+                if ($request->filled('damage_report')) {
+                    $completionNotes .= "\n\nDamage report: " . $request->damage_report;
+                }
+                
+                // If a "notes" field already exists on the booking model, use it directly
+                if (array_key_exists('notes', $booking->getAttributes())) {
+                    $booking->notes = ($booking->notes ? $booking->notes . "\n\n" : '') . $completionNotes;
+                    $booking->save();
+                } else {
+                    // Otherwise create a separate rental note record if you have that model
+                    if (class_exists('App\Models\RentalNote')) {
+                        \App\Models\RentalNote::create([
+                            'booking_id' => $booking->id,
+                            'user_id' => Auth::id(),
+                            'note_type' => 'dropoff',
+                            'content' => $completionNotes,
+                        ]);
+                    }
+                }
+            }
+            
+            // If there are extra charges, create an additional payment record
+            if ($extraMileageCharges > 0) {
+                $extraChargePayment = new Payment([
+                    'booking_id' => $booking->id,
+                    'amount' => $extraMileageCharges,
+                    'payment_method' => $booking->payment_method,
+                    'transaction_id' => 'EXTRA-' . strtoupper(Str::random(8)),
+                    'status' => 'pending',  // Will need to be collected from customer
+                    'payment_date' => null,
+                    'notes' => 'Extra mileage charges: ' . $extraMileage . ' km @ ' . 
+                        number_format($booking->extra_mileage_cost, 2) . ' MAD/km',
+                ]);
+                $extraChargePayment->save();
             }
             
             DB::commit();
             
+            // Determine success message based on extra charges
+            $successMessage = 'Booking completed successfully.';
+            if ($extraMileageCharges > 0) {
+                $successMessage .= ' Extra mileage charges of ' . 
+                    number_format($extraMileageCharges, 2) . 
+                    ' MAD have been added for ' . number_format($extraMileage) . ' km over the limit.';
+            }
+            
             return redirect()->route('admin.bookings.show', $booking->id)
-                ->with('success', 'Booking completed successfully.');
+                ->with('success', $successMessage);
                 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -584,6 +902,120 @@ class BookingController extends Controller
             
             return redirect()->back()
                 ->with('error', 'Failed to complete the booking. Please try again.');
+        }
+    }
+    
+    /**
+     * Extend a booking (increase rental duration)
+     */
+    public function extend(Request $request, $bookingNumber)
+    {
+        $booking = Booking::where('booking_number', $bookingNumber)->firstOrFail();
+        
+        // Check if user is authorized
+        if (Auth::id() !== $booking->user_id && !Auth::user()->isAdmin() && (!method_exists(Auth::user(), 'isStaff') || !Auth::user()->isStaff())) {
+            return redirect()->back()->with('error', 'You are not authorized to extend this booking.');
+        }
+        
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'new_dropoff_date' => 'required|date|after:' . $booking->dropoff_date->format('Y-m-d'),
+            'new_dropoff_time' => 'required|string',
+        ]);
+        
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        
+        // Check if booking can be extended
+        if (!in_array($booking->status, ['confirmed', 'in_progress'])) {
+            return redirect()->back()->with('error', 'This booking cannot be extended. Current status: ' . $booking->status_label);
+        }
+        
+        try {
+            DB::beginTransaction();
+            
+            // Calculate additional days
+            $oldDays = $booking->total_days;
+            $oldDropoff = Carbon::parse($booking->dropoff_date->format('Y-m-d') . ' ' . $booking->dropoff_time);
+            $newDropoff = Carbon::parse($request->new_dropoff_date . ' ' . $request->new_dropoff_time);
+            
+            // Calculate new total days
+            $pickup = Carbon::parse($booking->pickup_date->format('Y-m-d') . ' ' . $booking->pickup_time);
+            $newTotalDays = max(1, ceil($newDropoff->diffInHours($pickup) / 24));
+            $additionalDays = $newTotalDays - $oldDays;
+            
+            // Calculate additional costs
+            $additionalBasePrice = $booking->car->price_per_day * $additionalDays;
+            $additionalDiscount = $booking->car->discount_percentage > 0 ? 
+                ($additionalBasePrice * $booking->car->discount_percentage) / 100 : 0;
+                
+            // Add insurance costs for additional days if applicable
+            $additionalInsuranceCost = 0;
+            if ($booking->insurance_plan === 'standard') {
+                $additionalInsuranceCost = $additionalDays * config('booking.insurance.standard', 50);
+            } elseif ($booking->insurance_plan === 'premium') {
+                $additionalInsuranceCost = $additionalDays * config('booking.insurance.premium', 100);
+            }
+            
+            // Calculate additional tax
+            $additionalSubtotal = $additionalBasePrice - $additionalDiscount + $additionalInsuranceCost;
+            $additionalTax = ($additionalSubtotal * config('booking.tax_rate', 10)) / 100;
+            
+            // Calculate new total amount
+            $newTotalAmount = $booking->total_amount + $additionalSubtotal + $additionalTax;
+            
+            // Update booking with new dates and amounts
+            $booking->update([
+                'dropoff_date' => $request->new_dropoff_date,
+                'dropoff_time' => $request->new_dropoff_time,
+                'total_days' => $newTotalDays,
+                'base_price' => $booking->base_price + $additionalBasePrice,
+                'discount_amount' => $booking->discount_amount + $additionalDiscount,
+                'tax_amount' => $booking->tax_amount + $additionalTax,
+                'total_amount' => $newTotalAmount,
+            ]);
+            
+            // Create extension payment record if not cash on delivery
+            if ($booking->payment_method !== 'cash_on_delivery' && $booking->payment_status === 'paid') {
+                $extensionAmount = $additionalSubtotal + $additionalTax;
+                
+                // In a real application, this would integrate with a payment gateway
+                $transactionId = 'EXT-' . strtoupper(Str::random(10));
+                
+                // Create payment record
+                $payment = new Payment([
+                    'booking_id' => $booking->id,
+                    'amount' => $extensionAmount,
+                    'payment_method' => $booking->payment_method,
+                    'transaction_id' => $transactionId,
+                    'status' => 'pending',  // Will need to be collected
+                    'notes' => 'Extension charge for ' . $additionalDays . ' additional days',
+                ]);
+                $payment->save();
+            }
+            
+            DB::commit();
+            
+            // Send extension confirmation
+            try {
+                $this->sendExtensionConfirmation($booking, $additionalDays);
+            } catch (\Exception $e) {
+                // Log error but don't fail the transaction
+                Log::warning('Failed to send extension confirmation: ' . $e->getMessage());
+            }
+            
+            return redirect()->route('bookings.show', $booking->booking_number)
+                ->with('success', 'Booking extended successfully for ' . $additionalDays . ' additional days.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Booking extension failed: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->with('error', 'Failed to extend the booking. Please try again.');
         }
     }
     
@@ -684,6 +1116,60 @@ class BookingController extends Controller
     }
     
     /**
+     * Send payment confirmation email
+     */
+    private function sendPaymentConfirmation(Booking $booking, Payment $payment)
+    {
+        // In a real application, implement email sending functionality
+        // For example, using Laravel's Mail facade
+        /*
+        Mail::send('emails.booking.payment', [
+            'booking' => $booking,
+            'payment' => $payment,
+        ], function ($message) use ($booking) {
+            $message->to($booking->customer_email, $booking->customer_name)
+                ->subject('Payment Confirmation: ' . $booking->booking_number);
+        });
+        */
+        
+        // For now, just log the email
+        Log::info('Payment confirmation email would be sent', [
+            'booking_number' => $booking->booking_number,
+            'email' => $booking->customer_email,
+            'payment_amount' => $payment->amount,
+        ]);
+        
+        return true;
+    }
+    
+    /**
+     * Send extension confirmation email
+     */
+    private function sendExtensionConfirmation(Booking $booking, $additionalDays)
+    {
+        // In a real application, implement email sending functionality
+        // For example, using Laravel's Mail facade
+        /*
+        Mail::send('emails.booking.extension', [
+            'booking' => $booking,
+            'additional_days' => $additionalDays,
+        ], function ($message) use ($booking) {
+            $message->to($booking->customer_email, $booking->customer_name)
+                ->subject('Booking Extension: ' . $booking->booking_number);
+        });
+        */
+        
+        // For now, just log the email
+        Log::info('Extension confirmation email would be sent', [
+            'booking_number' => $booking->booking_number,
+            'email' => $booking->customer_email,
+            'additional_days' => $additionalDays,
+        ]);
+        
+        return true;
+    }
+    
+    /**
      * Display booking receipt
      */
     public function receipt($bookingNumber)
@@ -723,5 +1209,59 @@ class BookingController extends Controller
         
         // For now, just return a view
         return view('site.bookings.invoice', compact('booking'));
+    }
+    
+    /**
+     * Calculate mileage and charges for a booking
+     */
+    public function calculateMileage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'booking_id' => 'required|exists:bookings,id',
+            'end_mileage' => 'required|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $booking = Booking::with('car')->findOrFail($request->booking_id);
+        
+        // Check if start mileage exists
+        if (!$booking->start_mileage) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Start mileage has not been recorded for this booking.'
+            ], 422);
+        }
+        
+        // Calculate total mileage
+        $totalMileage = max(0, $request->end_mileage - $booking->start_mileage);
+        
+        // Calculate allowed mileage
+        $allowedMileage = $booking->mileage_limit * $booking->total_days;
+        
+        // Calculate extra mileage if any
+        $extraMileage = max(0, $totalMileage - $allowedMileage);
+        
+        // Calculate extra mileage charges
+        $extraMileageCharges = $extraMileage * $booking->extra_mileage_cost;
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'start_mileage' => $booking->start_mileage,
+                'end_mileage' => $request->end_mileage,
+                'total_mileage' => $totalMileage,
+                'allowed_mileage' => $allowedMileage,
+                'extra_mileage' => $extraMileage,
+                'extra_mileage_cost' => $booking->extra_mileage_cost,
+                'extra_mileage_charges' => $extraMileageCharges,
+                'has_extra_charges' => $extraMileage > 0,
+            ]
+        ]);
     }
 }

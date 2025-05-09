@@ -6,7 +6,7 @@
     <div class="container-fluid py-4">
         <div class="row">
             <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-                <div class="card">
+                <div class="card cards-stats">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -34,7 +34,7 @@
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-                <div class="card">
+                <div class="card cards-stats">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -62,7 +62,7 @@
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-                <div class="card">
+                <div class="card cards-stats">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -90,7 +90,7 @@
                 </div>
             </div>
             <div class="col-xl-3 col-sm-6">
-                <div class="card">
+                <div class="card cards-stats">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -535,132 +535,133 @@
                                                         class="text-danger">*</span></label>
                                                 <input type="text" class="form-control" id="customer_name"
                                                     name="customer_name" required>
-                                                <div class="mb-3">
-                                                    <label for="customer_email" class="form-control-label">Email du Client
-                                                        <span class="text-danger">*</span></label>
-                                                    <input type="email" class="form-control" id="customer_email"
-                                                        name="customer_email" required>
-                                                    <div class="invalid-feedback" id="customer_email-error"></div>
-                                                </div>
+                                                <div class="invalid-feedback" id="customer_name-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="customer_phone" class="form-control-label">Téléphone du
-                                                        Client <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control" id="customer_phone"
-                                                        name="customer_phone" required>
-                                                    <div class="invalid-feedback" id="customer_phone-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="customer_email" class="form-control-label">Email du Client
+                                                    <span class="text-danger">*</span></label>
+                                                <input type="email" class="form-control" id="customer_email"
+                                                    name="customer_email" required>
+                                                <div class="invalid-feedback" id="customer_email-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="customer_id_number" class="form-control-label">Numéro CIN
-                                                        <span class="text-danger">*</span></label>
-                                                    <input type="text" class="form-control" id="customer_id_number"
-                                                        name="customer_id_number" required>
-                                                    <div class="invalid-feedback" id="customer_id_number-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="customer_phone" class="form-control-label">Téléphone du
+                                                    Client <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="customer_phone"
+                                                    name="customer_phone" required>
+                                                <div class="invalid-feedback" id="customer_phone-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="language_preference" class="form-control-label">Langue
-                                                        Préférée <span class="text-danger">*</span></label>
-                                                    <select class="form-select" id="language_preference"
-                                                        name="language_preference" required>
-                                                        <option value="fr">Français</option>
-                                                        <option value="ar">Arabe</option>
-                                                        <option value="en">Anglais</option>
-                                                    </select>
-                                                    <div class="invalid-feedback" id="language_preference-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="customer_id_number" class="form-control-label">Numéro CIN
+                                                    <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="customer_id_number"
+                                                    name="customer_id_number" required>
+                                                <div class="invalid-feedback" id="customer_id_number-error"></div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label for="language_preference" class="form-control-label">Langue
+                                                    Préférée <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="language_preference"
+                                                    name="language_preference" required>
+                                                    <option value="fr">Français</option>
+                                                    <option value="ar">Arabe</option>
+                                                    <option value="en">Anglais</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="language_preference-error"></div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <h5 class="mb-3">Paiement & Statut</h5>
-                                        <div class="card bg-light mb-3">
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label for="status" class="form-control-label">Statut de Réservation
-                                                        <span class="text-danger">*</span></label>
-                                                    <select class="form-select" id="status" name="status" required>
-                                                        <option value="pending">En attente</option>
-                                                        <option value="confirmed">Confirmée</option>
-                                                        <option value="in_progress">En cours</option>
-                                                        <option value="completed">Terminée</option>
-                                                        <option value="cancelled">Annulée</option>
-                                                        <option value="no_show">Non présenté</option>
-                                                    </select>
-                                                    <div class="invalid-feedback" id="status-error"></div>
-                                                </div>
+                                    <h5 class="mb-3">Paiement & Statut</h5>
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="status" class="form-control-label">Statut de Réservation
+                                                    <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="status" name="status" required>
+                                                    <option value="pending">En attente</option>
+                                                    <option value="confirmed">Confirmée</option>
+                                                    <option value="in_progress">En cours</option>
+                                                    <option value="completed">Terminée</option>
+                                                    <option value="cancelled">Annulée</option>
+                                                    <option value="no_show">Non présenté</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="status-error"></div>
+                                            </div>
 
-                                                <div class="mb-3" id="cancellation_reason_container" style="display: none;">
-                                                    <label for="cancellation_reason" class="form-control-label">Raison
-                                                        d'Annulation <span class="text-danger">*</span></label>
-                                                    <textarea class="form-control" id="cancellation_reason"
-                                                        name="cancellation_reason" rows="2"></textarea>
-                                                    <div class="invalid-feedback" id="cancellation_reason-error"></div>
-                                                </div>
+                                            <div class="mb-3" id="cancellation_reason_container" style="display: none;">
+                                                <label for="cancellation_reason" class="form-control-label">Raison
+                                                    d'Annulation <span class="text-danger">*</span></label>
+                                                <textarea class="form-control" id="cancellation_reason"
+                                                    name="cancellation_reason" rows="2"></textarea>
+                                                <div class="invalid-feedback" id="cancellation_reason-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="payment_method" class="form-control-label">Méthode de
-                                                        Paiement <span class="text-danger">*</span></label>
-                                                    <select class="form-select" id="payment_method" name="payment_method"
-                                                        required>
-                                                        <option value="cash">Espèces</option>
-                                                        <option value="card">Carte bancaire</option>
-                                                        <option value="bank_transfer">Virement bancaire</option>
-                                                        <option value="mobile_payment">Paiement mobile</option>
-                                                    </select>
-                                                    <div class="invalid-feedback" id="payment_method-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="payment_method" class="form-control-label">Méthode de
+                                                    Paiement <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="payment_method" name="payment_method"
+                                                    required>
+                                                    <option value="cash">Espèces</option>
+                                                    <option value="card">Carte bancaire</option>
+                                                    <option value="bank_transfer">Virement bancaire</option>
+                                                    <option value="mobile_payment">Paiement mobile</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="payment_method-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="payment_status" class="form-control-label">Statut de
-                                                        Paiement <span class="text-danger">*</span></label>
-                                                    <select class="form-select" id="payment_status" name="payment_status"
-                                                        required>
-                                                        <option value="unpaid">Non payé</option>
-                                                        <option value="pending">En attente</option>
-                                                        <option value="paid">Payé</option>
-                                                        <option value="refunded">Remboursé</option>
-                                                    </select>
-                                                    <div class="invalid-feedback" id="payment_status-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="payment_status" class="form-control-label">Statut de
+                                                    Paiement <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="payment_status" name="payment_status"
+                                                    required>
+                                                    <option value="unpaid">Non payé</option>
+                                                    <option value="pending">En attente</option>
+                                                    <option value="paid">Payé</option>
+                                                    <option value="refunded">Remboursé</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="payment_status-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="transaction_id" class="form-control-label">ID de
-                                                        Transaction</label>
-                                                    <input type="text" class="form-control" id="transaction_id"
-                                                        name="transaction_id">
-                                                    <div class="invalid-feedback" id="transaction_id-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="transaction_id" class="form-control-label">ID de
+                                                    Transaction</label>
+                                                <input type="text" class="form-control" id="transaction_id"
+                                                    name="transaction_id">
+                                                <div class="invalid-feedback" id="transaction_id-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="deposit_status" class="form-control-label">Statut de la
-                                                        Caution <span class="text-danger">*</span></label>
-                                                    <select class="form-select" id="deposit_status" name="deposit_status"
-                                                        required>
-                                                        <option value="pending">En attente</option>
-                                                        <option value="paid">Payée</option>
-                                                        <option value="refunded">Remboursée</option>
-                                                        <option value="forfeited">Perdue</option>
-                                                    </select>
-                                                    <div class="invalid-feedback" id="deposit_status-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="deposit_status" class="form-control-label">Statut de la
+                                                    Caution <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="deposit_status" name="deposit_status"
+                                                    required>
+                                                    <option value="pending">En attente</option>
+                                                    <option value="paid">Payée</option>
+                                                    <option value="refunded">Remboursée</option>
+                                                    <option value="forfeited">Perdue</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="deposit_status-error"></div>
+                                            </div>
 
-                                                <div class="mb-3">
-                                                    <label for="notes" class="form-control-label">Notes Internes</label>
-                                                    <textarea class="form-control" id="notes" name="notes"
-                                                        rows="3"></textarea>
-                                                    <div class="invalid-feedback" id="notes-error"></div>
-                                                </div>
+                                            <div class="mb-3">
+                                                <label for="notes" class="form-control-label">Notes Internes</label>
+                                                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                                                <div class="invalid-feedback" id="notes-error"></div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary"
-                                    data-bs-dismiss="modal">Annuler</button>
-                                <button type="submit" class="btn bg-gradient-primary" id="saveBtn">Enregistrer</button>
-                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn bg-gradient-primary" id="saveBtn">Enregistrer</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -836,6 +837,165 @@
                 </div>
             </div>
         </div>
+        <!-- Start Rental Modal -->
+        <div class="modal fade" id="startRentalModal" tabindex="-1" aria-labelledby="startRentalModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="startRentalModalLabel">Démarrer la Location</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="startRentalForm">
+                            <input type="hidden" id="start_booking_id" name="booking_id">
+
+                            <div class="mb-3">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="mb-1" id="start_booking_number"></h6>
+                                        <p class="mb-0" id="start_customer_name"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="mb-1" id="start_car_name"></h6>
+                                        <p class="mb-0" id="start_car_info"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <strong>Kilométrage prévu:</strong> <span id="expected_mileage"></span> km
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="start_mileage" class="form-control-label">Kilométrage de départ (km) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="start_mileage" name="start_mileage" required
+                                    min="0">
+                                <div class="form-text">Entrez la valeur actuelle du compteur kilométrique</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="fuel_level" class="form-control-label">Niveau de carburant <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" id="fuel_level" name="fuel_level" required>
+                                    <option value="100">Plein (100%)</option>
+                                    <option value="75">Trois-quarts (75%)</option>
+                                    <option value="50">Moitié (50%)</option>
+                                    <option value="25">Quart (25%)</option>
+                                    <option value="0">Vide (0%)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="start_notes" class="form-control-label">Notes</label>
+                                <textarea class="form-control" id="start_notes" name="notes" rows="3"
+                                    placeholder="État du véhicule, instructions spéciales, etc."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn bg-gradient-primary" id="saveStartRentalBtn">Démarrer la
+                            Location</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Rental Modal -->
+        <div class="modal fade" id="completeRentalModal" tabindex="-1" aria-labelledby="completeRentalModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="completeRentalModalLabel">Terminer la Location</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="completeRentalForm">
+                            <input type="hidden" id="complete_booking_id" name="booking_id">
+
+                            <div class="mb-3">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="mb-1" id="complete_booking_number"></h6>
+                                        <p class="mb-0" id="complete_customer_name"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="mb-1" id="complete_car_name"></h6>
+                                        <p class="mb-0" id="complete_car_info"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <strong>Kilométrage de départ:</strong> <span id="starting_mileage"></span> km<br>
+                                <strong>Limite kilométrique:</strong> <span id="mileage_limit"></span> km/jour<br>
+                                <strong>Limite totale:</strong> <span id="total_mileage_limit"></span> km<br>
+                                <strong>Coût kilomètre supplémentaire:</strong> <span id="extra_mileage_cost"></span> MAD/km
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="end_mileage" class="form-control-label">Kilométrage de retour (km) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="end_mileage" name="end_mileage" required
+                                    min="0">
+                                <div class="form-text">Entrez la valeur finale du compteur kilométrique</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="complete_fuel_level" class="form-control-label">Niveau de carburant <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" id="complete_fuel_level" name="fuel_level" required>
+                                    <option value="100">Plein (100%)</option>
+                                    <option value="75">Trois-quarts (75%)</option>
+                                    <option value="50">Moitié (50%)</option>
+                                    <option value="25">Quart (25%)</option>
+                                    <option value="0">Vide (0%)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="damage_report" class="form-control-label">Rapport de dommages</label>
+                                <textarea class="form-control" id="damage_report" name="damage_report" rows="2"
+                                    placeholder="Si des dommages sont constatés, veuillez les décrire ici"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="complete_notes" class="form-control-label">Notes</label>
+                                <textarea class="form-control" id="complete_notes" name="notes" rows="3"
+                                    placeholder="Commentaires supplémentaires sur le retour du véhicule"></textarea>
+                            </div>
+
+                            <div id="extra_mileage_info" class="d-none alert alert-warning">
+                                <h6 class="alert-heading">Kilométrage supplémentaire détecté!</h6>
+                                <p class="mb-0">Kilométrage total: <span id="total_mileage"></span> km</p>
+                                <p class="mb-0">Kilométrage supplémentaire: <span id="extra_mileage"></span> km</p>
+                                <p class="mb-2">Frais supplémentaires: <span id="extra_mileage_charges"></span> MAD</p>
+                                <p class="mb-0"><small>Ces frais seront automatiquement ajoutés au montant total de la
+                                        réservation.</small></p>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn bg-gradient-primary" id="saveCompleteRentalBtn">Terminer la
+                            Location</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -846,6 +1006,9 @@
         .card {
             box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
             border-radius: 0.75rem;
+        }
+
+        .cards-stats {
             height: 100%;
         }
 
@@ -1004,7 +1167,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Routes for AJAX calls
+        // Routes for AJAX calls - Corrected route definitions
         const routes = {
             dataUrl: "{{ route('admin.bookings.data') }}",
             storeUrl: "{{ route('admin.bookings.store') }}",
@@ -1015,11 +1178,19 @@
             updateStatusUrl: "{{ route('admin.bookings.update-status', ':id') }}",
             updatePaymentStatusUrl: "{{ route('admin.bookings.update-payment-status', ':id') }}",
             updateDepositStatusUrl: "{{ route('admin.bookings.update-deposit-status', ':id') }}",
-            exportUrl: "{{ route('admin.bookings.export') }}"
+            exportUrl: "{{ route('admin.bookings.export') }}",
+            // Rental-specific routes
+            startRentalUrl: "{{ route('admin.bookings.start-rental', ':id') }}",
+            completeRentalUrl: "{{ route('admin.bookings.complete-rental', ':id') }}",
+            calculateMileageChargesUrl: "{{ route('admin.bookings.calculate-mileage-charges') }}"
         };
 
         // CSRF Token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // Debug routes on page load
+        console.log('Routes configuration loaded:', routes);
     </script>
+    <!-- Include the main booking management script -->
     <script src="{{ asset('admin/js/bookings-management.js') }}"></script>
 @endpush
