@@ -16,7 +16,7 @@ return [
 'child_seat_fee' => 15,
 
 // Tax rate (percentage)
-'tax_rate' => 10,
+'tax_rate' => 0,
 
 // Mileage settings
 'mileage_limit' => 200, // km per day

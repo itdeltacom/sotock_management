@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Booking;
+use Log;
+use Carbon\Carbon;
 use App\Models\Car;
 use App\Models\User;
+use App\Models\Booking;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use App\Http\Controllers\Controller;
 use Yajra\DataTables\Facades\DataTables;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Validator;
 
 class BookingController extends Controller
 {
+
+    private const TAX_RATE = 0; // Fixed tax rate of 0%
     /**
      * Display a listing of the bookings.
      */
@@ -347,7 +349,6 @@ public function data(Request $request)
             'language_preference' => 'required|in:ar,fr,en',
             'gps_enabled' => 'boolean',
             'child_seat' => 'boolean',
-            // Added start_mileage field for mileage tracking
             'start_mileage' => 'nullable|integer|min:0',
         ]);
 
@@ -411,7 +412,7 @@ public function data(Request $request)
                 $discountAmount = ($basePrice * $car->discount_percentage) / 100;
             }
 
-            $taxRate = config('booking.tax_rate', 10);
+            $taxRate = self::TAX_RATE;
             $taxAmount = (($basePrice - $discountAmount) * $taxRate) / 100;
 
             $totalAmount = $basePrice - $discountAmount + $taxAmount;
@@ -491,9 +492,6 @@ public function data(Request $request)
                     ->log('Created booking #' . $booking->booking_number);
             }
 
-            // Send notification email (uncomment when implemented)
-            // $this->sendBookingNotificationEmail($booking);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Booking created successfully.',
@@ -540,234 +538,245 @@ public function data(Request $request)
  * Update the specified booking in storage.
  */
 public function update(Request $request, Booking $booking)
-{
-    // Validate input
-    $validator = Validator::make($request->all(), [
-        'car_id' => 'required|exists:cars,id',
-        'user_id' => 'nullable|exists:users,id',
-        'pickup_location' => 'required|string|max:255',
-        'dropoff_location' => 'required|string|max:255',
-        'pickup_date' => 'required|date|after_or_equal:today',
-        'pickup_time' => 'required|string',
-        'dropoff_date' => 'required|date|after_or_equal:pickup_date',
-        'dropoff_time' => 'required|string',
-        'customer_name' => 'required|string|max:255',
-        'customer_email' => 'required|email|max:255',
-        'customer_phone' => 'required|string|max:20',
-        'customer_id_number' => 'required|string|max:50',
-        'special_requests' => 'nullable|string',
-        'status' => 'required|in:pending,confirmed,in_progress,completed,cancelled,no_show',
-        'payment_status' => 'required|in:unpaid,paid,pending,refunded',
-        'payment_method' => 'required|in:cash,card,bank_transfer,mobile_payment',
-        'transaction_id' => 'nullable|string|max:255',
-        'base_price' => 'required|numeric|min:0',
-        'discount_amount' => 'required|numeric|min:0',
-        'tax_amount' => 'required|numeric|min:0',
-        'total_amount' => 'required|numeric|min:0',
-        'insurance_plan' => 'required|in:basic,standard,premium',
-        'additional_driver' => 'boolean',
-        'additional_driver_name' => 'required_if:additional_driver,true|string|max:255|nullable',
-        'additional_driver_license' => 'required_if:additional_driver,true|string|max:50|nullable',
-        'delivery_option' => 'required|in:none,home,airport',
-        'delivery_address' => 'required_if:delivery_option,home,airport|string|max:255|nullable',
-        'fuel_policy' => 'required|in:full-to-full,full-to-empty',
-        'mileage_limit' => 'nullable|integer|min:0',
-        'extra_mileage_cost' => 'nullable|numeric|min:0',
-        'deposit_amount' => 'required|numeric|min:0',
-        'deposit_status' => 'required|in:pending,paid,refunded',
-        'notes' => 'nullable|string',
-        'language_preference' => 'required|in:ar,fr,en',
-        'gps_enabled' => 'boolean',
-        'child_seat' => 'boolean',
-        'cancellation_reason' => 'required_if:status,cancelled|string|max:255|nullable',
-        'start_mileage' => 'nullable|integer|min:0',
-        'end_mileage' => 'nullable|integer|min:0',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'success' => false,
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    // Check if the car is available for the selected dates (excluding this booking)
-    if ($booking->car_id != $request->car_id ||
-        $booking->pickup_date->format('Y-m-d') != $request->pickup_date ||
-        $booking->dropoff_date->format('Y-m-d') != $request->dropoff_date) {
-        
-        $isAvailable = $this->checkCarAvailability(
-            $request->car_id,
-            $request->pickup_date,
-            $request->dropoff_date,
-            $booking->id
-        );
-
-        if (!$isAvailable) {
-            return response()->json([
-                'success' => false,
-                'errors' => ['car_id' => ['The selected car is not available for the chosen dates.']]
-            ], 422);
-        }
-    }
-
-    // Check user eligibility if registered
-    if ($request->user_id) {
-        $user = User::findOrFail($request->user_id);
-        if (!$user->canRent()) {
-            return response()->json([
-                'success' => false,
-                'errors' => ['user_id' => ['This user is not eligible to rent: ' . $user->getRentalRestrictionReason()]]
-            ], 422);
-        }
-    }
-
-    try {
-        DB::beginTransaction();
-
-        // Calculate total days
-        $pickup = strtotime($request->pickup_date);
-        $dropoff = strtotime($request->dropoff_date);
-        $totalDays = max(1, ceil(($dropoff - $pickup) / (60 * 60 * 24)));
-
-        // Track original status for change detection
-        $originalStatus = $booking->status;
-        $originalCarId = $booking->car_id;
-        $newCarId = $request->car_id;
-
-        $booking->update([
-            'user_id' => $request->user_id,
-            'car_id' => $request->car_id,
-            'pickup_location' => $request->pickup_location,
-            'dropoff_location' => $request->dropoff_location,
-            'pickup_date' => $request->pickup_date,
-            'pickup_time' => $request->pickup_time,
-            'dropoff_date' => $request->dropoff_date,
-            'dropoff_time' => $request->dropoff_time,
-            'total_days' => $totalDays,
-            'base_price' => $request->base_price,
-            'discount_amount' => $request->discount_amount,
-            'tax_amount' => $request->tax_amount,
-            'total_amount' => $request->total_amount,
-            'status' => $request->status,
-            'payment_status' => $request->payment_status,
-            'payment_method' => $request->payment_method,
-            'special_requests' => $request->special_requests,
-            'customer_name' => $request->customer_name,
-            'customer_email' => $request->customer_email,
-            'customer_phone' => $request->customer_phone,
-            'customer_id_number' => $request->customer_id_number,
-            'transaction_id' => $request->transaction_id,
-            'insurance_plan' => $request->insurance_plan,
-            'additional_driver' => $request->additional_driver ?? false,
-            'additional_driver_name' => $request->additional_driver_name,
-            'additional_driver_license' => $request->additional_driver_license,
-            'delivery_option' => $request->delivery_option,
-            'delivery_address' => $request->delivery_address,
-            'fuel_policy' => $request->fuel_policy,
-            'mileage_limit' => $request->mileage_limit,
-            'extra_mileage_cost' => $request->extra_mileage_cost,
-            'deposit_amount' => $request->deposit_amount,
-            'deposit_status' => $request->deposit_status,
-            'notes' => $request->notes,
-            'language_preference' => $request->language_preference,
-            'gps_enabled' => $request->gps_enabled ?? false,
-            'child_seat' => $request->child_seat ?? false,
-            'cancellation_reason' => $request->cancellation_reason,
-            'completed_at' => $request->status === 'completed' ? now() : null,
-            'start_mileage' => $request->start_mileage,
-            'end_mileage' => $request->end_mileage,
+    {
+        // Validate input
+        $validator = Validator::make($request->all(), [
+            'car_id' => 'required|exists:cars,id',
+            'user_id' => 'nullable|exists:users,id',
+            'pickup_location' => 'required|string|max:255',
+            'dropoff_location' => 'required|string|max:255',
+            'pickup_date' => 'required|date|after_or_equal:today',
+            'pickup_time' => 'required|string',
+            'dropoff_date' => 'required|date|after_or_equal:pickup_date',
+            'dropoff_time' => 'required|string',
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_id_number' => 'required|string|max:50',
+            'special_requests' => 'nullable|string',
+            'status' => 'required|in:pending,confirmed,in_progress,completed,cancelled,no_show',
+            'payment_status' => 'required|in:unpaid,paid,pending,refunded',
+            'payment_method' => 'required|in:cash,card,bank_transfer,mobile_payment',
+            'transaction_id' => 'nullable|string|max:255',
+            'base_price' => 'required|numeric|min:0',
+            'discount_amount' => 'required|numeric|min:0',
+            'tax_amount' => 'required|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0',
+            'insurance_plan' => 'required|in:basic,standard,premium',
+            'additional_driver' => 'boolean',
+            'additional_driver_name' => 'required_if:additional_driver,true|string|max:255|nullable',
+            'additional_driver_license' => 'required_if:additional_driver,true|string|max:50|nullable',
+            'delivery_option' => 'required|in:none,home,airport',
+            'delivery_address' => 'required_if:delivery_option,home,airport|string|max:255|nullable',
+            'fuel_policy' => 'required|in:full-to-full,full-to-empty',
+            'mileage_limit' => 'nullable|integer|min:0',
+            'extra_mileage_cost' => 'nullable|numeric|min:0',
+            'deposit_amount' => 'required|numeric|min:0',
+            'deposit_status' => 'required|in:pending,paid,refunded',
+            'notes' => 'nullable|string',
+            'language_preference' => 'required|in:ar,fr,en',
+            'gps_enabled' => 'boolean',
+            'child_seat' => 'boolean',
+            'cancellation_reason' => 'required_if:status,cancelled|string|max:255|nullable',
+            'start_mileage' => 'nullable|integer|min:0',
+            'end_mileage' => 'nullable|integer|min:0',
         ]);
 
-        // Calculate extra mileage charges if booking is completed and has end mileage
-        if ($request->status === 'completed' && !empty($request->end_mileage) && !empty($request->start_mileage)) {
-            $totalMileage = max(0, $request->end_mileage - $request->start_mileage);
-            $allowedMileage = $request->mileage_limit * $totalDays;
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Validate tax_amount
+        $taxRate = self::TAX_RATE;
+        $expectedTaxAmount = (($request->base_price - $request->discount_amount) * $taxRate) / 100;
+
+        if (abs($expectedTaxAmount - $request->tax_amount) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['tax_amount' => ['The provided tax amount does not match the calculated tax based on the base price and discount.']]
+            ], 422);
+        }
+
+        // Check if the car is available for the selected dates (excluding this booking)
+        if ($booking->car_id != $request->car_id ||
+            $booking->pickup_date->format('Y-m-d') != $request->pickup_date ||
+            $booking->dropoff_date->format('Y-m-d') != $request->dropoff_date) {
             
-            if ($totalMileage > $allowedMileage) {
-                $extraMileage = $totalMileage - $allowedMileage;
-                $extraMileageCharges = $extraMileage * $request->extra_mileage_cost;
+            $isAvailable = $this->checkCarAvailability(
+                $request->car_id,
+                $request->pickup_date,
+                $request->dropoff_date,
+                $booking->id
+            );
+
+            if (!$isAvailable) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['car_id' => ['The selected car is not available for the chosen dates.']]
+                ], 422);
+            }
+        }
+
+        // Check user eligibility if registered
+        if ($request->user_id) {
+            $user = User::findOrFail($request->user_id);
+            if (!$user->canRent()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['user_id' => ['This user is not eligible to rent: ' . $user->getRentalRestrictionReason()]]
+                ], 422);
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Calculate total days
+            $pickup = strtotime($request->pickup_date);
+            $dropoff = strtotime($request->dropoff_date);
+            $totalDays = max(1, ceil(($dropoff - $pickup) / (60 * 60 * 24)));
+
+            // Track original status for change detection
+            $originalStatus = $booking->status;
+            $originalCarId = $booking->car_id;
+            $newCarId = $request->car_id;
+
+            $booking->update([
+                'user_id' => $request->user_id,
+                'car_id' => $request->car_id,
+                'pickup_location' => $request->pickup_location,
+                'dropoff_location' => $request->dropoff_location,
+                'pickup_date' => $request->pickup_date,
+                'pickup_time' => $request->pickup_time,
+                'dropoff_date' => $request->dropoff_date,
+                'dropoff_time' => $request->dropoff_time,
+                'total_days' => $totalDays,
+                'base_price' => $request->base_price,
+                'discount_amount' => $request->discount_amount,
+                'tax_amount' => $request->tax_amount,
+                'total_amount' => $request->total_amount,
+                'status' => $request->status,
+                'payment_status' => $request->payment_status,
+                'payment_method' => $request->payment_method,
+                'special_requests' => $request->special_requests,
+                'customer_name' => $request->customer_name,
+                'customer_email' => $request->customer_email,
+                'customer_phone' => $request->customer_phone,
+                'customer_id_number' => $request->customer_id_number,
+                'transaction_id' => $request->transaction_id,
+                'insurance_plan' => $request->insurance_plan,
+                'additional_driver' => $request->additional_driver ?? false,
+                'additional_driver_name' => $request->additional_driver_name,
+                'additional_driver_license' => $request->additional_driver_license,
+                'delivery_option' => $request->delivery_option,
+                'delivery_address' => $request->delivery_address,
+                'fuel_policy' => $request->fuel_policy,
+                'mileage_limit' => $request->mileage_limit,
+                'extra_mileage_cost' => $request->extra_mileage_cost,
+                'deposit_amount' => $request->deposit_amount,
+                'deposit_status' => $request->deposit_status,
+                'notes' => $request->notes,
+                'language_preference' => $request->language_preference,
+                'gps_enabled' => $request->gps_enabled ?? false,
+                'child_seat' => $request->child_seat ?? false,
+                'cancellation_reason' => $request->cancellation_reason,
+                'completed_at' => $request->status === 'completed' ? now() : null,
+                'start_mileage' => $request->start_mileage,
+                'end_mileage' => $request->end_mileage,
+            ]);
+
+            // Calculate extra mileage charges if booking is completed and has end mileage
+            if ($request->status === 'completed' && !empty($request->end_mileage) && !empty($request->start_mileage)) {
+                $totalMileage = max(0, $request->end_mileage - $request->start_mileage);
+                $allowedMileage = $request->mileage_limit * $totalDays;
                 
-                $booking->update([
-                    'extra_mileage' => $extraMileage,
-                    'extra_mileage_charges' => $extraMileageCharges
-                ]);
-            }
-        }
-
-        // Handle car status updates if booking status has changed
-        if ($originalStatus != $request->status || $originalCarId != $newCarId) {
-            // Old car - reset status if needed
-            if ($originalCarId != $newCarId) {
-                $oldCar = Car::find($originalCarId);
-                if ($oldCar) {
-                    $oldCar->update([
-                        'status' => 'available',
-                        'is_available' => true
+                if ($totalMileage > $allowedMileage) {
+                    $extraMileage = $totalMileage - $allowedMileage;
+                    $extraMileageCharges = $extraMileage * $request->extra_mileage_cost;
+                    
+                    $booking->update([
+                        'extra_mileage' => $extraMileage,
+                        'extra_mileage_charges' => $extraMileageCharges
                     ]);
                 }
             }
-            
-            // New car - update status based on new booking status
-            $car = Car::find($newCarId);
-            if ($car) {
-                if ($request->status === 'completed' || $request->status === 'cancelled' || $request->status === 'no_show') {
-                    $car->update([
-                        'status' => 'available',
-                        'is_available' => true
-                    ]);
-                    
-                    // If completed with end mileage, update car's current mileage
-                    if ($request->status === 'completed' && !empty($request->end_mileage)) {
-                        $car->update(['mileage' => $request->end_mileage]);
+
+            // Handle car status updates if booking status has changed
+            if ($originalStatus != $request->status || $originalCarId != $newCarId) {
+                // Old car - reset status if needed
+                if ($originalCarId != $newCarId) {
+                    $oldCar = Car::find($originalCarId);
+                    if ($oldCar) {
+                        $oldCar->update([
+                            'status' => 'available',
+                            'is_available' => true
+                        ]);
                     }
-                } elseif ($request->status === 'in_progress') {
-                    $car->update([
-                        'status' => 'rented',
-                        'is_available' => false
-                    ]);
-                    
-                    // Update car's mileage to match the start mileage if provided
-                    if (!empty($request->start_mileage)) {
-                        $car->update(['mileage' => $request->start_mileage]);
+                }
+                
+                // New car - update status based on new booking status
+                $car = Car::find($newCarId);
+                if ($car) {
+                    if ($request->status === 'completed' || $request->status === 'cancelled' || $request->status === 'no_show') {
+                        $car->update([
+                            'status' => 'available',
+                            'is_available' => true
+                        ]);
+                        
+                        // If completed with end mileage, update car's current mileage
+                        if ($request->status === 'completed' && !empty($request->end_mileage)) {
+                            $car->update(['mileage' => $request->end_mileage]);
+                        }
+                    } elseif ($request->status === 'in_progress') {
+                        $car->update([
+                            'status' => 'rented',
+                            'is_available' => false
+                        ]);
+                        
+                        // Update car's mileage to match the start mileage if provided
+                        if (!empty($request->start_mileage)) {
+                            $car->update(['mileage' => $request->start_mileage]);
+                        }
+                    } elseif ($request->status === 'pending' || $request->status === 'confirmed') {
+                        $car->update(['is_available' => false]);
                     }
-                } elseif ($request->status === 'pending' || $request->status === 'confirmed') {
-                    $car->update(['is_available' => false]);
                 }
             }
+
+            DB::commit();
+
+            // Log activity
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($booking)
+                    ->log('Updated booking #' . $booking->booking_number);
+            }
+
+            // Send notification to user if status or payment status changed
+            if ($booking->wasChanged('status') || $booking->wasChanged('payment_status')) {
+                // $this->sendBookingStatusUpdateEmail($booking);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking updated successfully.',
+                'booking' => $booking
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Admin booking update failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update booking: ' . $e->getMessage()
+            ], 500);
         }
-
-        DB::commit();
-
-        // Log activity
-        if (method_exists(app(), 'activity')) {
-            activity()
-                ->causedBy(auth()->user())
-                ->performedOn($booking)
-                ->log('Updated booking #' . $booking->booking_number);
-        }
-
-        // Send notification to user if status or payment status changed
-        if ($booking->wasChanged('status') || $booking->wasChanged('payment_status')) {
-            // $this->sendBookingStatusUpdateEmail($booking);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Booking updated successfully.',
-            'booking' => $booking
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Admin booking update failed: ' . $e->getMessage());
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update booking: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     /**
      * Remove the specified booking from storage.
@@ -1286,7 +1295,7 @@ public function update(Request $request, Booking $booking)
             ]);
     
             // Calculate tax
-            $taxRate = config('booking.tax_rate', 10);
+            $taxRate = self::TAX_RATE;
             $taxAmount = (($basePrice - $discountAmount) * $taxRate) / 100;
             
             \Log::info('Calculated tax', [

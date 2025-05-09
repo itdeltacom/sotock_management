@@ -375,16 +375,12 @@ class CustomerController extends Controller
      */
     public function show(User $client)
     {
-        Log::info('Show method called with client: ' . $client);
-        
-        if (!$client instanceof User) {
-            $client = User::findOrFail($client);
-        }
-        
+        Log::info('Fetching client details', ['client_id' => $client->id]);
+
         try {
             // Get client statistics
             $stats = $client->getRentalStatistics();
-            
+
             // Get payment history
             $payments = Payment::whereHas('contract', function ($query) use ($client) {
                 $query->where('client_id', $client->id);
@@ -392,75 +388,69 @@ class CustomerController extends Controller
                 ->orderBy('payment_date', 'desc')
                 ->take(10)
                 ->get();
-            
-            // Return JSON for AJAX requests
-            if (request()->ajax()) {
-                $eligibility = $client->getRentalEligibilityStatus();
-                
-                return response()->json([
-                    'success' => true,
-                    'client' => [
-                        'id' => $client->id,
-                        'full_name' => $client->name,
-                        'email' => $client->email,
-                        'phone' => $client->phone,
-                        'address' => $client->address,
-                        'status' => $client->status,
-                        'profile_photo' => $client->photo ? asset('storage/' . $client->photo) : asset('admin/img/default-avatar.png'),
-                        'active_contracts' => $client->active_contracts,
-                        'overdue_contracts' => $client->overdue_contracts,
-                        'total_outstanding' => $client->total_outstanding_balance,
-                        'id_number' => $client->id_number ?? 'N/A',
-                        'license_number' => $client->license_number ?? 'N/A',
-                        'license_expiry_date' => $client->license_expiry_date ? $client->license_expiry_date->format('M d, Y') : 'N/A',
-                        'license_expired' => $client->license_expiry_date && $client->license_expiry_date < now(),
-                        'credit_score' => $client->credit_score,
-                        'can_rent' => $eligibility['can_rent'],
-                        'rental_restriction_reason' => $eligibility['reason'],
-                        'created_at' => $client->created_at->format('M d, Y'),
-                        'emergency_contact_name' => $client->emergency_contact_name ?? null,
-                        'emergency_contact_phone' => $client->emergency_contact_phone ?? null,
-                        'notes' => $client->notes ?? null,
-                    ],
-                    'stats' => $stats,
-                    'payments' => $payments->map(function ($payment) {
-                        return [
-                            'date' => $payment->payment_date->format('M d, Y h:i A'),
-                            'contract_id' => str_pad($payment->contract->id, 5, '0', STR_PAD_LEFT),
-                            'car' => $payment->contract->car->brand_name . ' ' . $payment->contract->car->model,
-                            'amount' => number_format($payment->amount, 2) . ' MAD',
-                            'method' => ucfirst($payment->payment_method),
-                            'reference' => $payment->reference ?? 'N/A',
-                        ];
-                    }),
-                    'contracts' => $client->contracts()->latest()->take(5)->get()->map(function ($contract) {
-                        return [
-                            'id' => str_pad($contract->id, 5, '0', STR_PAD_LEFT),
-                            'car' => $contract->car->brand_name . ' ' . $contract->car->model,
-                            'start_date' => $contract->start_date->format('M d, Y'),
-                            'end_date' => $contract->end_date->format('M d, Y'),
-                            'total_amount' => number_format($contract->total_amount, 2) . ' MAD',
-                            'total_paid' => number_format($contract->total_paid, 2) . ' MAD',
-                            'status' => ucfirst($contract->status),
-                            'view_url' => route('admin.contracts.show', $contract->id),
-                        ];
-                    }),
-                ]);
-            }
-            
-            // For non-AJAX requests, redirect to index (modal will handle display)
-            return redirect()->route('admin.clients.index');
+
+            // Always return JSON for API requests
+            $eligibility = $client->getRentalEligibilityStatus();
+
+            return response()->json([
+                'success' => true,
+                'client' => [
+                    'id' => $client->id,
+                    'full_name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'address' => $client->address,
+                    'status' => $client->status,
+                    'profile_photo' => $client->photo ? asset('storage/' . $client->photo) : asset('admin/img/default-avatar.png'),
+                    'active_contracts' => $client->active_contracts,
+                    'overdue_contracts' => $client->overdue_contracts,
+                    'total_outstanding' => $client->total_outstanding_balance,
+                    'id_number' => $client->id_number ?? 'N/A',
+                    'license_number' => $client->license_number ?? 'N/A',
+                    'license_expiry_date' => $client->license_expiry_date ? $client->license_expiry_date->format('M d, Y') : 'N/A',
+                    'license_expired' => $client->license_expiry_date && $client->license_expiry_date < now(),
+                    'credit_score' => $client->credit_score,
+                    'can_rent' => $eligibility['can_rent'],
+                    'rental_restriction_reason' => $eligibility['reason'],
+                    'created_at' => $client->created_at->format('M d, Y'),
+                    'emergency_contact_name' => $client->emergency_contact_name ?? null,
+                    'emergency_contact_phone' => $client->emergency_contact_phone ?? null,
+                    'notes' => $client->notes ?? null,
+                ],
+                'stats' => $stats,
+                'payments' => $payments->map(function ($payment) {
+                    return [
+                        'date' => $payment->payment_date->format('M d, Y h:i A'),
+                        'contract_id' => str_pad($payment->contract->id, 5, '0', STR_PAD_LEFT),
+                        'car' => $payment->contract->car->brand_name . ' ' . $payment->contract->car->model,
+                        'amount' => number_format($payment->amount, 2) . ' MAD',
+                        'method' => ucfirst($payment->payment_method),
+                        'reference' => $payment->reference ?? 'N/A',
+                    ];
+                }),
+                'contracts' => $client->contracts()->latest()->take(5)->get()->map(function ($contract) {
+                    return [
+                        'id' => str_pad($contract->id, 5, '0', STR_PAD_LEFT),
+                        'car' => $contract->car->brand_name . ' ' . $contract->car->model,
+                        'start_date' => $contract->start_date->format('M d, Y'),
+                        'end_date' => $contract->end_date->format('M d, Y'),
+                        'total_amount' => number_format($contract->total_amount, 2) . ' MAD',
+                        'total_paid' => number_format($contract->total_paid, 2) . ' MAD',
+                        'status' => ucfirst($contract->status),
+                        'view_url' => route('admin.contracts.show', $contract->id),
+                    ];
+                }),
+            ]);
         } catch (\Exception $e) {
-            \Log::error('Error in client show method: ' . $e->getMessage());
-            
-            if (request()->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Client not found'
-                ], 404);
-            }
-            
-            abort(404, 'Client not found');
+            Log::error('Error fetching client details: ' . $e->getMessage(), [
+                'client_id' => $client->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch client details: ' . $e->getMessage()
+            ], 500);
         }
     }
 

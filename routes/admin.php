@@ -239,14 +239,18 @@ Route::prefix('bookings')->name('bookings.')->middleware(['auth:admin', 'permiss
 
 // Additional Contract Routes
 Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permission:manage contracts'])->group(function () {
-    // Basic contract management
+    // Define specific routes first - BEFORE any resource routes
+    Route::get('/ending-soon', [ContractController::class, 'endingSoon'])->name('ending-soon');
+    Route::get('/ending-soon/data', [ContractController::class, 'endingSoonDatatable'])->name('ending-soon.datatable');
+    Route::get('/overdue', [ContractController::class, 'overdue'])->name('overdue');
+    Route::get('/overdue/data', [ContractController::class, 'overdueDatatable'])->name('overdue.datatable');
+    Route::get('/pending-bookings', [ContractController::class, 'getPendingBookings'])->name('pending-bookings');
+    Route::post('/{contract}/notify', [ContractController::class, 'sendNotification'])->name('notify');
+    
+    // Then define resourceful routes
     Route::get('/', [ContractController::class, 'index'])->name('index');
-    // Get contract statistics for dashboard
     Route::get('/stats', [ContractController::class, 'getStats'])->name('stats');
-    
-    // Contract creation and editing
     Route::get('/create', [ContractController::class, 'create'])->name('create');
-    
     Route::get('/data', [ContractController::class, 'datatable'])->name('datatable');
     Route::post('/', [ContractController::class, 'store'])->name('store');
     Route::get('/{contract}/edit', [ContractController::class, 'edit'])->name('edit');
@@ -255,17 +259,33 @@ Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permi
     Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
     Route::post('/{contract}/upload-document', [ContractController::class, 'uploadDocument'])->name('upload-document');
     Route::delete('/{contract}/delete-document', [ContractController::class, 'deleteDocument'])->name('delete-document');
-    // Contract actions
     Route::post('/{contract}/complete', [ContractController::class, 'complete'])->name('complete');
     Route::post('/{contract}/cancel', [ContractController::class, 'cancel'])->name('cancel');
     Route::post('/{contract}/extend', [ContractController::class, 'extend'])->name('extend');
     Route::get('/{contract}/print', [ContractController::class, 'printContract'])->name('print');
-    // Special contract views
+});
+/*Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permission:manage contracts'])->group(function () {
+    Route::get('/', [ContractController::class, 'index'])->name('index');
+    Route::get('/stats', [ContractController::class, 'getStats'])->name('stats');
+    Route::get('/create', [ContractController::class, 'create'])->name('create');
+    Route::get('/data', [ContractController::class, 'datatable'])->name('datatable');
+    Route::post('/', [ContractController::class, 'store'])->name('store');
+    Route::get('/{contract}/edit', [ContractController::class, 'edit'])->name('edit');
+    Route::get('/{contract}', [ContractController::class, 'show'])->name('show');
+    Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
+    Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
+    Route::post('/{contract}/upload-document', [ContractController::class, 'uploadDocument'])->name('upload-document');
+    Route::delete('/{contract}/delete-document', [ContractController::class, 'deleteDocument'])->name('delete-document');
+    Route::post('/{contract}/complete', [ContractController::class, 'complete'])->name('complete');
+    Route::post('/{contract}/cancel', [ContractController::class, 'cancel'])->name('cancel');
+    Route::post('/{contract}/extend', [ContractController::class, 'extend'])->name('extend');
+    Route::get('/{contract}/print', [ContractController::class, 'printContract'])->name('print');
     Route::get('/ending-soon', [ContractController::class, 'endingSoon'])->name('ending-soon');
     Route::get('/ending-soon/data', [ContractController::class, 'endingSoonDatatable'])->name('ending-soon.datatable');
     Route::get('/overdue', [ContractController::class, 'overdue'])->name('overdue');
     Route::get('/overdue/data', [ContractController::class, 'overdueDatatable'])->name('overdue.datatable');
-});
+    Route::get('/pending-bookings', [ContractController::class, 'getPendingBookings'])->name('pending-bookings');
+});*/
 
 // API endpoints for contract management
 Route::prefix('api')->name('api.')->middleware(['auth:admin'])->group(function () {
@@ -276,26 +296,14 @@ Route::prefix('api')->name('api.')->middleware(['auth:admin'])->group(function (
     Route::get('/cars/available', [CarController::class, 'getAvailableCars'])->name('cars.available');
 });
 
-/*Route::prefix('clients')->name('clients.')->middleware('permission:manage clients')->group(function () {
-    Route::get('/', [CustomerController::class, 'index'])->name('index');
-    Route::get('/create', [CustomerController::class, 'create'])->name('create');
-    Route::post('/', [CustomerController::class, 'store'])->name('store');
-    Route::get('/{client}', [CustomerController::class, 'show'])->name('show');
-    Route::get('/{client}/edit', [CustomerController::class, 'edit'])->name('edit');
-    Route::put('/{client}', [CustomerController::class, 'update'])->name('update');
-    Route::delete('/{client}', [CustomerController::class, 'destroy'])->name('destroy');
-    Route::get('/data', [CustomerController::class, 'datatable'])->name('datatable');
-    Route::post('/validate-field', [CustomerController::class, 'validateField'])->name('validate-field');
-    Route::get('/get-clients', [CustomerController::class, 'getClientsList'])->name('list');
-
-});*/
 
 // Customer Management Routes
 Route::prefix('clients')->name('clients.')->middleware(['auth:admin', 'permission:manage clients'])->group(function () {
     Route::get('/', [CustomerController::class, 'index'])->name('index');
     Route::get('/create', [CustomerController::class, 'create'])->name('create');
     Route::post('/', [CustomerController::class, 'store'])->name('store');
-    Route::get('/api/{id}', [CustomerController::class, 'getClientDetails'])->name('api.show');
+    Route::get('/api/{client}', [CustomerController::class, 'show'])->name('api.show');
+    //Route::get('/api/{id}', [CustomerController::class, 'getClientDetails'])->name('api.show');
     Route::get('/{client}', [CustomerController::class, 'show'])->name('show');
     Route::get('/{client}/edit', [CustomerController::class, 'edit'])->name('edit');
     Route::put('/{client}', [CustomerController::class, 'update'])->name('update');

@@ -386,213 +386,218 @@ public function edit(Car $car)
     ]);
 }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Car $car)
-    {
-        // Check permission
-        if (!Auth::guard('admin')->user()->can('edit cars')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have permission to edit cars.'
-            ], 403);
-        }
+   /**
+ * Update the specified resource in storage.
+ */
+public function update(Request $request, Car $car)
+{
+    // Check permission
+    if (!Auth::guard('admin')->user()->can('edit cars')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You do not have permission to edit cars.'
+        ], 403);
+    }
+    
+    // Validate input with all fields including Moroccan-specific ones
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string|max:255',
+        'category_id' => 'required|exists:categories,id',
+        'brand_id' => 'required|exists:brands,id',
+        'model' => 'required|string|max:255',
+        'year' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+1),
+        'chassis_number' => 'required|string|unique:cars,chassis_number,'.$car->id,
+        'matricule' => [
+            'required',
+            'string',
+            'unique:cars,matricule,'.$car->id, // Exclude current car from unique check
+            function ($attribute, $value, $fail) {
+                // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
+                $normalized = preg_replace('/[-|]/', '', $value);
+                
+                // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
+                if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
+                    $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
+                }
+            },
+        ],
+        'color' => 'nullable|string|max:100',
+        'mise_en_service_date' => 'required|date',
+        'status' => 'required|in:available,rented,maintenance,unavailable',
+        'price_per_day' => 'required|numeric|min:0',
+        'weekly_price' => 'nullable|numeric|min:0',
+        'monthly_price' => 'nullable|numeric|min:0',
+        'discount_percentage' => 'nullable|numeric|min:0|max:100',
+        'fuel_type' => 'required|in:diesel,gasoline,electric,hybrid,petrol',
+        'transmission' => 'required|in:manual,automatic,semi-automatic',
+        'mileage' => 'required|integer|min:0',
+        'engine_capacity' => 'nullable|string|max:50',
+        'seats' => 'required|integer|min:1|max:20',
+        'features' => 'nullable|array',
+        'description' => 'nullable|string',
+        'meta_title' => 'nullable|string|max:255',
+        'meta_description' => 'nullable|string|max:500',
+        'meta_keywords' => 'nullable|string|max:255',
         
-        // Validate input with all fields including Moroccan-specific ones
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'brand_id' => 'required|exists:brands,id',
-            'model' => 'required|string|max:255',
-            'year' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+1),
-            'chassis_number' => 'required|string|unique:cars,chassis_number,'.$car->id,
-            'matricule' => [
-                'required',
-                'string',
-                'unique:cars,matricule,'.$car->id, // Exclude current car from unique check
-                function ($attribute, $value, $fail) {
-                    // Allow various formats with separators: 12345-A-6, 12345-أ-6, 12345A6, 12345أ6, etc.
-                    $normalized = preg_replace('/[-|]/', '', $value);
-                    
-                    // Validate normalized pattern: 1-5 digits + Latin or Arabic letter + 1-2 digits for region code
-                    if (!preg_match('/^\d{1,5}([A-Za-z]|[\x{0600}-\x{06FF}])\d{1,2}$/u', $normalized)) {
-                        $fail('The license plate format is invalid. Format: numbers-letter-region code (e.g. 12345-A-6 or 12345-أ-6)');
-                    }
-                },
-            ],
-            'color' => 'nullable|string|max:100',
-            'mise_en_service_date' => 'required|date',
-            'status' => 'required|in:available,rented,maintenance,unavailable',
-            'price_per_day' => 'required|numeric|min:0',
-            'weekly_price' => 'nullable|numeric|min:0',
-            'monthly_price' => 'nullable|numeric|min:0',
-            'discount_percentage' => 'nullable|numeric|min:0|max:100',
-            'fuel_type' => 'required|in:diesel,gasoline,electric,hybrid,petrol',
-            'transmission' => 'required|in:manual,automatic,semi-automatic',
-            'mileage' => 'required|integer|min:0',
-            'engine_capacity' => 'nullable|string|max:50',
-            'seats' => 'required|integer|min:1|max:20',
-            'features' => 'nullable|array',
-            'description' => 'nullable|string',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string|max:500',
-            'meta_keywords' => 'nullable|string|max:255',
-            
-            // Document fields validation - these will go to CarDocuments model
-            'assurance_number' => 'required|string|max:100',
-            'assurance_company' => 'required|string|max:100',
-            'assurance_expiry_date' => 'required|date',
-            'carte_grise_number' => 'required|string|max:100',
-            'carte_grise_expiry_date' => 'nullable|date',
-            'vignette_expiry_date' => 'required|date',
-            'visite_technique_date' => 'nullable|date',
-            'visite_technique_expiry_date' => 'required|date',
-            
-            'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'removed_images' => 'nullable|string', // comma-separated IDs of images to remove
-            
-            // Optional document files
-            'file_carte_grise' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
-            'file_assurance' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
-            'file_visite_technique' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
-            'file_vignette' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        // Document fields validation - these will go to CarDocuments model
+        'assurance_number' => 'required|string|max:100',
+        'assurance_company' => 'required|string|max:100',
+        'assurance_expiry_date' => 'required|date',
+        'carte_grise_number' => 'required|string|max:100',
+        'carte_grise_expiry_date' => 'nullable|date',
+        'vignette_expiry_date' => 'required|date',
+        'visite_technique_date' => 'nullable|date',
+        'visite_technique_expiry_date' => 'required|date',
+        
+        'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        'removed_images' => 'nullable|string', // comma-separated IDs of images to remove
+        
+        // Optional document files
+        'file_carte_grise' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        'file_assurance' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        'file_visite_technique' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+        'file_vignette' => 'nullable|file|mimes:pdf,jpeg,png,jpg,gif,webp|max:2048',
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        // Prepare car data - exclude document fields and images
+        $data = $request->except([
+            'main_image', 'images', '_token', '_method', 'removed_images',
+            'carte_grise_number', 'carte_grise_expiry_date', 
+            'assurance_number', 'assurance_company', 'assurance_expiry_date', 
+            'vignette_expiry_date',
+            'visite_technique_date', 'visite_technique_expiry_date',
+            'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
         ]);
         
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-    
-        try {
-            // Prepare car data - exclude document fields and images
-            $data = $request->except([
-                'main_image', 'images', '_token', '_method', 'removed_images',
-                'carte_grise_number', 'carte_grise_expiry_date', 
-                'assurance_number', 'assurance_company', 'assurance_expiry_date', 
-                'vignette_expiry_date',
-                'visite_technique_date', 'visite_technique_expiry_date',
-                'file_carte_grise', 'file_assurance', 'file_visite_technique', 'file_vignette'
-            ]);
-            
-            // Update slug if name or color has changed
+        // IMPORTANT: Always set the slug, not just when name/color changes
+        // If name or color changed, generate a new slug, otherwise use existing
         if ($car->name !== $request->name || $car->color !== $request->color) {
             $data['slug'] = $this->generateUniqueSlug($request->name, $request->color, $car->id);
+        } else {
+            // Ensure slug exists in the data array by using the current slug
+            $data['slug'] = $car->slug;
         }
-            $data['features'] = $request->features ?? [];
-            $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
-            
-            // Set daily_price equal to price_per_day to maintain consistency
-            $data['daily_price'] = $request->price_per_day;
-            
-            // Set is_available based on status
-            $data['is_available'] = ($request->status === 'available');
-            
-            // Handle automatic pricing if weekly/monthly not provided
-            if (empty($data['weekly_price'])) {
-                $data['weekly_price'] = $data['price_per_day'] * 5; // 5 days instead of 7 as business discount
+        
+        $data['features'] = $request->features ?? [];
+        $data['brand_name'] = Brand::find($request->brand_id)->name ?? '';
+        
+        // Set daily_price equal to price_per_day to maintain consistency
+        $data['daily_price'] = $request->price_per_day;
+        
+        // Set is_available based on status
+        $data['is_available'] = ($request->status === 'available');
+        
+        // Handle automatic pricing if weekly/monthly not provided
+        if (empty($data['weekly_price'])) {
+            $data['weekly_price'] = $data['price_per_day'] * 5; // 5 days instead of 7 as business discount
+        }
+        
+        if (empty($data['monthly_price'])) {
+            $data['monthly_price'] = $data['price_per_day'] * 22; // 22 days instead of 30
+        }
+        
+        // Handle main image upload
+        if ($request->hasFile('main_image')) {
+            // Delete old image if exists
+            if ($car->main_image) {
+                Storage::disk('public')->delete($car->main_image);
             }
             
-            if (empty($data['monthly_price'])) {
-                $data['monthly_price'] = $data['price_per_day'] * 22; // 22 days instead of 30
-            }
+            $data['main_image'] = $this->processImage($request->file('main_image'), 'cars', $data['slug']);
+        }
+        
+        // Update the car
+        $car->update($data);
+        
+        // Create or update CarDocuments
+        $this->syncCarDocuments($car, $request);
+        
+        // Handle removed images
+        if ($request->filled('removed_images')) {
+            $removedImages = array_filter(explode(',', $request->removed_images));
             
-            // Handle main image upload
-            if ($request->hasFile('main_image')) {
-                // Delete old image if exists
-                if ($car->main_image) {
-                    Storage::disk('public')->delete($car->main_image);
+            if (!empty($removedImages)) {
+                $imagesToDelete = CarImage::whereIn('id', $removedImages)
+                    ->where('car_id', $car->id)
+                    ->get();
+                
+                foreach ($imagesToDelete as $image) {
+                    Storage::disk('public')->delete($image->image_path);
+                    $image->delete();
                 }
                 
-                $data['main_image'] = $this->processImage($request->file('main_image'), 'cars', $data['slug']);
-            }
-            
-            // Update the car
-            $car->update($data);
-            
-            // Create or update CarDocuments
-            $this->syncCarDocuments($car, $request);
-            
-            // Handle removed images
-            if ($request->filled('removed_images')) {
-                $removedImages = array_filter(explode(',', $request->removed_images));
-                
-                if (!empty($removedImages)) {
-                    $imagesToDelete = CarImage::whereIn('id', $removedImages)
-                        ->where('car_id', $car->id)
-                        ->get();
-                    
-                    foreach ($imagesToDelete as $image) {
-                        Storage::disk('public')->delete($image->image_path);
-                        $image->delete();
+                // If we deleted the featured image, assign a new one
+                if ($imagesToDelete->where('is_featured', true)->count() > 0) {
+                    $newFeatured = $car->images()->first();
+                    if ($newFeatured) {
+                        $newFeatured->update(['is_featured' => true]);
                     }
-                    
-                    // If we deleted the featured image, assign a new one
-                    if ($imagesToDelete->where('is_featured', true)->count() > 0) {
-                        $newFeatured = $car->images()->first();
-                        if ($newFeatured) {
-                            $newFeatured->update(['is_featured' => true]);
-                        }
-                    }
                 }
             }
+        }
+        
+        // Handle additional images upload
+        if ($request->hasFile('images')) {
+            // Get highest current sort order
+            $maxOrder = $car->images()->max('sort_order') ?? 0;
             
-            // Handle additional images upload
-            if ($request->hasFile('images')) {
-                // Get highest current sort order
-                $maxOrder = $car->images()->max('sort_order') ?? 0;
+            foreach ($request->file('images') as $index => $image) {
+                $imagePath = $this->processImage($image, 'cars/gallery', $data['slug'] . '-' . ($maxOrder + $index + 1));
                 
-                foreach ($request->file('images') as $index => $image) {
-                    $imagePath = $this->processImage($image, 'cars/gallery', $data['slug'] . '-' . ($maxOrder + $index + 1));
-                    
-                    CarImage::create([
-                        'car_id' => $car->id,
-                        'image_path' => $imagePath,
-                        'alt_text' => $car->name . ' - Image ' . ($maxOrder + $index + 1),
-                        'sort_order' => $maxOrder + $index + 1,
-                        'is_featured' => $car->images()->count() === 0 // Make featured if no other images
-                    ]);
-                }
+                CarImage::create([
+                    'car_id' => $car->id,
+                    'image_path' => $imagePath,
+                    'alt_text' => $car->name . ' - Image ' . ($maxOrder + $index + 1),
+                    'sort_order' => $maxOrder + $index + 1,
+                    'is_featured' => $car->images()->count() === 0 // Make featured if no other images
+                ]);
             }
+        }
+        
+        // Check and alert for document expirations
+        $carDocuments = CarDocuments::where('car_id', $car->id)->first();
+        if ($carDocuments && method_exists($carDocuments, 'hasExpiringDocuments') && $carDocuments->hasExpiringDocuments()) {
+            $alerts = $carDocuments->getExpiringDocuments();
             
-            // Check and alert for document expirations
-            $carDocuments = CarDocuments::where('car_id', $car->id)->first();
-            if ($carDocuments && method_exists($carDocuments, 'hasExpiringDocuments') && $carDocuments->hasExpiringDocuments()) {
-                $alerts = $carDocuments->getExpiringDocuments();
-                
-                $this->logActivity(
-                    $car,
-                    'document_expiry_warning',
-                    'Document Expiration Warning',
-                    'Car ' . $car->name . ' has documents that will expire soon',
-                    ['alerts' => $alerts]
-                );
-            }
-            
-            // Log car update activity
             $this->logActivity(
                 $car,
-                'car_updated',
-                'Car Updated',
-                'Updated car: ' . $car->name,
-                ['changes' => $car->getChanges()]
+                'document_expiry_warning',
+                'Document Expiration Warning',
+                'Car ' . $car->name . ' has documents that will expire soon',
+                ['alerts' => $alerts]
             );
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Car updated successfully.',
-                'car' => $car->fresh(['images', 'category', 'brand'])
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while updating the car: ' . $e->getMessage()
-            ], 500);
         }
+        
+        // Log car update activity
+        $this->logActivity(
+            $car,
+            'car_updated',
+            'Car Updated',
+            'Updated car: ' . $car->name,
+            ['changes' => $car->getChanges()]
+        );
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Car updated successfully.',
+            'car' => $car->fresh(['images', 'category', 'brand'])
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while updating the car: ' . $e->getMessage()
+        ], 500);
     }
+}
     
     /**
      * Remove the specified resource from storage.

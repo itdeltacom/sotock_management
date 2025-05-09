@@ -27,26 +27,26 @@ return new class extends Migration
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('tax_amount', 10, 2)->default(0);
             $table->decimal('total_amount', 10, 2);
-            $table->string('status')->default('pending'); // pending, confirmed, in_progress, completed, cancelled, no_show
-            $table->string('payment_status')->default('unpaid'); // unpaid, paid, pending, refunded
-            $table->string('payment_method')->nullable(); // cash, card, bank_transfer, mobile_payment
+            $table->string('status')->default('pending'); 
+            $table->string('payment_status')->default('unpaid'); 
+            $table->string('payment_method')->nullable(); 
             $table->text('special_requests')->nullable();
             $table->string('customer_name');
             $table->string('customer_email');
             $table->string('customer_phone')->nullable();
             $table->string('customer_id_number')->nullable(); // Moroccan CIN or passport
             $table->string('transaction_id')->nullable();
-            $table->string('insurance_plan')->nullable(); // basic, standard, premium
+            $table->string('insurance_plan')->nullable(); 
             $table->boolean('additional_driver')->default(false);
             $table->string('additional_driver_name')->nullable();
             $table->string('additional_driver_license')->nullable();
-            $table->string('delivery_option')->nullable(); // none, home, airport
+            $table->string('delivery_option')->nullable(); 
             $table->text('delivery_address')->nullable();
-            $table->string('fuel_policy')->default('full-to-full'); // full-to-full, full-to-empty
-            $table->integer('mileage_limit')->nullable(); // Daily mileage limit in km
-            $table->decimal('extra_mileage_cost', 8, 2)->nullable(); // Cost per extra km
-            $table->decimal('deposit_amount', 10, 2)->nullable(); // Security deposit
-            $table->string('deposit_status')->default('pending'); // pending, paid, refunded
+            $table->string('fuel_policy')->default('full-to-full'); 
+            $table->integer('mileage_limit')->nullable(); 
+            $table->decimal('extra_mileage_cost', 8, 2)->nullable(); 
+            $table->decimal('deposit_amount', 10, 2)->nullable(); 
+            $table->string('deposit_status')->default('pending'); 
             $table->text('notes')->nullable(); // Internal staff notes
             $table->text('cancellation_reason')->nullable();
             $table->string('confirmation_code')->nullable()->unique();

@@ -118,6 +118,16 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function client()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function contract()
+{
+    return $this->hasOne(Contract::class);
+}
+
     /**
      * Get the payments associated with the booking.
      */
