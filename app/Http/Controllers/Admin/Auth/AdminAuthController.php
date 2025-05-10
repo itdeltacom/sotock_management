@@ -540,4 +540,71 @@ public function forgotPassword(Request $request)
             ];
         }
     }
+/**
+     * Show the form for changing password.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showChangePasswordForm()
+    {
+        return view('admin.auth.change-password');
+    }
+
+    /**
+     * Update the admin's password.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function changePassword(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+
+        // Validate the input
+        $validator = Validator::make($request->all(), [
+            'current_password' => ['required', 'current_password:admin'],
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised(),
+            ],
+        ], [
+            'current_password.current_password' => 'The current password is incorrect.',
+            'password.min' => 'The password must be at least 8 characters.',
+            'password.mixed_case' => 'The password must contain both uppercase and lowercase letters.',
+            'password.numbers' => 'The password must contain at least one number.',
+            'password.symbols' => 'The password must contain at least one symbol.',
+            'password.uncompromised' => 'This password has appeared in a data leak. Please choose a different password.',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        // Update the password
+        $admin->password = Hash::make($request->password);
+        $admin->save();
+
+        // Log the activity
+        if (method_exists(app(), 'activity')) {
+            activity()
+                ->causedBy($admin)
+                ->performedOn($admin)
+                ->log('Changed password');
+        }
+
+        // Logout the admin and redirect to login page
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('admin.login')
+            ->with('success', 'Password has been changed successfully. Please login with your new password.');
+    }
 }

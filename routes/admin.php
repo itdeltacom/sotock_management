@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\ActivityController;
@@ -51,8 +52,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
 Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
 // Password Change
-//Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
-//Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
+Route::get('password/change', [AdminAuthController::class, 'showChangePasswordForm'])->name('password.change');
+Route::post('password/change', [AdminAuthController::class, 'changePassword'])->name('password.update');
     
     // Two-Factor Authentication Routes
     Route::middleware('auth:admin')->group(function () {
@@ -264,28 +265,7 @@ Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permi
     Route::post('/{contract}/extend', [ContractController::class, 'extend'])->name('extend');
     Route::get('/{contract}/print', [ContractController::class, 'printContract'])->name('print');
 });
-/*Route::prefix('contracts')->name('contracts.')->middleware(['auth:admin', 'permission:manage contracts'])->group(function () {
-    Route::get('/', [ContractController::class, 'index'])->name('index');
-    Route::get('/stats', [ContractController::class, 'getStats'])->name('stats');
-    Route::get('/create', [ContractController::class, 'create'])->name('create');
-    Route::get('/data', [ContractController::class, 'datatable'])->name('datatable');
-    Route::post('/', [ContractController::class, 'store'])->name('store');
-    Route::get('/{contract}/edit', [ContractController::class, 'edit'])->name('edit');
-    Route::get('/{contract}', [ContractController::class, 'show'])->name('show');
-    Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
-    Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
-    Route::post('/{contract}/upload-document', [ContractController::class, 'uploadDocument'])->name('upload-document');
-    Route::delete('/{contract}/delete-document', [ContractController::class, 'deleteDocument'])->name('delete-document');
-    Route::post('/{contract}/complete', [ContractController::class, 'complete'])->name('complete');
-    Route::post('/{contract}/cancel', [ContractController::class, 'cancel'])->name('cancel');
-    Route::post('/{contract}/extend', [ContractController::class, 'extend'])->name('extend');
-    Route::get('/{contract}/print', [ContractController::class, 'printContract'])->name('print');
-    Route::get('/ending-soon', [ContractController::class, 'endingSoon'])->name('ending-soon');
-    Route::get('/ending-soon/data', [ContractController::class, 'endingSoonDatatable'])->name('ending-soon.datatable');
-    Route::get('/overdue', [ContractController::class, 'overdue'])->name('overdue');
-    Route::get('/overdue/data', [ContractController::class, 'overdueDatatable'])->name('overdue.datatable');
-    Route::get('/pending-bookings', [ContractController::class, 'getPendingBookings'])->name('pending-bookings');
-});*/
+
 
 // API endpoints for contract management
 Route::prefix('api')->name('api.')->middleware(['auth:admin'])->group(function () {
@@ -432,7 +412,9 @@ Route::prefix('newsletters')->name('newsletters.')->middleware(['auth:admin', 'p
     Route::post('/subscribers/import', [NewsletterAdminController::class, 'importSubscribers'])->name('subscribers.import');
     Route::get('/subscribers/export', [NewsletterAdminController::class, 'exportSubscribers'])->name('subscribers.export');
 });
-
+// Search Routes
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+Route::get('/quick-search', [SearchController::class, 'quickSearch'])->name('quick-search');
         
         // Customers Routes (Placeholder - you'll need to create this controller)
         Route::resource('customers', CustomerController::class);

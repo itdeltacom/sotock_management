@@ -64,7 +64,7 @@
 
                                 <!-- Client Section -->
                                 <div class="col-md-6">
-                                    <div class="card mb-4">
+                                    <div class="card mb-4 card-contract">
                                         <div class="card-header pb-0 p-3 bg-light">
                                             <h6 class="mb-0">Client Information</h6>
                                         </div>
@@ -136,7 +136,7 @@
 
                                 <!-- Vehicle Section -->
                                 <div class="col-md-6">
-                                    <div class="card mb-4">
+                                    <div class="card mb-4 card-contract">
                                         <div class="card-header pb-0 p-3 bg-light">
                                             <h6 class="mb-0">Vehicle Information</h6>
                                         </div>
@@ -202,7 +202,7 @@
                                 </div>
 
                                 <!-- Rental Details Section -->
-                                <div class="col-12">
+                                <div class="col-12 pt-3">
                                     <div class="card mb-4">
                                         <div class="card-header pb-0 p-3 bg-light">
                                             <h6 class="mb-0">Rental Details</h6>
@@ -437,6 +437,9 @@
 
         .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 38px;
+        }
+        .card-contract{
+            height: 100%;
         }
     </style>
 @endpush

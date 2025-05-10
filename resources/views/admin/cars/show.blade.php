@@ -437,6 +437,7 @@
     .card.border {
         border: 1px solid #e9ecef !important;
         box-shadow: none;
+        height: 100%;
     }
 
     .card .card-header {

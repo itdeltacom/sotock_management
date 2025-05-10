@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>@yield('title', 'Cental - Premium Car Rental Services')</title>
+    <title>@yield('title', config('app.name') . ' - Premium Car Rental Services')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- SEO Meta Tags -->

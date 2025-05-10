@@ -679,7 +679,7 @@
                     <div class="modal-body">
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="card bg-light mb-3">
+                                <div class="card bg-light mb-3 car-modal-view">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0" id="view-booking-number"></h5>
                                     </div>
@@ -695,7 +695,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card bg-light mb-3">
+                                <div class="card bg-light mb-3 car-modal-view">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Information du Véhicule</h5>
                                     </div>
@@ -709,7 +709,7 @@
 
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="card bg-light mb-3">
+                                <div class="card bg-light mb-3 car-modal-view">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Information du Client</h5>
                                     </div>
@@ -723,7 +723,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card bg-light mb-3">
+                                <div class="card bg-light mb-3 car-modal-view">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Détails de la Location</h5>
                                     </div>
@@ -751,7 +751,7 @@
 
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <div class="card bg-light mb-3">
+                                <div class="card bg-light mb-3 car-modal-view">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Information de Paiement</h5>
                                     </div>
@@ -788,7 +788,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card bg-light mb-3">
+                                <div class="card bg-light mb-3 car-modal-view">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Demandes Spéciales</h5>
                                     </div>
@@ -1054,6 +1054,10 @@
 
         .bg-gradient-warning {
             background: linear-gradient(310deg, #fb6340 0%, #fbb140 100%);
+        }
+
+        .car-modal-view {
+            height: 100%;
         }
 
         /* Modal styling */

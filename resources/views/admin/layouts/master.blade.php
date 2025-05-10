@@ -241,6 +241,126 @@
             Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
         }
     </script>
+    <script>
+        /**
+ * Quick Search Functionality
+ */
+        $(document).ready(function () {
+            // Define BASE_URL dynamically based on the current URL
+            // This eliminates the need for a BASE_URL variable to be defined elsewhere
+            var BASE_URL = window.location.protocol + '//' + window.location.host;
+
+            var searchTimer;
+            var searchInput = $('#global-search');
+            var resultsContainer = $('.quick-search-results');
+
+            // When user types in search box
+            searchInput.on('keyup', function (e) {
+                clearTimeout(searchTimer);
+                var query = $(this).val().trim();
+
+                // Clear results if query is empty
+                if (query.length === 0) {
+                    resultsContainer.addClass('d-none').html('');
+                    return;
+                }
+
+                // Minimum 2 characters to search
+                if (query.length < 2) return;
+
+                // If Enter key is pressed, submit the form
+                if (e.key === 'Enter') {
+                    searchInput.closest('form').submit();
+                    return;
+                }
+
+                // Delay search to prevent too many requests
+                searchTimer = setTimeout(function () {
+                    // Show loading
+                    resultsContainer.removeClass('d-none').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><p class="text-xs mt-2">Searching...</p></div>');
+
+                    // Make AJAX request
+                    $.ajax({
+                        url: BASE_URL + '/admin/quick-search',
+                        method: 'GET',
+                        data: { query: query },
+                        success: function (response) {
+                            // If no results
+                            if (response.length === 0) {
+                                resultsContainer.html('<div class="text-center py-3"><p class="text-xs">No results found</p></div>');
+                                return;
+                            }
+
+                            // Build results HTML
+                            var html = '<div class="list-group list-group-flush">';
+
+                            // Group results by type
+                            var groupedResults = {};
+                            response.forEach(function (item) {
+                                if (!groupedResults[item.type]) {
+                                    groupedResults[item.type] = [];
+                                }
+                                groupedResults[item.type].push(item);
+                            });
+
+                            // Add section titles and items
+                            for (var type in groupedResults) {
+                                var typeName = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+                                html += '<div class="px-3 py-2 bg-light text-xs text-uppercase font-weight-bolder">' + typeName + '</div>';
+
+                                groupedResults[type].forEach(function (item) {
+                                    html += '<a href="' + item.url + '" class="list-group-item list-group-item-action py-2 px-3">' +
+                                        '<div class="d-flex align-items-center">' +
+                                        '<div class="icon icon-shape icon-xs rounded-circle me-2 bg-gradient-' +
+                                        (item.type === 'car' ? 'primary' : (item.type === 'client' ? 'success' : (item.type === 'booking' ? 'info' : 'warning'))) +
+                                        ' text-white shadow">' +
+                                        '<i class="' + item.icon + ' opacity-10"></i>' +
+                                        '</div>' +
+                                        '<div class="d-flex flex-column">' +
+                                        '<h6 class="mb-0 text-sm">' + item.title + '</h6>' +
+                                        '<p class="text-xs text-secondary mb-0">' + item.subtitle + '</p>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</a>';
+                                });
+                            }
+
+                            html += '</div>';
+                            html += '<div class="text-center py-2 border-top">' +
+                                '<a href="' + BASE_URL + '/admin/search?query=' + encodeURIComponent(query) + '" class="text-primary text-xs font-weight-bold">' +
+                                'View all results <i class="fas fa-arrow-right ml-1"></i>' +
+                                '</a>' +
+                                '</div>';
+
+                            resultsContainer.html(html);
+                        },
+                        error: function () {
+                            resultsContainer.html('<div class="text-center py-3"><p class="text-xs text-danger">Error loading search results</p></div>');
+                        }
+                    });
+                }, 500);
+            });
+
+            // Hide results when clicking outside
+            $(document).on('click', function (e) {
+                if (!searchInput.is(e.target) && !resultsContainer.is(e.target) && resultsContainer.has(e.target).length === 0) {
+                    resultsContainer.addClass('d-none');
+                }
+            });
+
+            // Show results again when focusing on search input
+            searchInput.on('focus', function () {
+                if ($(this).val().trim().length >= 2) {
+                    resultsContainer.removeClass('d-none');
+                }
+            });
+
+            // Style for dropdown
+            $('<style>')
+                .text('.quick-search-results {position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; max-height: 400px; overflow-y: auto;}')
+                .appendTo('head');
+        });
+    </script>
     <!-- Github buttons -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <!-- Control Center for Soft Dashboard: parallax effects, scripts for the example pages etc -->

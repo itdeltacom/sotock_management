@@ -537,89 +537,89 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Statistics Card -->
-                                <div class="card mt-4">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Statistics</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <div class="card card-stats">
-                                                    <div class="card-body">
-                                                        <div class="row">
-                                                            <div class="col">
-                                                                <h5 class="card-title text-uppercase text-muted mb-0">Total
-                                                                    Contracts</h5>
-                                                                <span class="h2 font-weight-bold mb-0"
-                                                                    id="view_stats_total_contracts"></span>
-                                                            </div>
-                                                            <div class="col-auto">
-                                                                <div
-                                                                    class="icon icon-shape bg-gradient-primary text-white rounded-circle shadow">
-                                                                    <i class="fas fa-file-contract"></i>
-                                                                </div>
+                            <!-- Statistics Card -->
+                            <div class="card mt-4 col-md-12">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="card card-stats">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <h5 class="card-title text-uppercase text-muted mb-0">Total
+                                                                Contracts</h5>
+                                                            <span class="h2 font-weight-bold mb-0"
+                                                                id="view_stats_total_contracts"></span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <div
+                                                                class="icon icon-shape bg-gradient-primary text-white rounded-circle shadow">
+                                                                <i class="fas fa-file-contract"></i>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="card card-stats">
-                                                    <div class="card-body">
-                                                        <div class="row">
-                                                            <div class="col">
-                                                                <h5 class="card-title text-uppercase text-muted mb-0">Active
-                                                                    Contracts</h5>
-                                                                <span class="h2 font-weight-bold mb-0"
-                                                                    id="view_stats_active_contracts"></span>
-                                                            </div>
-                                                            <div class="col-auto">
-                                                                <div
-                                                                    class="icon icon-shape bg-gradient-success text-white rounded-circle shadow">
-                                                                    <i class="fas fa-check"></i>
-                                                                </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card card-stats">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <h5 class="card-title text-uppercase text-muted mb-0">Active
+                                                                Contracts</h5>
+                                                            <span class="h2 font-weight-bold mb-0"
+                                                                id="view_stats_active_contracts"></span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <div
+                                                                class="icon icon-shape bg-gradient-success text-white rounded-circle shadow">
+                                                                <i class="fas fa-check"></i>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="card card-stats">
-                                                    <div class="card-body">
-                                                        <div class="row">
-                                                            <div class="col">
-                                                                <h5 class="card-title text-uppercase text-muted mb-0">Total
-                                                                    Spent</h5>
-                                                                <span class="h2 font-weight-bold mb-0"
-                                                                    id="view_stats_total_spent"></span>
-                                                            </div>
-                                                            <div class="col-auto">
-                                                                <div
-                                                                    class="icon icon-shape bg-gradient-info text-white rounded-circle shadow">
-                                                                    <i class="fas fa-money-bill"></i>
-                                                                </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card card-stats">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <h5 class="card-title text-uppercase text-muted mb-0">Total
+                                                                Spent</h5>
+                                                            <span class="h2 font-weight-bold mb-0"
+                                                                id="view_stats_total_spent"></span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <div
+                                                                class="icon icon-shape bg-gradient-info text-white rounded-circle shadow">
+                                                                <i class="fas fa-money-bill"></i>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
-                                                <div class="card card-stats">
-                                                    <div class="card-body">
-                                                        <div class="row">
-                                                            <div class="col">
-                                                                <h5 class="card-title text-uppercase text-muted mb-0">
-                                                                    Outstanding</h5>
-                                                                <span class="h2 font-weight-bold mb-0"
-                                                                    id="view_stats_outstanding"></span>
-                                                            </div>
-                                                            <div class="col-auto">
-                                                                <div
-                                                                    class="icon icon-shape bg-gradient-danger text-white rounded-circle shadow">
-                                                                    <i class="fas fa-exclamation-triangle"></i>
-                                                                </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card card-stats">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <h5 class="card-title text-uppercase text-muted mb-0">
+                                                                Outstanding</h5>
+                                                            <span class="h2 font-weight-bold mb-0"
+                                                                id="view_stats_outstanding"></span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <div
+                                                                class="icon icon-shape bg-gradient-danger text-white rounded-circle shadow">
+                                                                <i class="fas fa-exclamation-triangle"></i>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -806,6 +806,63 @@
         .progress {
             border-radius: 0.5rem;
             overflow: hidden;
+        }
+
+        /* Statistics Card Styling */
+        #viewClientModal .card.card-profile {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        #viewClientModal .card-stats {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-bottom: 0;
+        }
+
+        #viewClientModal .card-stats:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        #viewClientModal .card-stats .card-body {
+            padding: 1rem;
+        }
+
+        #viewClientModal .card-stats .icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #viewClientModal .card-stats h5.card-title {
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        #viewClientModal .card-stats .h2 {
+            font-size: 1.5rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #viewClientModal .card-stats .icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            #viewClientModal .card-stats h5.card-title {
+                font-size: 0.65rem;
+            }
+
+            #viewClientModal .card-stats .h2 {
+                font-size: 1.25rem;
+            }
         }
     </style>
 @endpush
@@ -1135,15 +1192,15 @@
                     contracts.forEach(contract => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                        <td class="text-xs font-weight-bold">${contract.id}</td>
-                        <td class="text-xs font-weight-bold">${contract.car}</td>
-                        <td class="text-xs font-weight-bold">${contract.start_date} - ${contract.end_date}</td>
-                        <td class="text-xs font-weight-bold">${contract.total_amount}</td>
-                        <td class="text-xs font-weight-bold"><span class="badge bg-${contract.status === 'active' ? 'success' : 'secondary'}">${contract.status}</span></td>
-                        <td>
-                            <a href="${contract.view_url}" class="btn btn-sm btn-info mb-0"><i class="fas fa-eye"></i> View</a>
-                        </td>
-                    `;
+                                                <td class="text-xs font-weight-bold">${contract.id}</td>
+                                                <td class="text-xs font-weight-bold">${contract.car}</td>
+                                                <td class="text-xs font-weight-bold">${contract.start_date} - ${contract.end_date}</td>
+                                                <td class="text-xs font-weight-bold">${contract.total_amount}</td>
+                                                <td class="text-xs font-weight-bold"><span class="badge bg-${contract.status === 'active' ? 'success' : 'secondary'}">${contract.status}</span></td>
+                                                <td>
+                                                    <a href="${contract.view_url}" class="btn btn-sm btn-info mb-0"><i class="fas fa-eye"></i> View</a>
+                                                </td>
+                                            `;
                         contractsTbody.appendChild(row);
                     });
                 } else {
@@ -1157,13 +1214,13 @@
                     payments.forEach(payment => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                        <td class="text-xs font-weight-bold">${payment.date}</td>
-                        <td class="text-xs font-weight-bold">${payment.contract_id} (${payment.car})</td>
-                        <td class="text-xs font-weight-bold">${payment.amount}</td>
-                        <td class="text-xs font-weight-bold">${payment.method}</td>
-                        <td class="text-xs font-weight-bold">${payment.reference}</td>
-                        <td class="text-xs font-weight-bold"><span class="badge bg-success">Completed</span></td>
-                    `;
+                                                <td class="text-xs font-weight-bold">${payment.date}</td>
+                                                <td class="text-xs font-weight-bold">${payment.contract_id} (${payment.car})</td>
+                                                <td class="text-xs font-weight-bold">${payment.amount}</td>
+                                                <td class="text-xs font-weight-bold">${payment.method}</td>
+                                                <td class="text-xs font-weight-bold">${payment.reference}</td>
+                                                <td class="text-xs font-weight-bold"><span class="badge bg-success">Completed</span></td>
+                                            `;
                         paymentsTbody.appendChild(row);
                     });
                 } else {

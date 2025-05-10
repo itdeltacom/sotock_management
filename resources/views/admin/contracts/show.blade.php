@@ -6,7 +6,7 @@
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-12">
-            <div class="card mb-4">
+            <div class="card mb-4 ">
                 <div class="card-header pb-0 p-3">
                     <div class="row">
                         <div class="col-6 d-flex align-items-center">
@@ -83,7 +83,7 @@
                         
                         <!-- Contract Info -->
                         <div class="col-md-4">
-                            <div class="card mb-4">
+                            <div class="card mb-4 card-contract">
                                 <div class="card-header p-3 bg-light">
                                     <div class="row">
                                         <div class="col-8">
@@ -204,15 +204,15 @@
                         </div>
                         
                         <!-- Client Info -->
-                        <div class="col-md-4">
-                            <div class="card mb-4">
+                        <div class="col-md-4 ">
+                            <div class="card mb-4 card-contract">
                                 <div class="card-header p-3 bg-light">
                                     <h6 class="mb-0">Client Information</h6>
                                 </div>
                                 <div class="card-body p-3">
                                     <div class="d-flex mb-3">
                                         <div class="avatar avatar-xl me-3">
-                                            <img src="{{ $contract->client->photo_url ?? asset('/img/default-avatar.png') }}" alt="Client Avatar" class="border-radius-lg shadow">
+                                            <img src="{{ $contract->client->photo_url ? $contract->client->photo_url : asset('admin/assets/img/default-avatar.png') }}" alt="Client Avatar" class="border-radius-lg shadow">
                                         </div>
                                         <div class="d-flex flex-column">
                                             <h6 class="mb-1 text-dark">{{ $contract->client->full_name }}</h6>
@@ -256,7 +256,7 @@
                         
                         <!-- Vehicle Info -->
                         <div class="col-md-4">
-                            <div class="card mb-4">
+                            <div class="card mb-4 card-contract">
                                 <div class="card-header p-3 bg-light">
                                     <h6 class="mb-0">Vehicle Information</h6>
                                 </div>
@@ -448,7 +448,9 @@
         .timeline .timeline-block:last-child {
             margin-bottom: 0;
         }
-        
+        .card-contract{
+            height: 100%;
+        }
         .timeline .timeline-step {
             width: 40px;
             height: 40px;

@@ -9,8 +9,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class AdminController extends Controller
 {
@@ -358,4 +359,5 @@ class AdminController extends Controller
         return redirect()->route('admin.profile')
             ->with('success', 'Profile updated successfully.');
     }
+ 
 }

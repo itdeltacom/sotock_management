@@ -6,7 +6,7 @@
     <div class="container-fluid py-4">
         <div class="row">
             <div class="col-12">
-                <div class="card mb-4">
+                <div class="card mb-4 ">
                     <div class="card-header pb-0 p-3">
                         <div class="row">
                             <div class="col-6 d-flex align-items-center">
@@ -42,14 +42,14 @@
                             <div class="row">
                                 <!-- Client & Vehicle Info (Read-only) -->
                                 <div class="col-md-6">
-                                    <div class="card mb-4">
+                                    <div class="card mb-4  car-rental">
                                         <div class="card-header pb-0 p-3 bg-light">
                                             <h6 class="mb-0">Client Information</h6>
                                         </div>
                                         <div class="card-body p-3">
                                             <div class="d-flex mb-3">
                                                 <div class="avatar avatar-xl me-3">
-                                                    <img src="{{ $contract->client->photo_url ?? '/img/default-avatar.png' }}"
+                                                    <img src="{{ $contract->client->photo_url ? $contract->client->photo_url : asset('admin/assets/img/default-avatar.png') }}"
                                                         alt="Client Avatar" class="border-radius-lg shadow">
                                                 </div>
                                                 <div class="d-flex flex-column">
@@ -92,7 +92,7 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <div class="card mb-4">
+                                    <div class="card mb-4 car-rental">
                                         <div class="card-header pb-0 p-3 bg-light">
                                             <h6 class="mb-0">Vehicle Information</h6>
                                         </div>
@@ -137,7 +137,7 @@
                                 </div>
 
                                 <!-- Rental Details Section -->
-                                <div class="col-12">
+                                <div class="col-12 pt-3">
                                     <div class="card mb-4">
                                         <div class="card-header pb-0 p-3 bg-light">
                                             <h6 class="mb-0">Rental Details</h6>
@@ -281,6 +281,13 @@
     </div>
 @endsection
 
+@push('css')
+    <style>
+        .car-rental {
+            height: 100%;
+        }
+    </style>
+@endpush
 @push('js')
     <script>
         $(document).ready(function () {
