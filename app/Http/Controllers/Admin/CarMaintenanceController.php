@@ -30,6 +30,9 @@ class CarMaintenanceController extends Controller
             ->addColumn('maintenance_title', function ($maintenance) {
                 return ucfirst(str_replace('_', ' ', $maintenance->maintenance_type));
             })
+            ->addColumn('date_performed', function ($maintenance) {
+                return $maintenance->date_performed ? $maintenance->date_performed->format('d/m/Y') : 'N/A';
+            })
             ->addColumn('next_due', function ($maintenance) {
                 $html = '';
                 
@@ -59,6 +62,24 @@ class CarMaintenanceController extends Controller
                     return '<span class="badge bg-success">OK</span>';
                 }
             })
+            ->addColumn('parts_replaced', function ($maintenance) {
+                if (!$maintenance->parts_replaced) return '-';
+                
+                try {
+                    $parts = json_decode($maintenance->parts_replaced, true);
+                    if (empty($parts)) return '-';
+                    
+                    $html = '<div class="parts-summary">';
+                    foreach ($parts as $part) {
+                        $html .= '<span class="badge bg-info me-1 mb-1">' . $part['name'] . '</span>';
+                    }
+                    $html .= '</div>';
+                    
+                    return $html;
+                } catch (\Exception $e) {
+                    return $maintenance->parts_replaced ?: '-';
+                }
+            })
             ->addColumn('actions', function ($maintenance) {
                 $buttons = '<div class="btn-group" role="group">';
                 
@@ -71,7 +92,7 @@ class CarMaintenanceController extends Controller
                 $buttons .= '</div>';
                 return $buttons;
             })
-            ->rawColumns(['next_due', 'status', 'actions'])
+            ->rawColumns(['next_due', 'status', 'actions', 'parts_replaced'])
             ->make(true);
     }
 
@@ -115,6 +136,29 @@ class CarMaintenanceController extends Controller
         }
     }
 
+    /**
+ * Show the form for editing the specified maintenance record.
+ *
+ * @param Car $car
+ * @param string $maintenanceId
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function edit(Car $car, $maintenanceId)
+{
+    try {
+        $maintenance = CarMaintenance::findOrFail($maintenanceId);
+        
+        return response()->json([
+            'success' => true,
+            'maintenance' => $maintenance
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred while retrieving the maintenance record: ' . $e->getMessage()
+        ]);
+    }
+}
     /**
      * Update the specified resource in storage.
      */

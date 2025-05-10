@@ -22,7 +22,7 @@
                                         <span class="visually-hidden">Toggle Dropdown</span>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="#"
+                                        {{-- <li><a class="dropdown-item" href="#"
                                                 onclick="quickAddMaintenance('oil_change')">Add Oil Change</a></li>
                                         <li><a class="dropdown-item" href="#"
                                                 onclick="quickAddMaintenance('tire_rotation')">Add Tire Rotation</a></li>
@@ -31,7 +31,7 @@
                                         <li><a class="dropdown-item" href="#"
                                                 onclick="quickAddMaintenance('general_service')">Add General Service</a>
                                         </li>
-                                        <li>
+                                        <li> --}}
                                             <hr class="dropdown-divider">
                                         </li>
                                         <li><a class="dropdown-item"
@@ -167,7 +167,7 @@
                                 <label for="date_performed" class="form-control-label">Date Performed <span
                                         class="text-danger">*</span></label>
                                 <input type="date" class="form-control" id="date_performed" name="date_performed" required
-                                    value="{{ date('Y-m-d') }}">
+                                    value="{{ now()->format('Y-m-d') }}">
                                 <div class="invalid-feedback" id="date_performed-error"></div>
                             </div>
                         </div>
@@ -468,7 +468,7 @@
                         ajax: `/admin/cars/maintenance/${carId}/datatable`,
                         columns: [
                             { data: 'maintenance_title', name: 'maintenance_title' },
-                            { data: 'date_performed', name: 'date_performed' },
+                            { data: 'date_performed', name: 'date_performed' }, // Date is formatted on server
                             {
                                 data: 'mileage_at_service',
                                 name: 'mileage_at_service',
@@ -1199,10 +1199,18 @@
                             // Populate form with maintenance data
                             document.getElementById('maintenance_id').value = maintenance.id;
                             document.getElementById('maintenance_type').value = maintenance.maintenance_type;
-                            document.getElementById('date_performed').value = maintenance.date_performed;
+                            // Convert Moroccan format (DD/MM/YYYY) to YYYY-MM-DD for input
+                            if (maintenance.date_performed) {
+                                const [day, month, year] = maintenance.date_performed.split('/');
+                                document.getElementById('date_performed').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                            }
                             document.getElementById('mileage_at_service').value = maintenance.mileage_at_service;
                             document.getElementById('cost').value = maintenance.cost || '';
-                            document.getElementById('next_due_date').value = maintenance.next_due_date || '';
+                            // Handle next_due_date in Moroccan format
+                            if (maintenance.next_due_date) {
+                                const [day, month, year] = maintenance.next_due_date.split('/');
+                                document.getElementById('next_due_date').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                            }
                             document.getElementById('next_due_mileage').value = maintenance.next_due_mileage || '';
                             document.getElementById('performed_by').value = maintenance.performed_by || '';
 
@@ -1398,10 +1406,10 @@
                         const overlay = document.createElement('div');
                         overlay.className = 'loading-overlay';
                         overlay.innerHTML = `
-                                            <div class="spinner-border text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                        `;
+                                                                <div class="spinner-border text-primary" role="status">
+                                                                    <span class="visually-hidden">Loading...</span>
+                                                                </div>
+                                                            `;
                         document.body.appendChild(overlay);
                     }
                 } else {

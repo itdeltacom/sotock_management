@@ -195,11 +195,11 @@ Route::prefix('cars/maintenance')->name('cars.maintenance.')->group(function () 
     // Car-specific maintenance routes
     Route::prefix('/{car}')->group(function () {
         Route::get('/', [CarMaintenanceController::class, 'index'])->name('index');
-        Route::get('/datatable', [CarMaintenanceController::class, 'datatable'])->name('datatable');
-        Route::post('/', [CarMaintenanceController::class, 'store'])->name('store');
-        Route::get('/{maintenance}/edit', [CarMaintenanceController::class, 'edit'])->name('edit');
-        Route::put('/{maintenance}', [CarMaintenanceController::class, 'update'])->name('update');
-        Route::delete('/{maintenance}', [CarMaintenanceController::class, 'destroy'])->name('destroy');
+    Route::get('/datatable', [CarMaintenanceController::class, 'datatable'])->name('datatable');
+    Route::post('/', [CarMaintenanceController::class, 'store'])->name('store');
+    Route::get('/{maintenance}/edit', [CarMaintenanceController::class, 'edit'])->name('edit');
+    Route::put('/{maintenance}', [CarMaintenanceController::class, 'update'])->name('update');
+    Route::delete('/{maintenance}', [CarMaintenanceController::class, 'destroy'])->name('destroy');
         
         // Export and Print for specific car
         Route::get('/print', [CarMaintenanceController::class, 'printMaintenanceHistory'])->name('print');
@@ -437,11 +437,16 @@ Route::prefix('newsletters')->name('newsletters.')->middleware(['auth:admin', 'p
         // Customers Routes (Placeholder - you'll need to create this controller)
         Route::resource('customers', CustomerController::class);
         
-        // Reports Routes (Placeholder - you'll need to create this controller)
+        // Reports Routes
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('revenue', [ReportController::class, 'revenue'])->name('revenue');
             Route::get('bookings', [ReportController::class, 'bookings'])->name('bookings');
             Route::get('vehicles', [ReportController::class, 'vehicles'])->name('vehicles');
+            
+            // Export routes
+            Route::get('export-revenue', [ReportController::class, 'exportRevenue'])->name('export-revenue');
+            Route::get('export-bookings', [ReportController::class, 'exportBookings'])->name('export-bookings');
+            Route::get('export-vehicles', [ReportController::class, 'exportVehicles'])->name('export-vehicles');
         });
         
         // Settings (Placeholder - you'll need to create this controller)

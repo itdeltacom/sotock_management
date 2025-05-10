@@ -126,3 +126,5 @@ Route::get('/privacy', [HomeController::class, 'privacy'])->name('privacy');
 Route::get('/comment-ca-marche', function () {
     return view('site.how-it-works');
 })->name('how-it-works');
+
+Route::prefix('admin')->group(base_path('routes/admin.php'));
