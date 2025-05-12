@@ -139,7 +139,7 @@
                     </div>
                     <div class="card-body px-0 pt-0 pb-2">
                         <div class="p-3">
-                            <form id="filterForm" class="row">
+                            <form id="filterForm" class="row ">
                                 <div class="col-md-2 mb-3">
                                     <label for="filter_car" class="form-control-label">Véhicule</label>
                                     <select class="form-select" id="filter_car">
@@ -179,7 +179,7 @@
                                     <label for="filter_date_to" class="form-control-label">Date de fin</label>
                                     <input type="date" class="form-control" id="filter_date_to">
                                 </div>
-                                <div class="col-md-2 mb-3 d-flex align-items-end">
+                                <div class="col-md-2 mt-4 d-flex align-items-end">
                                     <button type="submit" class="btn bg-gradient-primary me-2">Filtrer</button>
                                     <button type="button" id="resetFiltersBtn"
                                         class="btn btn-outline-secondary">Réinitialiser</button>

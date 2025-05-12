@@ -4,7 +4,7 @@
         <div class="row">
             <!-- Revenue Cards -->
             <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-                <div class="card">
+                <div class="card stats-cards">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -33,7 +33,7 @@
 
             <!-- Bookings Card -->
             <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-                <div class="card">
+                <div class="card stats-cards">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -63,7 +63,7 @@
 
             <!-- Vehicles Card -->
             <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-                <div class="card">
+                <div class="card stats-cards">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -92,7 +92,7 @@
 
             <!-- Activity Card -->
             <div class="col-xl-3 col-sm-6">
-                <div class="card">
+                <div class="card stats-cards">
                     <div class="card-body p-3">
                         <div class="row">
                             <div class="col-8">
@@ -124,7 +124,7 @@
         @if(isset($maintenance_alerts) && ($maintenance_alerts['overdue']['count'] > 0 || $maintenance_alerts['due_this_week']['count'] > 0 || $maintenance_alerts['coming_up']['count'] > 0))
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card mb-4">
+                    <div class="card mb-4 cards-dashboard">
                         <div class="card-header pb-0 p-3">
                             <div class="row">
                                 <div class="col-6 d-flex align-items-center">
@@ -315,7 +315,8 @@
                                         </div>
                                         <div class="d-flex flex-column">
                                             <h6 class="mb-1 text-dark text-sm">{{ $booking->car->brand_name }}
-                                                {{ $booking->car->model }}</h6>
+                                                {{ $booking->car->model }}
+                                            </h6>
                                             <span class="text-xs">
                                                 {{ $booking->user->name }} -
                                                 {{ Carbon\Carbon::parse($booking->start_date)->format('M d') }} to
@@ -345,7 +346,7 @@
         <div class="row mt-4">
             <!-- Activity Types -->
             <div class="col-lg-5 mb-lg-0 mb-4">
-                <div class="card">
+                <div class="card cards-dashboard">
                     <div class="card-header pb-0 p-3">
                         <h6 class="mb-0">Activity Types</h6>
                     </div>
@@ -376,7 +377,7 @@
 
             <!-- Browser & Location Stats -->
             <div class="col-lg-7">
-                <div class="card">
+                <div class="card cards-dashboard">
                     <div class="card-header pb-0 p-3">
                         <div class="d-flex justify-content-between">
                             <h6 class="mb-0">System Usage</h6>
@@ -435,7 +436,14 @@
         </footer>
     </div>
 @endsection
-
+@push('css')
+    <style>
+        .stats-cards,
+        .cards-dashboard {
+            height: 100%;
+        }
+    </style>
+@endpush
 @push('js')
     <script src="{{ asset('admin/assets/js/plugins/chartjs.min.js') }}"></script>
     <script>
