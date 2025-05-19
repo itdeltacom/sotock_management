@@ -5,4 +5,5 @@ return [
     App\Providers\SeoServiceProvider::class,
     App\Providers\SweetAlertServiceProvider::class,
     Yajra\DataTables\DataTablesServiceProvider::class,
+     App\Providers\AdminNotificationServiceProvider::class,
 ];

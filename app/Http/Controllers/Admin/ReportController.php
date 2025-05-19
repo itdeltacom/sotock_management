@@ -3,710 +3,782 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\ProductWarehouseStock;
+use App\Models\PurchaseOrder;
+use App\Models\SalesOrder;
+use App\Models\StockMovement;
+use App\Models\Supplier;
+use App\Models\Customer;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
-use App\Models\Booking;
-use App\Models\Contract;
-use App\Models\Car;
-use App\Models\User;
-use App\Models\CarMaintenance;
-use App\Models\Payment;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Exception;
+use Carbon\Carbon;
 use PDF;
 
 class ReportController extends Controller
 {
     /**
-     * Show revenue report
+     * Create a new controller instance.
      */
-    public function revenue(Request $request)
+    public function __construct()
     {
-        // Default date range (current month)
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
-        
-        // Get revenue data grouped by date
-        $revenueData = $this->getRevenueData($startDate, $endDate);
-        
-        // Get top earning cars
-        $topCars = $this->getTopEarningCars($startDate, $endDate);
-        
-        // Get payment method breakdown
-        $paymentMethods = $this->getPaymentMethodBreakdown($startDate, $endDate);
-        
-        // Get statistics
-        $stats = $this->getRevenueStats($startDate, $endDate);
-        
-        return view('admin.reports.revenue', compact(
-            'revenueData', 
-            'topCars', 
-            'paymentMethods', 
-            'stats', 
-            'startDate', 
-            'endDate'
-        ));
+        $this->middleware('auth:admin');
+        $this->middleware('permission:view_reports');
+        $this->middleware('permission:generate_reports');
     }
-    
+
     /**
-     * Export revenue report
+     * Display the report page.
+     *
+     * @return \Illuminate\View\View
      */
-    public function exportRevenue(Request $request)
+    public function index()
     {
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
-        $format = $request->input('format', 'csv');
-        
-        // Get revenue data
-        $revenueData = $this->getRevenueData($startDate, $endDate, false);
-        
-        // Based on requested format
-        switch($format) {
-            case 'pdf':
-                $pdf = PDF::loadView('admin.reports.export.revenue-pdf', [
-                    'data' => $revenueData,
-                    'startDate' => $startDate,
-                    'endDate' => $endDate,
-                    'stats' => $this->getRevenueStats($startDate, $endDate)
-                ]);
-                return $pdf->download('revenue-report-' . date('Y-m-d') . '.pdf');
-                
-            case 'excel':
-                return Excel::download(new \App\Exports\RevenueExport($revenueData, $startDate, $endDate), 
-                    'revenue-report-' . date('Y-m-d') . '.xlsx');
-                
-            default: // CSV
-                return $this->downloadCsv($revenueData, 'revenue-report-' . date('Y-m-d'));
+        try {
+            $warehouses = Warehouse::where('active', true)->orderBy('name')->get();
+            $suppliers = Supplier::where('active', true)->orderBy('name')->get();
+            $customers = Customer::where('active', true)->orderBy('name')->get();
+            $categories = ProductCategory::orderBy('name')->get();
+            
+            return view('admin.reports.index', compact('warehouses', 'suppliers', 'customers', 'categories'));
+        } catch (Exception $e) {
+            Log::error('Error displaying reports page: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'An error occurred while accessing reports.');
         }
     }
 
     /**
-     * Show bookings report
+     * Generate inventory valuation report.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
      */
-    public function bookings(Request $request)
+    public function inventoryValuation(Request $request)
     {
-        // Default date range (current month)
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
-        
-        // Get booking data by date
-        $bookingData = $this->getBookingData($startDate, $endDate);
-        
-        // Get status breakdown
-        $statusBreakdown = $this->getBookingStatusBreakdown($startDate, $endDate);
-        
-        // Get popular cars
-        $popularCars = $this->getPopularCars($startDate, $endDate);
-        
-        // Get time of day breakdown
-        $timeDistribution = $this->getBookingTimeDistribution($startDate, $endDate);
-        
-        // Get statistics
-        $stats = $this->getBookingStats($startDate, $endDate);
-        
-        return view('admin.reports.bookings', compact(
-            'bookingData', 
-            'statusBreakdown', 
-            'popularCars', 
-            'timeDistribution',
-            'stats', 
-            'startDate', 
-            'endDate'
-        ));
-    }
-    
-    /**
-     * Export bookings report
-     */
-    public function exportBookings(Request $request)
-    {
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
-        $format = $request->input('format', 'csv');
-        
-        // Get booking data
-        $bookings = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->with(['car', 'user'])
-            ->get();
-        
-        // Based on requested format
-        switch($format) {
-            case 'pdf':
-                $pdf = PDF::loadView('admin.reports.export.bookings-pdf', [
-                    'bookings' => $bookings,
-                    'startDate' => $startDate,
-                    'endDate' => $endDate,
-                    'stats' => $this->getBookingStats($startDate, $endDate)
-                ]);
-                return $pdf->download('bookings-report-' . date('Y-m-d') . '.pdf');
-                
-            case 'excel':
-                return Excel::download(new \App\Exports\BookingsExport($bookings, $startDate, $endDate), 
-                    'bookings-report-' . date('Y-m-d') . '.xlsx');
-                
-            default: // CSV
-                return $this->exportBookingsCsv($bookings, 'bookings-report-' . date('Y-m-d'));
-        }
-    }
-
-    /**
-     * Show vehicles report
-     */
-    public function vehicles(Request $request)
-    {
-        // Default date range (current month)
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
-        
-        // Get vehicle utilization data
-        $vehicleUtilization = $this->getVehicleUtilization($startDate, $endDate);
-        
-        // Get maintenance costs
-        $maintenanceCosts = $this->getMaintenanceCosts($startDate, $endDate);
-        
-        // Get revenue by vehicle category
-        $categoryRevenue = $this->getCategoryRevenue($startDate, $endDate);
-        
-        // Get mileage data
-        $mileageData = $this->getMileageData($startDate, $endDate);
-        
-        // Get statistics
-        $stats = $this->getVehicleStats($startDate, $endDate);
-        
-        return view('admin.reports.vehicles', compact(
-            'vehicleUtilization', 
-            'maintenanceCosts', 
-            'categoryRevenue', 
-            'mileageData',
-            'stats', 
-            'startDate', 
-            'endDate'
-        ));
-    }
-    
-    /**
-     * Export vehicles report
-     */
-    public function exportVehicles(Request $request)
-    {
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
-        $format = $request->input('format', 'csv');
-        
-        // Get vehicle data with utilization
-        $vehicles = $this->getVehicleDataForExport($startDate, $endDate);
-        
-        // Based on requested format
-        switch($format) {
-            case 'pdf':
-                $pdf = PDF::loadView('admin.reports.export.vehicles-pdf', [
-                    'vehicles' => $vehicles,
-                    'startDate' => $startDate,
-                    'endDate' => $endDate,
-                    'stats' => $this->getVehicleStats($startDate, $endDate)
-                ]);
-                return $pdf->download('vehicles-report-' . date('Y-m-d') . '.pdf');
-                
-            case 'excel':
-                return Excel::download(new \App\Exports\VehiclesExport($vehicles, $startDate, $endDate), 
-                    'vehicles-report-' . date('Y-m-d') . '.xlsx');
-                
-            default: // CSV
-                return $this->exportVehiclesCsv($vehicles, 'vehicles-report-' . date('Y-m-d'));
-        }
-    }
-
-    /**
-     * Get revenue data grouped by date
-     */
-    private function getRevenueData($startDate, $endDate, $groupByDay = true)
-    {
-        $query = Payment::whereBetween('payment_date', [$startDate, $endDate . ' 23:59:59']);
-        
-        if ($groupByDay) {
-            return $query->select(
-                    DB::raw('DATE(payment_date) as date'),
-                    DB::raw('SUM(amount) as total')
-                )
-                ->groupBy(DB::raw('DATE(payment_date)'))
-                ->orderBy('date')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'date' => Carbon::parse($item->date)->format('Y-m-d'),
-                        'total' => $item->total
-                    ];
-                });
-        } else {
-            return $query->with(['contract', 'contract.car', 'contract.client'])
-                ->orderBy('payment_date')
-                ->get();
-        }
-    }
-    
-    /**
-     * Get top earning cars
-     */
-    private function getTopEarningCars($startDate, $endDate, $limit = 5)
-    {
-        return Car::select('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule')
-            ->selectRaw('SUM(payments.amount) as total_revenue')
-            ->join('contracts', 'cars.id', '=', 'contracts.car_id')
-            ->join('payments', 'contracts.id', '=', 'payments.contract_id')
-            ->whereBetween('payments.payment_date', [$startDate, $endDate . ' 23:59:59'])
-            ->groupBy('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule')
-            ->orderByDesc('total_revenue')
-            ->limit($limit)
-            ->get();
-    }
-    
-    /**
-     * Get payment method breakdown
-     */
-    private function getPaymentMethodBreakdown($startDate, $endDate)
-    {
-        return Payment::whereBetween('payment_date', [$startDate, $endDate . ' 23:59:59'])
-            ->select('payment_method', DB::raw('SUM(amount) as total'))
-            ->groupBy('payment_method')
-            ->orderByDesc('total')
-            ->get();
-    }
-    
-    /**
-     * Get revenue statistics
-     */
-    private function getRevenueStats($startDate, $endDate)
-    {
-        // Total revenue
-        $totalRevenue = Payment::whereBetween('payment_date', [$startDate, $endDate . ' 23:59:59'])
-            ->sum('amount');
-        
-        // Previous period (same duration, previous time period)
-        $daysCount = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
-        $prevStartDate = Carbon::parse($startDate)->subDays($daysCount)->format('Y-m-d');
-        $prevEndDate = Carbon::parse($startDate)->subDay()->format('Y-m-d');
-        
-        $previousRevenue = Payment::whereBetween('payment_date', [$prevStartDate, $prevEndDate . ' 23:59:59'])
-            ->sum('amount');
-        
-        // Calculate change percentage
-        $percentChange = 0;
-        if ($previousRevenue > 0) {
-            $percentChange = (($totalRevenue - $previousRevenue) / $previousRevenue) * 100;
-        } elseif ($totalRevenue > 0) {
-            $percentChange = 100;
-        }
-        
-        // Count number of payments
-        $paymentsCount = Payment::whereBetween('payment_date', [$startDate, $endDate . ' 23:59:59'])
-            ->count();
-        
-        // Average payment amount
-        $avgPayment = $paymentsCount > 0 ? $totalRevenue / $paymentsCount : 0;
-        
-        // Return statistics
-        return [
-            'total_revenue' => $totalRevenue,
-            'previous_revenue' => $previousRevenue,
-            'percent_change' => $percentChange,
-            'payments_count' => $paymentsCount,
-            'avg_payment' => $avgPayment,
-            'days_count' => $daysCount,
-            'daily_average' => $daysCount > 0 ? $totalRevenue / $daysCount : 0
-        ];
-    }
-    
-    /**
-     * Get booking data grouped by date
-     */
-    private function getBookingData($startDate, $endDate)
-    {
-        return Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'date' => Carbon::parse($item->date)->format('Y-m-d'),
-                    'count' => $item->count
-                ];
-            });
-    }
-    
-    /**
-     * Get booking status breakdown
-     */
-    private function getBookingStatusBreakdown($startDate, $endDate)
-    {
-        return Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->select('status', DB::raw('COUNT(*) as count'))
-            ->groupBy('status')
-            ->orderByDesc('count')
-            ->get();
-    }
-    
-    /**
-     * Get popular cars based on bookings
-     */
-    private function getPopularCars($startDate, $endDate, $limit = 5)
-    {
-        return Car::select('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule')
-            ->selectRaw('COUNT(bookings.id) as booking_count')
-            ->join('bookings', 'cars.id', '=', 'bookings.car_id')
-            ->whereBetween('bookings.created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->groupBy('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule')
-            ->orderByDesc('booking_count')
-            ->limit($limit)
-            ->get();
-    }
-    
-    /**
-     * Get booking time distribution (morning, afternoon, evening, night)
-     */
-    private function getBookingTimeDistribution($startDate, $endDate)
-    {
-        $morning = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->whereRaw('HOUR(created_at) BETWEEN 6 AND 11')
-            ->count();
-            
-        $afternoon = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->whereRaw('HOUR(created_at) BETWEEN 12 AND 17')
-            ->count();
-            
-        $evening = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->whereRaw('HOUR(created_at) BETWEEN 18 AND 21')
-            ->count();
-            
-        $night = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->whereRaw('(HOUR(created_at) BETWEEN 22 AND 23) OR (HOUR(created_at) BETWEEN 0 AND 5)')
-            ->count();
-            
-        return [
-            ['name' => 'Morning (6AM-12PM)', 'count' => $morning],
-            ['name' => 'Afternoon (12PM-6PM)', 'count' => $afternoon],
-            ['name' => 'Evening (6PM-10PM)', 'count' => $evening],
-            ['name' => 'Night (10PM-6AM)', 'count' => $night]
-        ];
-    }
-    
-    /**
-     * Get booking statistics
-     */
-    private function getBookingStats($startDate, $endDate)
-    {
-        // Total bookings
-        $totalBookings = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->count();
-        
-        // Previous period (same duration, previous time period)
-        $daysCount = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
-        $prevStartDate = Carbon::parse($startDate)->subDays($daysCount)->format('Y-m-d');
-        $prevEndDate = Carbon::parse($startDate)->subDay()->format('Y-m-d');
-        
-        $previousBookings = Booking::whereBetween('created_at', [$prevStartDate, $prevEndDate . ' 23:59:59'])
-            ->count();
-        
-        // Calculate change percentage
-        $percentChange = 0;
-        if ($previousBookings > 0) {
-            $percentChange = (($totalBookings - $previousBookings) / $previousBookings) * 100;
-        } elseif ($totalBookings > 0) {
-            $percentChange = 100;
-        }
-        
-        // Booking completion rate
-        $completedBookings = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->where('status', 'completed')
-            ->count();
-            
-        $completionRate = $totalBookings > 0 ? ($completedBookings / $totalBookings) * 100 : 0;
-        
-        // Booking cancellation rate
-        $cancelledBookings = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->where('status', 'cancelled')
-            ->count();
-            
-        $cancellationRate = $totalBookings > 0 ? ($cancelledBookings / $totalBookings) * 100 : 0;
-        
-        // Average booking value
-        $totalBookingValue = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->sum('total_amount');
-            
-        $avgBookingValue = $totalBookings > 0 ? $totalBookingValue / $totalBookings : 0;
-        
-        // Return statistics
-        return [
-            'total_bookings' => $totalBookings,
-            'previous_bookings' => $previousBookings,
-            'percent_change' => $percentChange,
-            'completion_rate' => $completionRate,
-            'cancellation_rate' => $cancellationRate,
-            'avg_booking_value' => $avgBookingValue,
-            'days_count' => $daysCount,
-            'daily_average' => $daysCount > 0 ? $totalBookings / $daysCount : 0
-        ];
-    }
-    
-    /**
-     * Get vehicle utilization data
-     */
-    private function getVehicleUtilization($startDate, $endDate)
-    {
-        // Get all cars
-        $cars = Car::select('id', 'name', 'brand_name', 'model', 'matricule')->get();
-        
-        // Total days in period
-        $daysInPeriod = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
-        
-        // Calculate utilization for each car
-        return $cars->map(function ($car) use ($startDate, $endDate, $daysInPeriod) {
-            // Count days the car was rented in this period
-            $rentedDays = DB::table('bookings')
-                ->where('car_id', $car->id)
-                ->where('status', 'in:in_progress,completed')
-                ->where(function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('pickup_date', [$startDate, $endDate])
-                        ->orWhereBetween('dropoff_date', [$startDate, $endDate])
-                        ->orWhere(function ($q) use ($startDate, $endDate) {
-                            $q->where('pickup_date', '<', $startDate)
-                                ->where('dropoff_date', '>', $endDate);
-                        });
-                })
-                ->sum(DB::raw('DATEDIFF(LEAST(dropoff_date, "' . $endDate . '"), GREATEST(pickup_date, "' . $startDate . '"))'));
-            
-            // Calculate utilization percentage
-            $utilization = $daysInPeriod > 0 ? ($rentedDays / $daysInPeriod) * 100 : 0;
-            
-            return [
-                'car' => $car,
-                'utilization' => $utilization,
-                'rented_days' => $rentedDays,
-                'total_days' => $daysInPeriod
-            ];
-        })
-        ->sortByDesc('utilization')
-        ->values();
-    }
-    
-    /**
-     * Get maintenance costs
-     */
-    private function getMaintenanceCosts($startDate, $endDate)
-    {
-        return Car::select('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule')
-            ->selectRaw('SUM(car_maintenances.cost) as total_cost')
-            ->selectRaw('COUNT(car_maintenances.id) as maintenance_count')
-            ->join('car_maintenances', 'cars.id', '=', 'car_maintenances.car_id')
-            ->whereBetween('car_maintenances.date_performed', [$startDate, $endDate])
-            ->groupBy('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule')
-            ->orderByDesc('total_cost')
-            ->get();
-    }
-    
-    /**
-     * Get revenue by vehicle category
-     */
-    private function getCategoryRevenue($startDate, $endDate)
-{
-    return DB::table('categories')
-        ->select('categories.name')
-        ->selectRaw('SUM(payments.amount) as total_revenue')
-        ->selectRaw('COUNT(DISTINCT cars.id) as car_count')
-        ->join('cars', 'categories.id', '=', 'cars.category_id')
-        ->join('contracts', 'cars.id', '=', 'contracts.car_id')
-        ->join('payments', 'contracts.id', '=', 'payments.contract_id')
-        ->whereBetween('payments.payment_date', [$startDate, $endDate . ' 23:59:59'])
-        ->groupBy('categories.name')
-        ->orderByDesc('total_revenue')
-        ->get();
-}
-    
-    /**
-     * Get mileage data for vehicles
-     */
-    private function getMileageData($startDate, $endDate)
-    {
-        // Get cars with completed bookings in this period
-        return Car::select('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule', 'cars.mileage')
-            ->selectRaw('SUM(bookings.end_mileage - bookings.start_mileage) as total_distance')
-            ->selectRaw('COUNT(bookings.id) as booking_count')
-            ->join('bookings', 'cars.id', '=', 'bookings.car_id')
-            ->where('bookings.status', 'completed')
-            ->whereNotNull('bookings.start_mileage')
-            ->whereNotNull('bookings.end_mileage')
-            ->whereBetween('bookings.dropoff_date', [$startDate, $endDate])
-            ->groupBy('cars.id', 'cars.name', 'cars.brand_name', 'cars.model', 'cars.matricule', 'cars.mileage')
-            ->orderByDesc('total_distance')
-            ->get();
-    }
-    
-    /**
-     * Get vehicle statistics
-     */
-    private function getVehicleStats($startDate, $endDate)
-    {
-        // Total active vehicles
-        $totalVehicles = Car::count();
-        $activeVehicles = Car::where('status', 'available')->count();
-        
-        // Maintenance stats
-        $maintenanceCount = CarMaintenance::whereBetween('date_performed', [$startDate, $endDate])
-            ->count();
-        $maintenanceCost = CarMaintenance::whereBetween('date_performed', [$startDate, $endDate])
-            ->sum('cost');
-        
-        // Bookings per vehicle
-        $totalBookings = Booking::whereBetween('created_at', [$startDate, $endDate . ' 23:59:59'])
-            ->count();
-        $bookingsPerVehicle = $totalVehicles > 0 ? $totalBookings / $totalVehicles : 0;
-        
-        // Revenue per vehicle
-        $totalRevenue = Payment::whereBetween('payment_date', [$startDate, $endDate . ' 23:59:59'])
-            ->sum('amount');
-        $revenuePerVehicle = $totalVehicles > 0 ? $totalRevenue / $totalVehicles : 0;
-        
-        // Average distance per vehicle
-        $totalDistance = Booking::where('status', 'completed')
-            ->whereNotNull('start_mileage')
-            ->whereNotNull('end_mileage')
-            ->whereBetween('dropoff_date', [$startDate, $endDate])
-            ->sum(DB::raw('end_mileage - start_mileage'));
-        $averageDistance = $totalVehicles > 0 ? $totalDistance / $totalVehicles : 0;
-        
-        // Return statistics
-        return [
-            'total_vehicles' => $totalVehicles,
-            'active_vehicles' => $activeVehicles,
-            'maintenance_count' => $maintenanceCount,
-            'maintenance_cost' => $maintenanceCost,
-            'bookings_per_vehicle' => $bookingsPerVehicle,
-            'revenue_per_vehicle' => $revenuePerVehicle,
-            'average_distance' => $averageDistance,
-            'total_distance' => $totalDistance
-        ];
-    }
-    
-    /**
-     * Get vehicles data for export
-     */
-    private function getVehicleDataForExport($startDate, $endDate)
-    {
-        $cars = Car::with(['category', 'brand'])
-            ->withCount(['bookings' => function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('created_at', [$startDate, $endDate . ' 23:59:59']);
-            }])
-            ->get();
-        
-        return $cars->map(function ($car) use ($startDate, $endDate) {
-            // Calculate revenue
-            $revenue = DB::table('bookings')
-                ->join('contracts', 'bookings.id', '=', 'contracts.booking_id')
-                ->join('payments', 'contracts.id', '=', 'payments.contract_id')
-                ->where('bookings.car_id', $car->id)
-                ->whereBetween('payments.payment_date', [$startDate, $endDate . ' 23:59:59'])
-                ->sum('payments.amount');
-                
-            // Calculate maintenance cost
-            $maintenanceCost = CarMaintenance::where('car_id', $car->id)
-                ->whereBetween('date_performed', [$startDate, $endDate])
-                ->sum('cost');
-                
-            // Calculate total distance
-            $totalDistance = Booking::where('car_id', $car->id)
-                ->where('status', 'completed')
-                ->whereNotNull('start_mileage')
-                ->whereNotNull('end_mileage')
-                ->whereBetween('dropoff_date', [$startDate, $endDate])
-                ->sum(DB::raw('end_mileage - start_mileage'));
-                
-            return [
-                'car' => $car,
-                'revenue' => $revenue,
-                'maintenance_cost' => $maintenanceCost,
-                'net_revenue' => $revenue - $maintenanceCost,
-                'total_distance' => $totalDistance
-            ];
-        });
-    }
-    
-    /**
-     * Helper method to download CSV
-     */
-    private function downloadCsv($data, $filename)
-    {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
-            'Pragma' => 'no-cache',
-        ];
-
-        $callback = function() use ($data) {
-            $file = fopen('php://output', 'w');
-            // Add headers
-            fputcsv($file, ['Date', 'Amount', 'Type', 'Reference', 'Customer', 'Vehicle']);
-            
-            // Add data
-            foreach ($data as $row) {
-                fputcsv($file, [
-                    $row->payment_date,
-                    $row->amount,
-                    $row->payment_method,
-                    $row->reference ?? 'N/A',
-                    $row->contract && $row->contract->client ? $row->contract->client->name : 'N/A',
-                    $row->contract && $row->contract->car ? $row->contract->car->brand_name . ' ' . $row->contract->car->model : 'N/A'
-                ]);
-            }
-            
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-    
-    /**
-     * Export vehicles as CSV
-     */
-    private function exportVehiclesCsv($vehicles, $filename)
-    {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '.csv"',
-            'Pragma' => 'no-cache',
-        ];
-
-        $callback = function() use ($vehicles) {
-            $file = fopen('php://output', 'w');
-            // Add headers
-            fputcsv($file, [
-                'Vehicle ID', 'Brand', 'Model', 'License Plate', 'Current Mileage',
-                'Bookings Count', 'Revenue', 'Maintenance Cost', 'Net Revenue', 'Total Distance (km)'
+        try {
+            $validator = Validator::make($request->all(), [
+                'warehouse_id' => 'nullable|exists:warehouses,id',
+                'category_id' => 'nullable|exists:product_categories,id',
+                'include_zero_stock' => 'nullable|boolean',
+                'date' => 'nullable|date',
+                'format' => 'required|in:html,pdf,excel',
             ]);
             
-            // Add data
-            foreach ($vehicles as $item) {
-                $car = $item['car'];
-                fputcsv($file, [
-                    $car->id,
-                    $car->brand_name,
-                    $car->model,
-                    $car->matricule,
-                    number_format($car->mileage),
-                    $car->bookings_count,
-                    number_format($item['revenue'], 2),
-                    number_format($item['maintenance_cost'], 2),
-                    number_format($item['net_revenue'], 2),
-                    number_format($item['total_distance'])
-                ]);
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
             }
             
-            fclose($file);
-        };
+            // Build query
+            $query = ProductWarehouseStock::with(['product', 'warehouse']);
+            
+            // Apply warehouse filter
+            if ($request->has('warehouse_id') && $request->warehouse_id) {
+                $query->where('warehouse_id', $request->warehouse_id);
+            }
+            
+            // Apply category filter
+            if ($request->has('category_id') && $request->category_id) {
+                $category = ProductCategory::find($request->category_id);
+                
+                // Get all descendant category IDs
+                $categoryIds = [$category->id];
+                $descendants = $category->descendants();
+                foreach ($descendants as $descendant) {
+                    $categoryIds[] = $descendant->id;
+                }
+                
+                $query->whereHas('product.categories', function($q) use ($categoryIds) {
+                    $q->whereIn('product_categories.id', $categoryIds);
+                });
+            }
+            
+            // Apply zero stock filter
+            if (!$request->has('include_zero_stock') || !$request->include_zero_stock) {
+                $query->where('available_quantity', '>', 0);
+            }
+            
+            // Get data
+            $stockItems = $query->get();
+            
+            // Calculate totals
+            $totalValue = 0;
+            foreach ($stockItems as $item) {
+                $totalValue += $item->available_quantity * $item->cmup;
+            }
+            
+            // Generate report based on format
+            $date = $request->date ? Carbon::parse($request->date)->format('Y-m-d') : Carbon::now()->format('Y-m-d');
+            $warehouse = $request->warehouse_id ? Warehouse::find($request->warehouse_id) : null;
+            $category = $request->category_id ? ProductCategory::find($request->category_id) : null;
+            
+            $reportData = [
+                'stockItems' => $stockItems,
+                'totalValue' => $totalValue,
+                'date' => $date,
+                'warehouse' => $warehouse,
+                'category' => $category,
+                'includeZeroStock' => $request->has('include_zero_stock') && $request->include_zero_stock,
+            ];
+            
+            // Log activity
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->log('Generated Inventory Valuation Report');
+            }
+            
+            switch ($request->format) {
+                case 'pdf':
+                    $pdf = PDF::loadView('admin.reports.inventory_valuation_pdf', $reportData);
+                    return $pdf->download('inventory_valuation_' . $date . '.pdf');
+                    
+                case 'excel':
+                    return Excel::download(new InventoryValuationExport($reportData), 'inventory_valuation_' . $date . '.xlsx');
+                    
+                case 'html':
+                default:
+                    return view('admin.reports.inventory_valuation', $reportData);
+            }
+        } catch (Exception $e) {
+            Log::error('Error generating inventory valuation report: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage())->withInput();
+        }
+    }
 
-        return response()->stream($callback, 200, $headers);
+    /**
+     * Generate stock movement report.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function stockMovement(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'warehouse_id' => 'nullable|exists:warehouses,id',
+                'product_id' => 'nullable|exists:products,id',
+                'movement_type' => 'nullable|in:in,out,all',
+                'date_from' => 'required|date',
+                'date_to' => 'required|date|after_or_equal:date_from',
+                'format' => 'required|in:html,pdf,excel',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+            
+            // Build query
+            $query = StockMovement::with(['product', 'warehouse', 'createdBy']);
+            
+            // Apply warehouse filter
+            if ($request->has('warehouse_id') && $request->warehouse_id) {
+                $query->where('warehouse_id', $request->warehouse_id);
+            }
+            
+            // Apply product filter
+            if ($request->has('product_id') && $request->product_id) {
+                $query->where('product_id', $request->product_id);
+            }
+            
+            // Apply movement type filter
+            if ($request->has('movement_type') && $request->movement_type != 'all') {
+                $query->where('movement_type', $request->movement_type);
+            }
+            
+            // Apply date range
+            $query->whereDate('created_at', '>=', $request->date_from)
+                ->whereDate('created_at', '<=', $request->date_to);
+            
+            // Get data
+            $movements = $query->orderBy('created_at', 'desc')->get();
+            
+            // Generate report based on format
+            $dateFrom = Carbon::parse($request->date_from)->format('Y-m-d');
+            $dateTo = Carbon::parse($request->date_to)->format('Y-m-d');
+            $warehouse = $request->warehouse_id ? Warehouse::find($request->warehouse_id) : null;
+            $product = $request->product_id ? Product::find($request->product_id) : null;
+            
+            $reportData = [
+                'movements' => $movements,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'warehouse' => $warehouse,
+                'product' => $product,
+                'movementType' => $request->movement_type ?? 'all',
+            ];
+            
+            // Log activity
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->log('Generated Stock Movement Report');
+            }
+            
+            switch ($request->format) {
+                case 'pdf':
+                    $pdf = PDF::loadView('admin.reports.stock_movement_pdf', $reportData);
+                    return $pdf->download('stock_movement_' . $dateFrom . '_' . $dateTo . '.pdf');
+                    
+                case 'excel':
+                    return Excel::download(new StockMovementExport($reportData), 'stock_movement_' . $dateFrom . '_' . $dateTo . '.xlsx');
+                    
+                case 'html':
+                default:
+                    return view('admin.reports.stock_movement', $reportData);
+            }
+        } catch (Exception $e) {
+            Log::error('Error generating stock movement report: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage())->withInput();
+        }
     }
+
+    /**
+     * Generate purchase report.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function purchase(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'supplier_id' => 'nullable|exists:suppliers,id',
+                'warehouse_id' => 'nullable|exists:warehouses,id',
+                'date_from' => 'required|date',
+                'date_to' => 'required|date|after_or_equal:date_from',
+                'status' => 'nullable|in:draft,confirmed,partially_received,received,cancelled,all',
+                'group_by' => 'required|in:supplier,product,date,none',
+                'format' => 'required|in:html,pdf,excel',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+            
+            // Build base query
+            $query = PurchaseOrder::with(['supplier', 'warehouse', 'items.product']);
+            
+            // Apply supplier filter
+            if ($request->has('supplier_id') && $request->supplier_id) {
+                $query->where('supplier_id', $request->supplier_id);
+            }
+            
+            // Apply warehouse filter
+            if ($request->has('warehouse_id') && $request->warehouse_id) {
+                $query->where('warehouse_id', $request->warehouse_id);
+            }
+            
+            // Apply date range
+            $query->whereDate('order_date', '>=', $request->date_from)
+                ->whereDate('order_date', '<=', $request->date_to);
+            
+            // Apply status filter
+            if ($request->has('status') && $request->status != 'all') {
+                $query->where('status', $request->status);
+            }
+            
+            // Get orders
+            $purchaseOrders = $query->orderBy('order_date', 'desc')->get();
+            
+            // Group data if needed
+            $groupedData = [];
+            $totalAmount = 0;
+            
+            foreach ($purchaseOrders as $order) {
+                $totalAmount += $order->total_amount;
+                
+                switch ($request->group_by) {
+                    case 'supplier':
+                        $key = $order->supplier_id;
+                        $name = $order->supplier->name;
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'orders_count' => 0,
+                                'total_amount' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['orders_count']++;
+                        $groupedData[$key]['total_amount'] += $order->total_amount;
+                        break;
+                        
+                    case 'product':
+                        foreach ($order->items as $item) {
+                            $key = $item->product_id;
+                            $name = $item->product->name;
+                            
+                            if (!isset($groupedData[$key])) {
+                                $groupedData[$key] = [
+                                    'name' => $name,
+                                    'quantity' => 0,
+                                    'total_amount' => 0
+                                ];
+                            }
+                            
+                            $groupedData[$key]['quantity'] += $item->quantity;
+                            $groupedData[$key]['total_amount'] += $item->subtotal;
+                        }
+                        break;
+                        
+                    case 'date':
+                        $key = $order->order_date->format('Y-m-d');
+                        $name = $order->order_date->format('Y-m-d');
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'orders_count' => 0,
+                                'total_amount' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['orders_count']++;
+                        $groupedData[$key]['total_amount'] += $order->total_amount;
+                        break;
+                        
+                    case 'none':
+                    default:
+                        // No grouping needed
+                        break;
+                }
+            }
+            
+            // Generate report based on format
+            $dateFrom = Carbon::parse($request->date_from)->format('Y-m-d');
+            $dateTo = Carbon::parse($request->date_to)->format('Y-m-d');
+            $supplier = $request->supplier_id ? Supplier::find($request->supplier_id) : null;
+            $warehouse = $request->warehouse_id ? Warehouse::find($request->warehouse_id) : null;
+            
+            $reportData = [
+                'purchaseOrders' => $purchaseOrders,
+                'groupedData' => $groupedData,
+                'totalAmount' => $totalAmount,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'supplier' => $supplier,
+                'warehouse' => $warehouse,
+                'status' => $request->status ?? 'all',
+                'groupBy' => $request->group_by,
+            ];
+            
+            // Log activity
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->log('Generated Purchase Report');
+            }
+            
+            switch ($request->format) {
+                case 'pdf':
+                    $pdf = PDF::loadView('admin.reports.purchase_pdf', $reportData);
+                    return $pdf->download('purchase_report_' . $dateFrom . '_' . $dateTo . '.pdf');
+                    
+                case 'excel':
+                    return Excel::download(new PurchaseReportExport($reportData), 'purchase_report_' . $dateFrom . '_' . $dateTo . '.xlsx');
+                    
+                case 'html':
+                default:
+                    return view('admin.reports.purchase', $reportData);
+            }
+        } catch (Exception $e) {
+            Log::error('Error generating purchase report: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage())->withInput();
+        }
     }
-    
+
+    /**
+     * Generate sales report.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function sales(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'customer_id' => 'nullable|exists:customers,id',
+                'warehouse_id' => 'nullable|exists:warehouses,id',
+                'date_from' => 'required|date',
+                'date_to' => 'required|date|after_or_equal:date_from',
+                'status' => 'nullable|in:draft,confirmed,partially_delivered,delivered,cancelled,all',
+                'group_by' => 'required|in:customer,product,date,none',
+                'format' => 'required|in:html,pdf,excel',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+            
+            // Build base query
+            $query = SalesOrder::with(['customer', 'warehouse', 'items.product']);
+            
+            // Apply customer filter
+            if ($request->has('customer_id') && $request->customer_id) {
+                $query->where('customer_id', $request->customer_id);
+            }
+            
+            // Apply warehouse filter
+            if ($request->has('warehouse_id') && $request->warehouse_id) {
+                $query->where('warehouse_id', $request->warehouse_id);
+            }
+            
+            // Apply date range
+            $query->whereDate('order_date', '>=', $request->date_from)
+                ->whereDate('order_date', '<=', $request->date_to);
+            
+            // Apply status filter
+            if ($request->has('status') && $request->status != 'all') {
+                $query->where('status', $request->status);
+            }
+            
+            // Get orders
+            $salesOrders = $query->orderBy('order_date', 'desc')->get();
+            
+            // Group data if needed
+            $groupedData = [];
+            $totalAmount = 0;
+            
+            foreach ($salesOrders as $order) {
+                $totalAmount += $order->total_amount;
+                
+                switch ($request->group_by) {
+                    case 'customer':
+                        $key = $order->customer_id;
+                        $name = $order->customer->name;
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'orders_count' => 0,
+                                'total_amount' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['orders_count']++;
+                        $groupedData[$key]['total_amount'] += $order->total_amount;
+                        break;
+                        
+                    case 'product':
+                        foreach ($order->items as $item) {
+                            $key = $item->product_id;
+                            $name = $item->product->name;
+                            
+                            if (!isset($groupedData[$key])) {
+                                $groupedData[$key] = [
+                                    'name' => $name,
+                                    'quantity' => 0,
+                                    'total_amount' => 0
+                                ];
+                            }
+                            
+                            $groupedData[$key]['quantity'] += $item->quantity;
+                            $groupedData[$key]['total_amount'] += $item->subtotal;
+                        }
+                        break;
+                        
+                    case 'date':
+                        $key = $order->order_date->format('Y-m-d');
+                        $name = $order->order_date->format('Y-m-d');
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'orders_count' => 0,
+                                'total_amount' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['orders_count']++;
+                        $groupedData[$key]['total_amount'] += $order->total_amount;
+                        break;
+                        
+                    case 'none':
+                    default:
+                        // No grouping needed
+                        break;
+                }
+            }
+            
+            // Generate report based on format
+            $dateFrom = Carbon::parse($request->date_from)->format('Y-m-d');
+            $dateTo = Carbon::parse($request->date_to)->format('Y-m-d');
+            $customer = $request->customer_id ? Customer::find($request->customer_id) : null;
+            $warehouse = $request->warehouse_id ? Warehouse::find($request->warehouse_id) : null;
+            
+            $reportData = [
+                'salesOrders' => $salesOrders,
+                'groupedData' => $groupedData,
+                'totalAmount' => $totalAmount,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'customer' => $customer,
+                'warehouse' => $warehouse,
+                'status' => $request->status ?? 'all',
+                'groupBy' => $request->group_by,
+            ];
+            
+            // Log activity
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->log('Generated Sales Report');
+            }
+            
+            switch ($request->format) {
+                case 'pdf':
+                    $pdf = PDF::loadView('admin.reports.sales_pdf', $reportData);
+                    return $pdf->download('sales_report_' . $dateFrom . '_' . $dateTo . '.pdf');
+                    
+                case 'excel':
+                    return Excel::download(new SalesReportExport($reportData), 'sales_report_' . $dateFrom . '_' . $dateTo . '.xlsx');
+                    
+                case 'html':
+                default:
+                    return view('admin.reports.sales', $reportData);
+            }
+        } catch (Exception $e) {
+            Log::error('Error generating sales report: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Generate profit margin report.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function profitMargin(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'date_from' => 'required|date',
+                'date_to' => 'required|date|after_or_equal:date_from',
+                'group_by' => 'required|in:product,category,customer,date,none',
+                'format' => 'required|in:html,pdf,excel',
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+            
+            // Calculate profit based on stock delivery items
+            $query = DB::table('stock_delivery_items')
+                ->join('stock_deliveries', 'stock_deliveries.id', '=', 'stock_delivery_items.stock_delivery_id')
+                ->join('products', 'products.id', '=', 'stock_delivery_items.product_id')
+                ->leftJoin('customers', 'customers.id', '=', 'stock_deliveries.customer_id')
+                ->whereDate('stock_deliveries.delivery_date', '>=', $request->date_from)
+                ->whereDate('stock_deliveries.delivery_date', '<=', $request->date_to)
+                ->where('stock_deliveries.status', 'completed')
+                ->select(
+                    'stock_delivery_items.id',
+                    'stock_delivery_items.product_id',
+                    'products.name as product_name',
+                    'products.code as product_code',
+                    'stock_deliveries.customer_id',
+                    'customers.name as customer_name',
+                    'stock_deliveries.delivery_date',
+                    'stock_delivery_items.delivered_quantity',
+                    'stock_delivery_items.unit_cost',
+                    'stock_delivery_items.unit_price',
+                    DB::raw('stock_delivery_items.delivered_quantity * stock_delivery_items.unit_cost as cost_amount'),
+                    DB::raw('stock_delivery_items.delivered_quantity * stock_delivery_items.unit_price as sales_amount'),
+                    DB::raw('(stock_delivery_items.delivered_quantity * stock_delivery_items.unit_price) - (stock_delivery_items.delivered_quantity * stock_delivery_items.unit_cost) as profit_amount'),
+                    DB::raw('CASE WHEN stock_delivery_items.unit_price > 0 THEN (((stock_delivery_items.unit_price - stock_delivery_items.unit_cost) / stock_delivery_items.unit_price) * 100) ELSE 0 END as profit_margin_percentage')
+                );
+            
+            // Get results
+            $deliveryItems = $query->get();
+            
+            // Group data if needed
+            $groupedData = [];
+            $totalCost = 0;
+            $totalSales = 0;
+            $totalProfit = 0;
+            
+            foreach ($deliveryItems as $item) {
+                $totalCost += $item->cost_amount;
+                $totalSales += $item->sales_amount;
+                $totalProfit += $item->profit_amount;
+                
+                switch ($request->group_by) {
+                    case 'product':
+                        $key = $item->product_id;
+                        $name = $item->product_name . ' (' . $item->product_code . ')';
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'quantity' => 0,
+                                'cost_amount' => 0,
+                                'sales_amount' => 0,
+                                'profit_amount' => 0,
+                                'profit_margin_percentage' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['quantity'] += $item->delivered_quantity;
+                        $groupedData[$key]['cost_amount'] += $item->cost_amount;
+                        $groupedData[$key]['sales_amount'] += $item->sales_amount;
+                        $groupedData[$key]['profit_amount'] += $item->profit_amount;
+                        break;
+                        
+                    case 'category':
+                        // Get product categories
+                        $product = Product::find($item->product_id);
+                        $categories = $product->categories;
+                        
+                        if ($categories->isEmpty()) {
+                            $key = 0;
+                            $name = 'Uncategorized';
+                            
+                            if (!isset($groupedData[$key])) {
+                                $groupedData[$key] = [
+                                    'name' => $name,
+                                    'quantity' => 0,
+                                    'cost_amount' => 0,
+                                    'sales_amount' => 0,
+                                    'profit_amount' => 0,
+                                    'profit_margin_percentage' => 0
+                                ];
+                            }
+                            
+                            $groupedData[$key]['quantity'] += $item->delivered_quantity;
+                            $groupedData[$key]['cost_amount'] += $item->cost_amount;
+                            $groupedData[$key]['sales_amount'] += $item->sales_amount;
+                            $groupedData[$key]['profit_amount'] += $item->profit_amount;
+                        } else {
+                            foreach ($categories as $category) {
+                                $key = $category->id;
+                                $name = $category->name;
+                                
+                                if (!isset($groupedData[$key])) {
+                                    $groupedData[$key] = [
+                                        'name' => $name,
+                                        'quantity' => 0,
+                                        'cost_amount' => 0,
+                                        'sales_amount' => 0,
+                                        'profit_amount' => 0,
+                                        'profit_margin_percentage' => 0
+                                    ];
+                                }
+                                
+                                $groupedData[$key]['quantity'] += $item->delivered_quantity;
+                                $groupedData[$key]['cost_amount'] += $item->cost_amount;
+                                $groupedData[$key]['sales_amount'] += $item->sales_amount;
+                                $groupedData[$key]['profit_amount'] += $item->profit_amount;
+                            }
+                        }
+                        break;
+                        
+                    case 'customer':
+                        $key = $item->customer_id ?: 0;
+                        $name = $item->customer_name ?: 'Direct Sale';
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'cost_amount' => 0,
+                                'sales_amount' => 0,
+                                'profit_amount' => 0,
+                                'profit_margin_percentage' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['cost_amount'] += $item->cost_amount;
+                        $groupedData[$key]['sales_amount'] += $item->sales_amount;
+                        $groupedData[$key]['profit_amount'] += $item->profit_amount;
+                        break;
+                        
+                    case 'date':
+                        $date = Carbon::parse($item->delivery_date);
+                        $key = $date->format('Y-m-d');
+                        $name = $date->format('Y-m-d');
+                        
+                        if (!isset($groupedData[$key])) {
+                            $groupedData[$key] = [
+                                'name' => $name,
+                                'cost_amount' => 0,
+                                'sales_amount' => 0,
+                                'profit_amount' => 0,
+                                'profit_margin_percentage' => 0
+                            ];
+                        }
+                        
+                        $groupedData[$key]['cost_amount'] += $item->cost_amount;
+                        $groupedData[$key]['sales_amount'] += $item->sales_amount;
+                        $groupedData[$key]['profit_amount'] += $item->profit_amount;
+                        break;
+                        
+                    case 'none':
+                    default:
+                        // No grouping needed
+                        break;
+                }
+            }
+            
+            // Calculate profit margin percentages for grouped data
+            foreach ($groupedData as &$group) {
+                if ($group['sales_amount'] > 0) {
+                    $group['profit_margin_percentage'] = ($group['profit_amount'] / $group['sales_amount']) * 100;
+                } else {
+                    $group['profit_margin_percentage'] = 0;
+                }
+            }
+            
+            // Sort grouped data by profit amount (descending)
+            if (!empty($groupedData)) {
+                uasort($groupedData, function ($a, $b) {
+                    return $b['profit_amount'] <=> $a['profit_amount'];
+                });
+            }
+            
+            // Generate report based on format
+            $dateFrom = Carbon::parse($request->date_from)->format('Y-m-d');
+            $dateTo = Carbon::parse($request->date_to)->format('Y-m-d');
+            
+            $reportData = [
+                'deliveryItems' => $deliveryItems,
+                'groupedData' => $groupedData,
+                'totalCost' => $totalCost,
+                'totalSales' => $totalSales,
+                'totalProfit' => $totalProfit,
+                'totalProfitMargin' => $totalSales > 0 ? ($totalProfit / $totalSales) * 100 : 0,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'groupBy' => $request->group_by,
+            ];
+            
+            // Log activity
+            if (method_exists(app(), 'activity')) {
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->log('Generated Profit Margin Report');
+            }
+            
+            switch ($request->format) {
+                case 'pdf':
+                    $pdf = PDF::loadView('admin.reports.profit_margin_pdf', $reportData);
+                    return $pdf->download('profit_margin_report_' . $dateFrom . '_' . $dateTo . '.pdf');
+                    
+                case 'excel':
+                    return Excel::download(new ProfitMarginReportExport($reportData), 'profit_margin_report_' . $dateFrom . '_' . $dateTo . '.xlsx');
+                    
+                case 'html':
+                default:
+                    return view('admin.reports.profit_margin', $reportData);
+            }
+        } catch (Exception $e) {
+            Log::error('Error generating profit margin report: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to generate report: ' . $e->getMessage())->withInput();
+        }
+    }
+}

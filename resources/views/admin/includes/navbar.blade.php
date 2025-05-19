@@ -188,6 +188,59 @@
                     </ul>
                 </li>
 
+                <!-- Modified Notifications Dropdown -->
+                {{-- <li class="nav-item dropdown pe-2 d-flex align-items-center">
+                    <a href="javascript:;" class="nav-link text-white p-0" id="dropdownMenuButton"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa fa-bell cursor-pointer"></i>
+                        @if($unreadNotifications > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ $unreadNotifications > 99 ? '99+' : $unreadNotifications }}
+                        </span>
+                        @endif
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end px-2 py-3 me-sm-n4" aria-labelledby="dropdownMenuButton">
+                        @if(count($notifications) > 0)
+                        @foreach($notifications as $notification)
+                        <li class="mb-2">
+                            <a class="dropdown-item border-radius-md {{ $notification['read_at'] ? '' : 'bg-light' }}"
+                                href="{{ $notification['link'] }}">
+                                <div class="d-flex py-1">
+                                    <div class="my-auto">
+                                        <div
+                                            class="avatar avatar-sm bg-gradient-{{ $notification['color'] }} me-3 d-flex align-items-center justify-content-center">
+                                            <i class="{{ $notification['icon'] }} text-white"></i>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-column justify-content-center">
+                                        <h6 class="text-sm font-weight-normal mb-1">
+                                            <span class="font-weight-bold">{{ $notification['title'] }}</span>
+                                        </h6>
+                                        <p class="text-xs text-secondary mb-0">
+                                            {{ $notification['message'] }}
+                                        </p>
+                                        <p class="text-xs text-secondary mb-0">
+                                            <i class="fa fa-clock me-1"></i>
+                                            {{ $notification['created_at']->diffForHumans() }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                        @endforeach
+                        <li class="text-center mt-2">
+                            <a href="{{ route('admin.notifications.index') }}" class="dropdown-item text-primary">
+                                <i class="fas fa-eye me-1"></i> View All Notifications
+                            </a>
+                        </li>
+                        @else
+                        <li class="text-center py-2">
+                            <span class="text-secondary">No new notifications</span>
+                        </li>
+                        @endif
+                    </ul>
+                </li> --}}
+
                 <!-- User Profile - Now with auth profile photo -->
                 <li class="nav-item dropdown ps-2 d-flex align-items-center">
                     <a href="javascript:;" class="nav-link text-white p-0" id="userDropdown" data-bs-toggle="dropdown"

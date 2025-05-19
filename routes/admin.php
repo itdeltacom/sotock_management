@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\BlogCommentController;
 use App\Http\Controllers\Admin\CarDocumentController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\BlogCategoryController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\CarMaintenanceController;
 use App\Http\Controllers\Admin\NewsletterAdminController;
@@ -63,10 +64,11 @@ Route::post('password/change', [AdminAuthController::class, 'changePassword'])->
     
     // Authenticated routes
     Route::middleware(['auth:admin', TwoFactorMiddleware::class])->group(function () {
-        // Dashboard
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
-        
+       // Dashboard Routes
+Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+Route::get('/inventory-alerts', [DashboardController::class, 'getInventoryAlerts'])->name('dashboard.inventory-alerts');
+Route::get('/expiry-alerts', [DashboardController::class, 'getExpiryAlerts'])->name('dashboard.expiry-alerts');
         // Logout
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
         
@@ -471,4 +473,11 @@ Route::get('/quick-search', [SearchController::class, 'quickSearch'])->name('qui
             })->name('sync-permissions');
         });
     });
+
+    // Notifications Routes
+Route::prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('index');
+    Route::post('/mark-as-read', [NotificationController::class, 'markAsRead'])->name('mark-as-read');
+    Route::post('/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-as-read');
+});
 });
