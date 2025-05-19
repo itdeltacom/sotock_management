@@ -9,23 +9,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 use Exception;
+use Voku\Helper\ASCII;
 
 class ProductCategoryController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     */
-    public function __construct()
-    {
-        $this->middleware('auth:admin');
-        $this->middleware('permission:view_categories', ['only' => ['index', 'show', 'data', 'getParentCategories']]);
-        $this->middleware('permission:create_categories', ['only' => ['create', 'store']]);
-        $this->middleware('permission:edit_categories', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:delete_categories', ['only' => ['destroy']]);
-    }
-
     /**
      * Display a listing of categories.
      *
@@ -34,7 +26,25 @@ class ProductCategoryController extends Controller
     public function index()
     {
         try {
-            return view('admin.categories.index');
+            if (!auth()->guard('admin')->user()->can('view categories')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            if (!Schema::hasTable('product_categories')) {
+                return view('admin.categories.index', [
+                    'tableExists' => false,
+                    'errorMessage' => 'The product categories table does not exist in the database.'
+                ]);
+            }
+
+            $totalCategories = ProductCategory::count();
+            $activeCategories = ProductCategory::where('active', true)->count();
+
+            return view('admin.categories.index', [
+                'tableExists' => true,
+                'totalCategories' => $totalCategories,
+                'activeCategories' => $activeCategories
+            ]);
         } catch (Exception $e) {
             Log::error('Error displaying categories: ' . $e->getMessage());
             return redirect()->route('admin.dashboard')->with('error', 'An error occurred while accessing categories.');
@@ -49,86 +59,99 @@ class ProductCategoryController extends Controller
     public function data()
     {
         try {
-            $categories = ProductCategory::withCount('products')
-                ->with('parent')
-                ->get();
-            
+            if (!auth()->guard('admin')->user()->can('view categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view categories.'
+                ], 403);
+            }
+
+            if (!Schema::hasTable('product_categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The product categories table does not exist in the database.'
+                ], 500);
+            }
+
+            $productsTableExists = Schema::hasTable('products');
+
+            if ($productsTableExists) {
+                $categories = ProductCategory::withCount('products')->with('parent')->get();
+            } else {
+                $categories = ProductCategory::with('parent')->get();
+                $categories->each(function ($category) {
+                    $category->products_count = 0;
+                });
+            }
+
             return DataTables::of($categories)
+                ->addColumn('logo_image', function (ProductCategory $category) {
+                    if ($category->logo) {
+                        return '<img src="' . asset('storage/' . $category->logo) . '" alt="' . $category->name . '" class="category-logo-thumbnail" width="50">';
+                    }
+                    return '<span class="text-muted">No logo</span>';
+                })
                 ->addColumn('parent_name', function (ProductCategory $category) {
                     return $category->parent ? $category->parent->name : '-';
                 })
                 ->addColumn('action', function (ProductCategory $category) {
                     $actions = '';
-                    
-                    // View button
-                    if (Auth::guard('admin')->user()->can('view_categories')) {
+
+                    if (Auth::guard('admin')->user()->can('view categories')) {
                         $actions .= '<button type="button" class="btn btn-sm btn-info btn-view me-1" data-id="' . $category->id . '">
                             <i class="fas fa-eye"></i>
                         </button> ';
                     }
-                    
-                    // Edit button
-                    if (Auth::guard('admin')->user()->can('edit_categories')) {
+
+                    if (Auth::guard('admin')->user()->can('edit categories')) {
                         $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="' . $category->id . '">
                             <i class="fas fa-edit"></i>
                         </button> ';
                     }
-                    
-                    // Delete button - only if no products attached
-                    if (Auth::guard('admin')->user()->can('delete_categories')) {
-                        $disabledClass = $category->products_count > 0 ? 'disabled' : '';
+
+                    if (Auth::guard('admin')->user()->can('delete categories')) {
+                        $disabledClass = ($category->products_count > 0 || $category->children()->count() > 0) ? 'disabled' : '';
                         $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete ' . $disabledClass . '" data-id="' . $category->id . '" ' . $disabledClass . '>
                             <i class="fas fa-trash"></i>
                         </button>';
                     }
-                    
+
                     return $actions;
                 })
-                ->rawColumns(['action'])
+                ->rawColumns(['logo_image', 'action'])
                 ->make(true);
         } catch (Exception $e) {
             Log::error('Error getting category data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve categories data.'
+                'error' => 'Failed to retrieve categories data: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Get parent categories for dropdown (excluding itself if editing).
+     * Generate a unique slug from the name.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param string $name
+     * @param int|null $excludeId
+     * @return string
      */
-    public function getParentCategories(Request $request)
+    protected function generateUniqueSlug($name, $excludeId = null)
     {
-        try {
-            $query = ProductCategory::orderBy('name', 'asc');
-            
-            // If editing, exclude the current category and its descendants
-            if ($request->has('exclude_id')) {
-                $currentCategory = ProductCategory::find($request->exclude_id);
-                if ($currentCategory) {
-                    $descendantIds = $currentCategory->descendants()->pluck('id')->toArray();
-                    $descendantIds[] = $currentCategory->id;
-                    $query->whereNotIn('id', $descendantIds);
-                }
-            }
-            
-            $categories = $query->get(['id', 'name']);
-            
-            return response()->json([
-                'success' => true,
-                'categories' => $categories
-            ]);
-        } catch (Exception $e) {
-            Log::error('Error getting parent categories: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to retrieve parent categories.'
-            ], 500);
+        $cleanName = ASCII::to_ascii($name);
+        $slug = Str::slug($cleanName);
+
+        $baseSlug = $slug;
+        $counter = 1;
+
+        while (ProductCategory::where('slug', $slug)
+            ->where('id', '!=', $excludeId)
+            ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $counter++;
         }
+
+        return $slug;
     }
 
     /**
@@ -140,49 +163,61 @@ class ProductCategoryController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validate input
+            if (!auth()->guard('admin')->user()->can('create categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to create categories.'
+                ], 403);
+            }
+
+            if (!Schema::hasTable('product_categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The categories table does not exist in the database.'
+                ], 500);
+            }
+
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:100|unique:product_categories',
                 'code' => 'nullable|string|max:50|unique:product_categories',
+                'website' => 'nullable|url|max:255',
                 'description' => 'nullable|string|max:500',
-                'parent_id' => 'nullable|exists:product_categories,id'
+                'meta_title' => 'nullable|string|max:100',
+                'meta_description' => 'nullable|string|max:255',
+                'meta_keywords' => 'nullable|string|max:255',
+                'parent_id' => 'nullable|exists:product_categories,id',
+                'logo' => 'nullable|image|max:2048',
+                'active' => 'boolean',
             ]);
-            
+
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
-            // Check for circular reference in parent-child relationship
-            if ($request->parent_id) {
-                $parent = ProductCategory::find($request->parent_id);
-                if (!$parent) {
-                    return response()->json([
-                        'success' => false,
-                        'errors' => ['parent_id' => ['Selected parent category does not exist.']]
-                    ], 422);
-                }
+
+            $data = $request->except(['logo']);
+            $data['slug'] = $this->generateUniqueSlug($data['name']);
+
+            if ($request->hasFile('logo')) {
+                $data['logo'] = $request->file('logo')->store('category-logos', 'public');
             }
-            
-            // Create the category
-            $category = ProductCategory::create([
-                'name' => $request->name,
-                'code' => $request->code,
-                'description' => $request->description,
-                'parent_id' => $request->parent_id ?: null,
-            ]);
-            
-            // Log activity
+
+            if (!isset($data['active'])) {
+                $data['active'] = true;
+            }
+
+            $category = ProductCategory::create($data);
+
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
                     ->performedOn($category)
-                    ->withProperties(['category_id' => $category->id, 'category_name' => $category->name])
+                    ->withProperties(['category_id' => $category->id, 'category_name' => $category->name, 'slug' => $category->slug])
                     ->log('Created product category');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Category created successfully.',
@@ -200,31 +235,49 @@ class ProductCategoryController extends Controller
     /**
      * Display the specified category.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
         try {
-            $category = ProductCategory::with(['parent', 'products' => function($query) {
-                $query->where('active', true)->limit(10);
-            }])->withCount('products')->findOrFail($id);
-            
-            // Get ancestors and descendants
-            $ancestors = $category->ancestors()->get();
-            $descendants = $category->descendants()->get();
-            
+            if (!auth()->guard('admin')->user()->can('view categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view categories.'
+                ], 403);
+            }
+
+            if (!Schema::hasTable('product_categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The categories table does not exist in the database.'
+                ], 500);
+            }
+
+            $productsTableExists = Schema::hasTable('products');
+
+            if ($productsTableExists) {
+                $category = ProductCategory::with(['products' => function ($query) {
+                    $query->where('active', true)->limit(10);
+                }, 'parent'])->withCount('products')->findOrFail($id);
+            } else {
+                $category = ProductCategory::with('parent')->findOrFail($id);
+                $category->products = collect([]);
+                $category->products_count = 0;
+            }
+
+            $category->logo_url = $category->logo ? asset('storage/' . $category->logo) : null;
+
             return response()->json([
                 'success' => true,
-                'category' => $category,
-                'ancestors' => $ancestors,
-                'descendants' => $descendants
+                'category' => $category
             ]);
         } catch (Exception $e) {
             Log::error('Error retrieving category details: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve category details.'
+                'error' => 'Failed to retrieve category details: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -232,14 +285,29 @@ class ProductCategoryController extends Controller
     /**
      * Show the form for editing the specified category.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function edit($id)
     {
         try {
-            $category = ProductCategory::findOrFail($id);
-            
+            if (!auth()->guard('admin')->user()->can('edit categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit categories.'
+                ], 403);
+            }
+
+            if (!Schema::hasTable('product_categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The categories table does not exist in the database.'
+                ], 500);
+            }
+
+            $category = ProductCategory::with('parent')->findOrFail($id);
+            $category->logo_url = $category->logo ? asset('storage/' . $category->logo) : null;
+
             return response()->json([
                 'success' => true,
                 'category' => $category
@@ -248,7 +316,7 @@ class ProductCategoryController extends Controller
             Log::error('Error retrieving category for edit: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve category for editing.'
+                'error' => 'Failed to retrieve category for editing: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -256,65 +324,69 @@ class ProductCategoryController extends Controller
     /**
      * Update the specified category.
      *
-     * @param  Request  $request
-     * @param  int  $id
+     * @param Request $request
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('edit categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit categories.'
+                ], 403);
+            }
+
+            if (!Schema::hasTable('product_categories')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The categories table does not exist in the database.'
+                ], 500);
+            }
+
             $category = ProductCategory::findOrFail($id);
-            
-            // Validate input
+
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:100|unique:product_categories,name,' . $id,
                 'code' => 'nullable|string|max:50|unique:product_categories,code,' . $id,
+                'website' => 'nullable|url|max:255',
                 'description' => 'nullable|string|max:500',
-                'parent_id' => 'nullable|exists:product_categories,id'
+                'meta_title' => 'nullable|string|max:100',
+                'meta_description' => 'nullable|string|max:255',
+                'meta_keywords' => 'nullable|string|max:255',
+                'parent_id' => 'nullable|exists:product_categories,id|not_in:' . $id,
+                'logo' => 'nullable|image|max:2048',
+                'active' => 'boolean',
             ]);
-            
+
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
-            // Prevent setting itself as parent
-            if ($request->parent_id == $id) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => ['parent_id' => ['A category cannot be its own parent.']]
-                ], 422);
-            }
-            
-            // Prevent setting a descendant as parent (circular reference)
-            if ($request->parent_id) {
-                $descendants = $category->descendants()->pluck('id')->toArray();
-                if (in_array($request->parent_id, $descendants)) {
-                    return response()->json([
-                        'success' => false,
-                        'errors' => ['parent_id' => ['Cannot set a descendant category as parent.']]
-                    ], 422);
+
+            $data = $request->except(['logo', '_method']);
+            $data['slug'] = $this->generateUniqueSlug($data['name'], $id);
+
+            if ($request->hasFile('logo')) {
+                if ($category->logo) {
+                    Storage::disk('public')->delete($category->logo);
                 }
+                $data['logo'] = $request->file('logo')->store('category-logos', 'public');
             }
-            
-            // Store old values for logging
+
             $oldValues = [
                 'name' => $category->name,
+                'slug' => $category->slug,
                 'code' => $category->code,
+                'active' => $category->active,
                 'parent_id' => $category->parent_id
             ];
-            
-            // Update the category
-            $category->update([
-                'name' => $request->name,
-                'code' => $request->code,
-                'description' => $request->description,
-                'parent_id' => $request->parent_id ?: null,
-            ]);
-            
-            // Log activity
+
+            $category->update($data);
+
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
@@ -324,13 +396,15 @@ class ProductCategoryController extends Controller
                         'old_values' => $oldValues,
                         'new_values' => [
                             'name' => $category->name,
+                            'slug' => $category->slug,
                             'code' => $category->code,
+                            'active' => $category->active,
                             'parent_id' => $category->parent_id
                         ]
                     ])
                     ->log('Updated product category');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Category updated successfully.',
@@ -348,48 +422,75 @@ class ProductCategoryController extends Controller
     /**
      * Remove the specified category.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
         try {
-            $category = ProductCategory::withCount('products')->findOrFail($id);
-            
-            // Check if category has products
-            if ($category->products_count > 0) {
+            if (!auth()->guard('admin')->user()->can('delete categories')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cannot delete category with associated products. Please remove products first.'
-                ], 422);
+                    'error' => 'You do not have permission to delete categories.'
+                ], 403);
             }
-            
-            // Check if category has children
-            if ($category->children()->count() > 0) {
+
+            if (!Schema::hasTable('product_categories')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cannot delete category with sub-categories. Please remove child categories first.'
-                ], 422);
+                    'error' => 'The categories table does not exist in the database.'
+                ], 500);
             }
-            
-            // Store category data for logging
+
+            $productsTableExists = Schema::hasTable('products');
+
+            if ($productsTableExists) {
+                $category = ProductCategory::withCount('products')->withCount('children')->findOrFail($id);
+
+                if ($category->products_count > 0) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Cannot delete category with associated products. Please reassign products first.'
+                    ], 422);
+                }
+
+                if ($category->children_count > 0) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Cannot delete category with subcategories. Please reassign subcategories first.'
+                    ], 422);
+                }
+            } else {
+                $category = ProductCategory::withCount('children')->findOrFail($id);
+
+                if ($category->children_count > 0) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Cannot delete category with subcategories. Please reassign subcategories first.'
+                    ], 422);
+                }
+            }
+
             $categoryData = [
                 'id' => $category->id,
                 'name' => $category->name,
+                'slug' => $category->slug,
                 'code' => $category->code
             ];
-            
-            // Delete the category
+
+            if ($category->logo) {
+                Storage::disk('public')->delete($category->logo);
+            }
+
             $category->delete();
-            
-            // Log activity
+
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
                     ->withProperties($categoryData)
                     ->log('Deleted product category');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Category deleted successfully.'

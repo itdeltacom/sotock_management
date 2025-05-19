@@ -13,22 +13,31 @@ use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\BlogTagController;
 use App\Http\Controllers\Admin\BookingController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\BlogPostController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\TwoFactorController;
+use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\SalesOrderController;
 use App\Http\Controllers\Admin\BlogCommentController;
 use App\Http\Controllers\Admin\CarDocumentController;
 use App\Http\Controllers\Admin\TestimonialController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\ProductBrandController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
+use App\Http\Controllers\Admin\StockDeliveryController;
 use App\Http\Controllers\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Admin\CarMaintenanceController;
+use App\Http\Controllers\Admin\StockReceptionController;
 use App\Http\Controllers\Admin\NewsletterAdminController;
+use App\Http\Controllers\Admin\ProductCategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -141,13 +150,30 @@ Route::prefix('categories')->name('categories.')->middleware('permission:manage 
 });
 
 // Brand Routes
-Route::prefix('brands')->name('brands.')->middleware('permission:manage brands')->group(function () {
-    Route::get('/', [BrandController::class, 'index'])->name('index');
-    Route::get('/data', [BrandController::class, 'data'])->name('data');
-    Route::post('/', [BrandController::class, 'store'])->name('store');
-    Route::get('/{brand}/edit', [BrandController::class, 'edit'])->name('edit');
-    Route::put('/{brand}', [BrandController::class, 'update'])->name('update');
-    Route::delete('/{brand}', [BrandController::class, 'destroy'])->name('destroy');
+Route::prefix('product-brands')->name('brands.')->middleware('auth:admin')->group(function () {
+
+    // View brands permission
+    Route::middleware('permission:view brands')->group(function () {
+        Route::get('/', [ProductBrandController::class, 'index'])->name('index');
+        Route::get('/data', [ProductBrandController::class, 'data'])->name('data');
+        Route::get('/{id}', [ProductBrandController::class, 'show'])->name('show');
+    });
+    
+    // Create brands permission
+    Route::middleware('permission:create brands')->group(function () {
+        Route::post('/', [ProductBrandController::class, 'store'])->name('store');
+    });
+    
+    // Edit brands permission
+    Route::middleware('permission:edit brands')->group(function () {
+        Route::get('/{id}/edit', [ProductBrandController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [ProductBrandController::class, 'update'])->name('update');
+    });
+    
+    // Delete brands permission
+    Route::middleware('permission:delete brands')->group(function () {
+        Route::delete('/{id}', [ProductBrandController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // Car Routes
@@ -176,6 +202,314 @@ Route::prefix('cars')->name('cars.')->middleware('permission:manage cars')->grou
     // Expiring documents view
     Route::get('documents/expiring', [CarDocumentController::class, 'expiringDocuments'])->name('documents.expiring');
     Route::get('documents/expiring/data', [CarDocumentController::class, 'expiringDocumentsDatatable'])->name('documents.expiring.data');
+});
+
+// Category Routes
+Route::prefix('product-categories')->name('categories.')->middleware('auth:admin')->group(function () {
+    // View categories permission
+    Route::middleware('permission:view categories')->group(function () {
+        Route::get('/', [ProductCategoryController::class, 'index'])->name('index');
+        Route::get('/data', [ProductCategoryController::class, 'data'])->name('data');
+        Route::get('/{id}', [ProductCategoryController::class, 'show'])->name('show');
+    });
+
+    // Create categories permission
+    Route::middleware('permission:create categories')->group(function () {
+        Route::post('/', [ProductCategoryController::class, 'store'])->name('store');
+    });
+
+    // Edit categories permission
+    Route::middleware('permission:edit categories')->group(function () {
+        Route::get('/{id}/edit', [ProductCategoryController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [ProductCategoryController::class, 'update'])->name('update');
+    });
+
+    // Delete categories permission
+    Route::middleware('permission:delete categories')->group(function () {
+        Route::delete('/{id}', [ProductCategoryController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Products Routes
+Route::prefix('products')->name('products.')->middleware('auth:admin')->group(function () {
+    // View products permission
+    Route::middleware('permission:view products')->group(function () {
+        Route::get('/', [ProductController::class, 'index'])->name('index');
+        Route::get('/data', [ProductController::class, 'data'])->name('data');
+        Route::get('/{id}', [ProductController::class, 'show'])->name('show');
+        Route::get('/{id}/stock-info', [ProductController::class, 'getStockInfo'])->name('stock-info');
+    });
+    
+    // Create products permission
+    Route::middleware('permission:create products')->group(function () {
+        Route::post('/', [ProductController::class, 'store'])->name('store');
+    });
+    
+    // Edit products permission
+    Route::middleware('permission:edit products')->group(function () {
+        Route::get('/{id}/edit', [ProductController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [ProductController::class, 'update'])->name('update');
+    });
+    
+    // Delete products permission
+    Route::middleware('permission:delete products')->group(function () {
+        Route::delete('/{id}', [ProductController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Suppliers Routes
+Route::prefix('suppliers')->name('suppliers.')->middleware('auth:admin')->group(function () {
+    // View suppliers permission
+    Route::middleware('permission:view suppliers')->group(function () {
+        Route::get('/', [SupplierController::class, 'index'])->name('index');
+        Route::get('/data', [SupplierController::class, 'data'])->name('data');
+        Route::get('/{id}', [SupplierController::class, 'show'])->name('show');
+        Route::get('/list', [SupplierController::class, 'getSuppliersList'])->name('list');
+    });
+    
+    // Create suppliers permission
+    Route::middleware('permission:create suppliers')->group(function () {
+        Route::post('/', [SupplierController::class, 'store'])->name('store');
+    });
+    
+    // Edit suppliers permission
+    Route::middleware('permission:edit suppliers')->group(function () {
+        Route::get('/{id}/edit', [SupplierController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [SupplierController::class, 'update'])->name('update');
+    });
+    
+    // Delete suppliers permission
+    Route::middleware('permission:delete suppliers')->group(function () {
+        Route::delete('/{id}', [SupplierController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Warehouses Routes
+Route::prefix('warehouses')->name('warehouses.')->middleware('auth:admin')->group(function () {
+    // View warehouses permission
+    Route::middleware('permission:view warehouses')->group(function () {
+        Route::get('/', [WarehouseController::class, 'index'])->name('index');
+        Route::get('/data', [WarehouseController::class, 'data'])->name('data');
+        Route::get('/{id}', [WarehouseController::class, 'show'])->name('show');
+        Route::get('/{id}/stock-info', [WarehouseController::class, 'getStockInfo'])->name('stock-info');
+        Route::get('/list', [WarehouseController::class, 'getWarehousesList'])->name('list');
+    });
+    
+    // Create warehouses permission
+    Route::middleware('permission:create warehouses')->group(function () {
+        Route::post('/', [WarehouseController::class, 'store'])->name('store');
+    });
+    
+    // Edit warehouses permission
+    Route::middleware('permission:edit warehouses')->group(function () {
+        Route::get('/{id}/edit', [WarehouseController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [WarehouseController::class, 'update'])->name('update');
+    });
+    
+    // Delete warehouses permission
+    Route::middleware('permission:delete warehouses')->group(function () {
+        Route::delete('/{id}', [WarehouseController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Purchase Orders Routes
+Route::prefix('purchase-orders')->name('purchase-orders.')->middleware('auth:admin')->group(function () {
+    // View purchase orders permission
+    Route::middleware('permission:view purchase-orders')->group(function () {
+        Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');
+        Route::get('/data', [PurchaseOrderController::class, 'data'])->name('data');
+        Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('show');
+    });
+    
+    // Create purchase orders permission
+    Route::middleware('permission:create purchase-orders')->group(function () {
+        Route::get('/create', [PurchaseOrderController::class, 'create'])->name('create');
+        Route::post('/', [PurchaseOrderController::class, 'store'])->name('store');
+    });
+    
+    // Edit purchase orders permission
+    Route::middleware('permission:edit purchase-orders')->group(function () {
+        Route::get('/{id}/edit', [PurchaseOrderController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [PurchaseOrderController::class, 'update'])->name('update');
+        Route::post('/{id}/confirm', [PurchaseOrderController::class, 'confirm'])->name('confirm');
+        Route::post('/{id}/cancel', [PurchaseOrderController::class, 'cancel'])->name('cancel');
+    });
+    
+    // Delete purchase orders permission
+    Route::middleware('permission:delete purchase-orders')->group(function () {
+        Route::delete('/{id}', [PurchaseOrderController::class, 'destroy'])->name('destroy');
+    });
+    
+    // Stock receptions
+    Route::middleware('permission:manage stock-receptions')->group(function () {
+        Route::get('/{id}/receptions', [StockReceptionController::class, 'index'])->name('receptions.index');
+        Route::get('/{id}/receptions/create', [StockReceptionController::class, 'create'])->name('receptions.create');
+        Route::post('/{id}/receptions', [StockReceptionController::class, 'store'])->name('receptions.store');
+    });
+});
+
+// Stock Receptions Routes
+Route::prefix('stock-receptions')->name('stock-receptions.')->middleware('auth:admin')->group(function () {
+    // View stock receptions permission
+    Route::middleware('permission:view stock-receptions')->group(function () {
+        Route::get('/', [StockReceptionController::class, 'index'])->name('index');
+        Route::get('/data', [StockReceptionController::class, 'data'])->name('data');
+        Route::get('/{id}', [StockReceptionController::class, 'show'])->name('show');
+    });
+    
+    // Create stock receptions permission
+    Route::middleware('permission:create stock-receptions')->group(function () {
+        Route::get('/create', [StockReceptionController::class, 'createDirect'])->name('create-direct');
+        Route::post('/direct', [StockReceptionController::class, 'storeDirect'])->name('store-direct');
+    });
+    
+    // Process stock receptions permission
+    Route::middleware('permission:process stock-receptions')->group(function () {
+        Route::post('/{id}/process', [StockReceptionController::class, 'process'])->name('process');
+    });
+    
+    // Delete stock receptions permission
+    Route::middleware('permission:delete stock-receptions')->group(function () {
+        Route::delete('/{id}', [StockReceptionController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Sales Orders Routes
+Route::prefix('sales-orders')->name('sales-orders.')->middleware('auth:admin')->group(function () {
+    // View sales orders permission
+    Route::middleware('permission:view sales-orders')->group(function () {
+        Route::get('/', [SalesOrderController::class, 'index'])->name('index');
+        Route::get('/data', [SalesOrderController::class, 'data'])->name('data');
+        Route::get('/{id}', [SalesOrderController::class, 'show'])->name('show');
+    });
+    
+    // Create sales orders permission
+    Route::middleware('permission:create sales-orders')->group(function () {
+        Route::get('/create', [SalesOrderController::class, 'create'])->name('create');
+        Route::post('/', [SalesOrderController::class, 'store'])->name('store');
+    });
+    
+    // Edit sales orders permission
+    Route::middleware('permission:edit sales-orders')->group(function () {
+        Route::get('/{id}/edit', [SalesOrderController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [SalesOrderController::class, 'update'])->name('update');
+        Route::post('/{id}/confirm', [SalesOrderController::class, 'confirm'])->name('confirm');
+        Route::post('/{id}/cancel', [SalesOrderController::class, 'cancel'])->name('cancel');
+    });
+    
+    // Delete sales orders permission
+    Route::middleware('permission:delete sales-orders')->group(function () {
+        Route::delete('/{id}', [SalesOrderController::class, 'destroy'])->name('destroy');
+    });
+    
+    // Stock deliveries
+    Route::middleware('permission:manage stock-deliveries')->group(function () {
+        Route::get('/{id}/deliveries', [StockDeliveryController::class, 'index'])->name('deliveries.index');
+        Route::get('/{id}/deliveries/create', [StockDeliveryController::class, 'create'])->name('deliveries.create');
+        Route::post('/{id}/deliveries', [StockDeliveryController::class, 'store'])->name('deliveries.store');
+    });
+});
+
+// Stock Deliveries Routes
+Route::prefix('stock-deliveries')->name('stock-deliveries.')->middleware('auth:admin')->group(function () {
+    // View stock deliveries permission
+    Route::middleware('permission:view stock-deliveries')->group(function () {
+        Route::get('/', [StockDeliveryController::class, 'index'])->name('index');
+        Route::get('/data', [StockDeliveryController::class, 'data'])->name('data');
+        Route::get('/{id}', [StockDeliveryController::class, 'show'])->name('show');
+    });
+    
+    // Create stock deliveries permission
+    Route::middleware('permission:create stock-deliveries')->group(function () {
+        Route::get('/create', [StockDeliveryController::class, 'createDirect'])->name('create-direct');
+        Route::post('/direct', [StockDeliveryController::class, 'storeDirect'])->name('store-direct');
+    });
+    
+    // Process stock deliveries permission
+    Route::middleware('permission:process stock-deliveries')->group(function () {
+        Route::post('/{id}/process', [StockDeliveryController::class, 'process'])->name('process');
+    });
+    
+    // Delete stock deliveries permission
+    Route::middleware('permission:delete stock-deliveries')->group(function () {
+        Route::delete('/{id}', [StockDeliveryController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Inventory Routes
+Route::prefix('inventory')->name('inventory.')->middleware('auth:admin')->group(function () {
+    // View inventory permission
+    Route::middleware('permission:view inventory')->group(function () {
+        Route::get('/', [InventoryController::class, 'index'])->name('index');
+        Route::get('/data', [InventoryController::class, 'data'])->name('data');
+        Route::get('/product/{id}', [InventoryController::class, 'showProductStock'])->name('product');
+        Route::get('/warehouse/{id}', [InventoryController::class, 'showWarehouseStock'])->name('warehouse');
+        Route::get('/low-stock', [InventoryController::class, 'lowStock'])->name('low-stock');
+        Route::get('/expiring-soon', [InventoryController::class, 'expiringSoon'])->name('expiring-soon');
+    });
+});
+
+// Stock Movements Routes
+Route::prefix('stock-movements')->name('stock-movements.')->middleware('auth:admin')->group(function () {
+    // View stock movements permission
+    Route::middleware('permission:view stock-movements')->group(function () {
+        Route::get('/', [StockMovementController::class, 'index'])->name('index');
+        Route::get('/data', [StockMovementController::class, 'data'])->name('data');
+        Route::get('/product/{id}', [StockMovementController::class, 'forProduct'])->name('product');
+        Route::get('/warehouse/{id}', [StockMovementController::class, 'forWarehouse'])->name('warehouse');
+    });
+});
+
+// Stock Transfers Routes
+Route::prefix('stock-transfers')->name('stock-transfers.')->middleware('auth:admin')->group(function () {
+    // View stock transfers permission
+    Route::middleware('permission:view stock-transfers')->group(function () {
+        Route::get('/', [StockTransferController::class, 'index'])->name('index');
+        Route::get('/data', [StockTransferController::class, 'data'])->name('data');
+        Route::get('/{id}', [StockTransferController::class, 'show'])->name('show');
+    });
+    
+    // Create stock transfers permission
+    Route::middleware('permission:create stock-transfers')->group(function () {
+        Route::get('/create', [StockTransferController::class, 'create'])->name('create');
+        Route::post('/', [StockTransferController::class, 'store'])->name('store');
+    });
+    
+    // Process stock transfers permission
+    Route::middleware('permission:process stock-transfers')->group(function () {
+        Route::post('/{id}/confirm', [StockTransferController::class, 'confirm'])->name('confirm');
+    });
+    
+    // Delete stock transfers permission
+    Route::middleware('permission:delete stock-transfers')->group(function () {
+        Route::delete('/{id}', [StockTransferController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Stock Adjustments Routes
+Route::prefix('stock-adjustments')->name('stock-adjustments.')->middleware('auth:admin')->group(function () {
+    // View stock adjustments permission
+    Route::middleware('permission:view stock-adjustments')->group(function () {
+        Route::get('/', [StockAdjustmentController::class, 'index'])->name('index');
+        Route::get('/data', [StockAdjustmentController::class, 'data'])->name('data');
+        Route::get('/{id}', [StockAdjustmentController::class, 'show'])->name('show');
+    });
+    
+    // Create stock adjustments permission
+    Route::middleware('permission:create stock-adjustments')->group(function () {
+        Route::get('/create', [StockAdjustmentController::class, 'create'])->name('create');
+        Route::post('/', [StockAdjustmentController::class, 'store'])->name('store');
+    });
+    
+    // Process stock adjustments permission
+    Route::middleware('permission:process stock-adjustments')->group(function () {
+        Route::post('/{id}/confirm', [StockAdjustmentController::class, 'confirm'])->name('confirm');
+    });
+    
+    // Delete stock adjustments permission
+    Route::middleware('permission:delete stock-adjustments')->group(function () {
+        Route::delete('/{id}', [StockAdjustmentController::class, 'destroy'])->name('destroy');
+    });
 });
 // Car Maintenance Routes
 Route::prefix('cars/maintenance')->name('cars.maintenance.')->group(function () {

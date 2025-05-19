@@ -24,7 +24,7 @@ class CarListingController extends Controller
      */
     public function index(Request $request)
     {
-        // Get all available categories & brands for filters
+        // Get all available categories &_brands for filters
         $categories = Category::where('is_active', true)->orderBy('name')->get();
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         
@@ -139,7 +139,7 @@ public function show($slug)
      */
     public function search(Request $request)
     {
-        // Get all available categories & brands for filters
+        // Get all available categories &_brands for filters
         $categories = Category::where('is_active', true)->orderBy('name')->get();
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
         

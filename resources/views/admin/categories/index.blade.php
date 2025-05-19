@@ -6,10 +6,10 @@
             <div class="col-12">
                 <div class="card mb-4">
                     <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                        <h6>Product Brands</h6>
-                        @can('create brands')
-                            <button class="btn btn-primary btn-sm ms-auto" id="btn-add-brand">
-                                <i class="fas fa-plus me-1"></i> Add Brand
+                        <h6>Product Categories</h6>
+                        @can('create categories')
+                            <button class="btn btn-primary btn-sm ms-auto" id="btn-add-category">
+                                <i class="fas fa-plus me-1"></i> Add Category
                             </button>
                         @endcan
                     </div>
@@ -22,9 +22,10 @@
                                             <div class="row">
                                                 <div class="col-8">
                                                     <div class="numbers">
-                                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Brands</p>
+                                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Categories
+                                                        </p>
                                                         <h5 class="font-weight-bolder text-white mt-2">
-                                                            {{ $totalBrands ?? 0 }}
+                                                            {{ $totalCategories ?? 0 }}
                                                         </h5>
                                                     </div>
                                                 </div>
@@ -44,10 +45,10 @@
                                             <div class="row">
                                                 <div class="col-8">
                                                     <div class="numbers">
-                                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Active Brands
-                                                        </p>
+                                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Active
+                                                            Categories</p>
                                                         <h5 class="font-weight-bolder text-white mt-2">
-                                                            {{ $activeBrands ?? 0 }}
+                                                            {{ $activeCategories ?? 0 }}
                                                         </h5>
                                                     </div>
                                                 </div>
@@ -63,7 +64,7 @@
                                 </div>
                             </div>
                             <div class="table-responsive p-3">
-                                <table class="table align-items-center justify-content-center mb-0" id="brands-table">
+                                <table class="table align-items-center justify-content-center mb-0" id="categories-table">
                                     <thead>
                                         <tr>
                                             <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Logo
@@ -76,7 +77,7 @@
                                                 Code</th>
                                             <th
                                                 class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                                Website</th>
+                                                Parent</th>
                                             <th
                                                 class="text-uppercase text-secondary text-xxs font-weight-bolder text-center opacity-7 ps-2">
                                                 Status</th>
@@ -103,25 +104,25 @@
             </div>
         </div>
 
-        <!-- Add/Edit Brand Modal -->
-        <div class="modal fade" id="brandModal" tabindex="-1" role="dialog" aria-labelledby="brandModalLabel"
+        <!-- Add/Edit Category Modal -->
+        <div class="modal fade" id="categoryModal" tabindex="-1" role="dialog" aria-labelledby="categoryModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="brandModalLabel">Add New Brand</h5>
+                        <h5 class="modal-title" id="categoryModalLabel">Add New Category</h5>
                         <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">×</span>
                         </button>
                     </div>
-                    <form id="brandForm" enctype="multipart/form-data">
+                    <form id="categoryForm" enctype="multipart/form-data">
                         <div class="modal-body">
                             @csrf
                             <input type="hidden" name="_method" id="method" value="POST">
-                            <input type="hidden" name="id" id="brand_id">
+                            <input type="hidden" name="id" id="category_id">
 
                             <div class="form-group">
-                                <label for="name" class="form-control-label">Brand Name <span
+                                <label for="name" class="form-control-label">Category Name <span
                                         class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" required>
                                 <div class="invalid-feedback" id="name-error"></div>
@@ -130,7 +131,7 @@
                             <div class="form-group mt-3">
                                 <label for="slug" class="form-control-label">Slug</label>
                                 <input type="text" class="form-control" id="slug" name="slug" readonly>
-                                <small class="form-text text-muted">Auto-generated from Brand Name</small>
+                                <small class="form-text text-muted">Auto-generated from Category Name</small>
                                 <div class="invalid-feedback" id="slug-error"></div>
                             </div>
 
@@ -139,6 +140,23 @@
                                 <input type="text" class="form-control" id="code" name="code">
                                 <small class="form-text text-muted">Optional unique code for internal reference</small>
                                 <div class="invalid-feedback" id="code-error"></div>
+                            </div>
+
+                            <div class="form-group mt-3">
+                                <label for="parent_id" class="form-control-label">Parent Category</label>
+                                <select class="form-control" id="parent_id" name="parent_id">
+                                    <option value="">None</option>
+                                    @foreach (\App\Models\ProductCategory::whereNull('parent_id')->with('children')->get() as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @foreach ($category->children as $child)
+                                            <option value="{{ $child->id }}">-- {{ $child->name }}</option>
+                                            @foreach ($child->children as $grandchild)
+                                                <option value="{{ $grandchild->id }}">---- {{ $grandchild->name }}</option>
+                                            @endforeach
+                                        @endforeach
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback" id="parent_id-error"></div>
                             </div>
 
                             <div class="form-group mt-3">
@@ -201,20 +219,20 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary" id="save-brand">Save Brand</button>
+                            <button type="submit" class="btn btn-primary" id="save-category">Save Category</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- View Brand Modal -->
-        <div class="modal fade" id="viewBrandModal" tabindex="-1" role="dialog" aria-labelledby="viewBrandModalLabel"
+        <!-- View Category Modal -->
+        <div class="modal fade" id="viewCategoryModal" tabindex="-1" role="dialog" aria-labelledby="viewCategoryModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="viewBrandModalLabel">Brand Details</h5>
+                        <h5 class="modal-title" id="viewCategoryModalLabel">Category Details</h5>
                         <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">×</span>
                         </button>
@@ -223,7 +241,7 @@
                         <div class="row">
                             <div class="col-md-4 text-center mb-4">
                                 <div id="view-logo-container" class="mb-3">
-                                    <img id="view-logo" src="#" alt="Brand Logo" class="img-fluid rounded shadow-sm"
+                                    <img id="view-logo" src="#" alt="Category Logo" class="img-fluid rounded shadow-sm"
                                         style="max-width: 150px; max-height: 150px;">
                                 </div>
                                 <div id="no-logo-container" class="d-none mb-3">
@@ -238,6 +256,7 @@
                                 <h3 id="view-name" class="font-weight-bold mb-0"></h3>
                                 <p id="view-code" class="text-sm text-muted"></p>
                                 <p id="view-slug" class="text-sm text-muted"></p>
+                                <p id="view-parent" class="text-sm text-muted"></p>
 
                                 <p class="mt-3 mb-1 text-sm">Website:</p>
                                 <p id="view-website" class="font-weight-bold"></p>
@@ -258,21 +277,21 @@
 
                         <div class="row mt-4" id="products-section">
                             <div class="col-12">
-                                <h6 class="font-weight-bold">Products in this brand</h6>
+                                <h6 class="font-weight-bold">Products in this category</h6>
                                 <div id="products-list" class="row">
                                     <!-- Will be filled with products -->
                                 </div>
                                 <div id="no-products" class="d-none text-center py-4">
                                     <i class="ni ni-app text-muted mb-2" style="font-size: 2rem;"></i>
-                                    <p class="text-muted">No products found for this brand</p>
+                                    <p class="text-muted">No products found for this category</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        @can('edit_brands')
-                            <button type="button" class="btn btn-primary" id="btn-edit-view">Edit Brand</button>
+                        @can('edit categories')
+                            <button type="button" class="btn btn-primary" id="btn-edit-view">Edit Category</button>
                         @endcan
                     </div>
                 </div>
@@ -280,20 +299,20 @@
         </div>
 
         <!-- Delete Confirmation Modal -->
-        <div class="modal fade" id="deleteBrandModal" tabindex="-1" role="dialog" aria-labelledby="deleteBrandModalLabel"
-            aria-hidden="true">
+        <div class="modal fade" id="deleteCategoryModal" tabindex="-1" role="dialog"
+            aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="deleteBrandModalLabel">Confirm Delete</h5>
+                        <h5 class="modal-title" id="deleteCategoryModalLabel">Confirm Delete</h5>
                         <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">×</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        Are you sure you want to delete this brand: <span id="delete-brand-name"
+                        Are you sure you want to delete this category: <span id="delete-category-name"
                             class="font-weight-bold"></span>?
-                        <input type="hidden" id="delete-brand-id">
+                        <input type="hidden" id="delete-category-id">
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -308,19 +327,17 @@
 @push('css')
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
     <style>
-        .brand-logo-thumbnail {
+        .category-logo-thumbnail {
             object-fit: contain;
             height: 40px;
             width: 40px;
         }
 
-        /* Fixed height for description in view mode */
         #view-description {
             max-height: 120px;
             overflow-y: auto;
         }
 
-        /* Product cards in view modal */
         .product-card {
             border-radius: 10px;
             transition: all 0.2s ease;
@@ -332,7 +349,6 @@
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
 
-        /* Read-only input styling */
         input[readonly] {
             background-color: #f8f9fa;
             cursor: not-allowed;
@@ -345,11 +361,11 @@
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
         $(document).ready(function () {
-            // Initialize DataTable
-            var table = $('#brands-table').DataTable({
+            // Initialize DataTable for categories
+            var table = $('#categories-table').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: "{{ route('admin.brands.data') }}",
+                ajax: "{{ route('admin.categories.data') }}",
                 columns: [
                     {
                         data: 'logo_image',
@@ -359,16 +375,7 @@
                     },
                     { data: 'name', name: 'name' },
                     { data: 'code', name: 'code' },
-                    {
-                        data: 'website',
-                        name: 'website',
-                        render: function (data) {
-                            if (data) {
-                                return '<a href="' + data + '" target="_blank" class="text-info text-sm">' + data + '</a>';
-                            }
-                            return '<span class="text-muted">Not specified</span>';
-                        }
-                    },
+                    { data: 'parent_name', name: 'parent_name' },
                     {
                         data: 'active',
                         name: 'active',
@@ -396,12 +403,11 @@
                         className: 'text-end'
                     }
                 ],
-                order: [[1, 'asc']] // Sort by name
+                order: [[1, 'asc']]
             });
 
-            // Function to generate slug from name
+            // Function to generate slug from category name
             function generateSlug(name) {
-                // Replace accented characters (basic transliteration)
                 const accents = {
                     'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a', 'å': 'a',
                     'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
@@ -412,9 +418,7 @@
                     'æ': 'ae', 'œ': 'oe'
                 };
                 let slug = name.toLowerCase();
-                // Replace accented characters
                 slug = slug.replace(/[áàâäãåéèêëíìîïóòôöõúùûüçñßæœ]/g, char => accents[char] || char);
-                // Remove special characters, replace spaces with hyphens
                 slug = slug.replace(/[^a-z0-9\s-]/g, '')
                     .trim()
                     .replace(/\s+/g, '-')
@@ -422,57 +426,56 @@
                 return slug;
             }
 
-            // Update slug input when name changes
+            // Auto-generate slug when category name is typed
             $('#name').on('input', function () {
                 const name = $(this).val();
                 $('#slug').val(generateSlug(name));
             });
 
-            // Reset form when modal is closed
-            $('#brandModal').on('hidden.bs.modal', function () {
+            // Reset form when category modal is closed
+            $('#categoryModal').on('hidden.bs.modal', function () {
                 resetForm();
             });
 
-            // Show Add Brand modal
-            $('#btn-add-brand').click(function () {
+            // Open modal to add new category
+            $('#btn-add-category').click(function () {
                 resetForm();
-                $('#brandModalLabel').text('Add New Brand');
+                $('#categoryModalLabel').text('Add New Category');
                 $('#method').val('POST');
-                $('#brandModal').modal('show');
+                $('#categoryModal').modal('show');
             });
 
-            // Show Edit Brand modal
+            // Handle edit button click
             $(document).on('click', '.btn-edit', function () {
                 resetForm();
-                var brandId = $(this).data('id');
-                $('#brandModalLabel').text('Edit Brand');
+                var categoryId = $(this).data('id');
+                $('#categoryModalLabel').text('Edit Category');
                 $('#method').val('PUT');
-                $('#brand_id').val(brandId);
+                $('#category_id').val(categoryId);
 
-                // Get brand data
                 $.ajax({
-                    url: "{{ url('admin/product-brands') }}/" + brandId + "/edit",
+                    url: "{{ route('admin.categories.edit', ['id' => ':id']) }}".replace(':id', categoryId),
                     method: 'GET',
                     success: function (response) {
                         if (response.success) {
-                            var brand = response.brand;
-                            $('#name').val(brand.name);
-                            $('#slug').val(brand.slug);
-                            $('#code').val(brand.code);
-                            $('#website').val(brand.website);
-                            $('#description').val(brand.description);
-                            $('#meta_title').val(brand.meta_title);
-                            $('#meta_description').val(brand.meta_description);
-                            $('#meta_keywords').val(brand.meta_keywords);
-                            $('#active').prop('checked', brand.active);
+                            var category = response.category;
+                            $('#name').val(category.name);
+                            $('#slug').val(category.slug);
+                            $('#code').val(category.code);
+                            $('#parent_id').val(category.parent_id);
+                            $('#website').val(category.website);
+                            $('#description').val(category.description);
+                            $('#meta_title').val(category.meta_title);
+                            $('#meta_description').val(category.meta_description);
+                            $('#meta_keywords').val(category.meta_keywords);
+                            $('#active').prop('checked', category.active);
 
-                            // Show logo preview if exists
-                            if (brand.logo_url) {
-                                $('#logo-preview').attr('src', brand.logo_url);
+                            if (category.logo_url) {
+                                $('#logo-preview').attr('src', category.logo_url);
                                 $('#logo-preview-container').removeClass('d-none');
                             }
 
-                            $('#brandModal').modal('show');
+                            $('#categoryModal').modal('show');
                         } else {
                             showToast('error', response.error);
                         }
@@ -483,71 +486,65 @@
                 });
             });
 
-            // Edit brand from view modal
+            // Switch from view modal to edit modal
             $('#btn-edit-view').click(function () {
-                var brandId = $('#view-brand-modal-id').val();
-                $('#viewBrandModal').modal('hide');
-                $('.btn-edit[data-id="' + brandId + '"]').click();
+                var categoryId = $('#view-category-modal-id').val();
+                $('#viewCategoryModal').modal('hide');
+                $('.btn-edit[data-id="' + categoryId + '"]').click();
             });
 
-            // View Brand details
+            // Handle view button click
             $(document).on('click', '.btn-view', function () {
-                var brandId = $(this).data('id');
+                var categoryId = $(this).data('id');
 
                 $.ajax({
-                    url: "{{ url('admin/product-brands') }}/" + brandId,
+                    url: "{{ route('admin.categories.show', ['id' => ':id']) }}".replace(':id', categoryId),
                     method: 'GET',
                     success: function (response) {
                         if (response.success) {
-                            var brand = response.brand;
-                            $('#view-brand-modal-id').val(brand.id);
-                            $('#view-name').text(brand.name);
-                            $('#view-code').text(brand.code ? 'Code: ' + brand.code : '');
-                            $('#view-slug').text(brand.slug ? 'Slug: ' + brand.slug : '');
+                            var category = response.category;
+                            $('#view-category-modal-id').val(category.id);
+                            $('#view-name').text(category.name);
+                            $('#view-code').text(category.code ? 'Code: ' + category.code : '');
+                            $('#view-slug').text(category.slug ? 'Slug: ' + category.slug : '');
+                            $('#view-parent').text(category.parent ? 'Parent: ' + category.parent.name : '');
 
-                            // Website
-                            if (brand.website) {
-                                $('#view-website').html('<a href="' + brand.website + '" target="_blank" class="text-info">' + brand.website + '</a>');
+                            if (category.website) {
+                                $('#view-website').html('<a href="' + category.website + '" target="_blank" class="text-info">' + category.website + '</a>');
                             } else {
                                 $('#view-website').text('Not specified');
                             }
 
-                            // Description
-                            if (brand.description) {
-                                $('#view-description').text(brand.description);
+                            if (category.description) {
+                                $('#view-description').text(category.description);
                             } else {
                                 $('#view-description').html('<em class="text-muted">No description provided</em>');
                             }
 
-                            // Meta Title
-                            if (brand.meta_title) {
-                                $('#view-meta_title').text(brand.meta_title);
+                            if (category.meta_title) {
+                                $('#view-meta_title').text(category.meta_title);
                             } else {
                                 $('#view-meta_title').html('<em class="text-muted">Not specified</em>');
                             }
 
-                            // Meta Description
-                            if (brand.meta_description) {
-                                $('#view-meta_description').text(brand.meta_description);
+                            if (category.meta_description) {
+                                $('#view-meta_description').text(category.meta_description);
                             } else {
                                 $('#view-meta_description').html('<em class="text-muted">Not specified</em>');
                             }
 
-                            // Meta Keywords
-                            if (brand.meta_keywords) {
-                                $('#view-meta_keywords').text(brand.meta_keywords);
+                            if (category.meta_keywords) {
+                                $('#view-meta_keywords').text(category.meta_keywords);
                             } else {
                                 $('#view-meta_keywords').html('<em class="text-muted">Not specified</em>');
                             }
 
-                            // Status
                             $('#view-status').removeClass('bg-gradient-success bg-gradient-secondary')
-                                .addClass(brand.active ? 'bg-gradient-success' : 'bg-gradient-secondary')
-                                .text(brand.active ? 'Active' : 'Inactive');
+                                .addClass(category.active ? 'bg-gradient-success' : 'bg-gradient-secondary')
+                                .text(category.active ? 'Active' : 'Inactive');
 
-                            // Logo
-                            if (brand.logo_url) {
-                                $('#view-logo').attr('src', brand.logo_url);
+                            if (category.logo_url) {
+                                $('#view-logo').attr('src', category.logo_url);
                                 $('#view-logo-container').removeClass('d-none');
                                 $('#no-logo-container').addClass('d-none');
                             } else {
@@ -555,11 +552,9 @@
                                 $('#no-logo-container').removeClass('d-none');
                             }
 
-                            // Products
                             var productsHtml = '';
-
-                            if (brand.products && brand.products.length > 0) {
-                                brand.products.forEach(function (product) {
+                            if (category.products && category.products.length > 0) {
+                                category.products.forEach(function (product) {
                                     productsHtml += '<div class="col-md-4 col-sm-6 mb-3">';
                                     productsHtml += '<div class="card product-card shadow-sm">';
                                     productsHtml += '<div class="card-body p-3">';
@@ -578,7 +573,7 @@
                                 $('#no-products').removeClass('d-none');
                             }
 
-                            $('#viewBrandModal').modal('show');
+                            $('#viewCategoryModal').modal('show');
                         } else {
                             showToast('error', response.error);
                         }
@@ -589,29 +584,29 @@
                 });
             });
 
-            // Show Delete confirmation
+            // Handle delete button click (open confirmation modal)
             $(document).on('click', '.btn-delete:not(.disabled)', function () {
-                var brandId = $(this).data('id');
-                var brandName = $(this).closest('tr').find('td:nth-child(2)').text();
+                var categoryId = $(this).data('id');
+                var categoryName = $(this).closest('tr').find('td:nth-child(2)').text();
 
-                $('#delete-brand-id').val(brandId);
-                $('#delete-brand-name').text(brandName);
-                $('#deleteBrandModal').modal('show');
+                $('#delete-category-id').val(categoryId);
+                $('#delete-category-name').text(categoryName);
+                $('#deleteCategoryModal').modal('show');
             });
 
-            // Confirm Delete
+            // Confirm delete action
             $('#confirm-delete').click(function () {
-                var brandId = $('#delete-brand-id').val();
+                var categoryId = $('#delete-category-id').val();
 
                 $.ajax({
-                    url: "{{ url('admin/product-brands') }}/" + brandId,
+                    url: "{{ route('admin.categories.destroy', ['id' => ':id']) }}".replace(':id', categoryId),
                     method: 'DELETE',
                     data: {
                         _token: "{{ csrf_token() }}"
                     },
                     success: function (response) {
                         if (response.success) {
-                            $('#deleteBrandModal').modal('hide');
+                            $('#deleteCategoryModal').modal('hide');
                             table.ajax.reload();
                             showToast('success', response.message);
                         } else {
@@ -624,7 +619,7 @@
                 });
             });
 
-            // Handle logo file input change
+            // Handle logo file selection
             $('#logo').change(function () {
                 if (this.files && this.files[0]) {
                     var reader = new FileReader();
@@ -638,41 +633,40 @@
                 }
             });
 
-            // Remove logo button
+            // Remove logo preview
             $('#remove-logo').click(function () {
                 $('#logo').val('');
                 $('#logo-preview-container').addClass('d-none');
                 $('#logo-preview').attr('src', '#');
             });
 
-            // Submit form
-            $('#brandForm').submit(function (e) {
+            // Handle category form submission (create/update)
+            $('#categoryForm').submit(function (e) {
                 e.preventDefault();
 
-                // Clear previous errors
                 clearFormErrors();
 
-                // Transform checkbox value to boolean
                 var formData = new FormData(this);
-                formData.set('active', $('#active').is(':checked') ? '1' : '0'); // Convert to '1' or '0'
+                formData.set('active', $('#active').is(':checked') ? '1' : '0');
 
                 var method = $('#method').val();
-                var url = "{{ route('admin.brands.store') }}";
+                var url = "{{ route('admin.categories.store') }}";
 
                 if (method === 'PUT') {
-                    var brandId = $('#brand_id').val();
-                    url = "{{ url('admin/product-brands') }}/" + brandId;
+                    var categoryId = $('#category_id').val();
+                    url = "{{ route('admin.categories.update', ['id' => ':id']) }}".replace(':id', categoryId);
+                    formData.append('_method', 'PUT'); // Add _method for Laravel to recognize PUT
                 }
 
                 $.ajax({
                     url: url,
-                    method: method === 'PUT' ? 'POST' : 'POST',
+                    method: 'POST', // Always use POST; _method handles PUT
                     data: formData,
                     processData: false,
                     contentType: false,
                     success: function (response) {
                         if (response.success) {
-                            $('#brandModal').modal('hide');
+                            $('#categoryModal').modal('hide');
                             table.ajax.reload();
                             showToast('success', response.message);
                         } else {
@@ -690,22 +684,24 @@
                 });
             });
 
-            // Helper functions
+            // Reset form fields
             function resetForm() {
-                $('#brandForm')[0].reset();
-                $('#brand_id').val('');
+                $('#categoryForm')[0].reset();
+                $('#category_id').val('');
                 $('#slug').val('');
                 $('#logo-preview-container').addClass('d-none');
                 $('#logo-preview').attr('src', '#');
-                $('#active').prop('checked', true); // Default to checked
+                $('#active').prop('checked', true);
                 clearFormErrors();
             }
 
+            // Clear form validation errors
             function clearFormErrors() {
                 $('.is-invalid').removeClass('is-invalid');
                 $('.invalid-feedback').text('');
             }
 
+            // Display form validation errors
             function displayFormErrors(errors) {
                 $.each(errors, function (field, messages) {
                     var input = $('#' + field);
@@ -716,17 +712,18 @@
                 });
             }
 
+            // Show toast notification
             function showToast(type, message) {
                 var bgClass = 'bg-' + (type === 'success' ? 'success' : 'danger');
                 var html = `
-                            <div class="position-fixed top-1 end-1 z-index-2">
-                                <div class="toast fade p-2 mt-2 ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true">
-                                    <div class="toast-body text-white">
-                                        ${message}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                <div class="position-fixed top-1 end-1 z-index-2">
+                    <div class="toast fade p-2 mt-2 ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-body text-white">
+                            ${message}
+                        </div>
+                    </div>
+                </div>
+            `;
 
                 $('body').append(html);
                 $('.toast').toast({
@@ -739,6 +736,7 @@
                 }, 3500);
             }
 
+            // Show error toast for AJAX errors
             function showErrorToast(xhr) {
                 var message = 'An error occurred. Please try again.';
 

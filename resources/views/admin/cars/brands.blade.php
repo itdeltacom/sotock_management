@@ -10,10 +10,10 @@
                     <div class="card-header pb-0 p-3">
                         <div class="row">
                             <div class="col-6 d-flex align-items-center">
-                                <h6 class="mb-0">Car Brands Management</h6>
+                                <h6 class="mb-0">Car_brands Management</h6>
                             </div>
                             <div class="col-6 text-end">
-                                @can('create brands')
+                                @can('create_brands')
                                     <button type="button" class="btn bg-gradient-primary" id="createBrandBtn">
                                         <i class="fas fa-plus"></i> Add New Brand
                                     </button>
@@ -32,7 +32,7 @@
                                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Slug</th>
                                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Cars</th>
                                         <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
-                                        @if(auth()->guard('admin')->user()->can('edit brands') || auth()->guard('admin')->user()->can('delete brands'))
+                                        @if(auth()->guard('admin')->user()->can('edit_brands') || auth()->guard('admin')->user()->can('delete_brands'))
                                             <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
                                         @endif
                                     </tr>
@@ -285,11 +285,11 @@
         };
 
         // Pass permissions data to JavaScript
-        const canEditBrands = @json(auth()->guard('admin')->user()->can('edit brands'));
-        const canDeleteBrands = @json(auth()->guard('admin')->user()->can('delete brands'));
+        const canEditBrands = @json(auth()->guard('admin')->user()->can('edit_brands'));
+        const canDeleteBrands = @json(auth()->guard('admin')->user()->can('delete_brands'));
     </script>
 
-    <!-- Include the JS script for brands management -->
+    <!-- Include the JS script for_brands management -->
     {{--
     <script src="{{ asset('admin/js/brands-management.js') }}"></script> --}}
 
@@ -298,7 +298,7 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             // Cache DOM elements
-            const brandsTable = document.getElementById('brands-table');
+            const_brandsTable = document.getElementById('brands-table');
             const brandForm = document.getElementById('brandForm');
             const brandModal = document.getElementById('brandModal');
             const createBrandBtn = document.getElementById('createBrandBtn');
@@ -379,7 +379,7 @@
                 if (e.target.closest('.btn-edit')) {
                     // Check permission
                     if (typeof canEditBrands !== 'undefined' && !canEditBrands) {
-                        Swal.fire('Permission Denied', 'You do not have permission to edit brands.', 'warning');
+                        Swal.fire('Permission Denied', 'You do not have permission to edit_brands.', 'warning');
                         return;
                     }
 
@@ -392,7 +392,7 @@
                 if (e.target.closest('.btn-delete')) {
                     // Check permission
                     if (typeof canDeleteBrands !== 'undefined' && !canDeleteBrands) {
-                        Swal.fire('Permission Denied', 'You do not have permission to delete brands.', 'warning');
+                        Swal.fire('Permission Denied', 'You do not have permission to delete_brands.', 'warning');
                         return;
                     }
 

@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function () {
     // Cache DOM elements
-    const brandsTable = document.getElementById('brands-table');
+    const_brandsTable = document.getElementById('brands-table');
     const brandForm = document.getElementById('brandForm');
     const brandModal = document.getElementById('brandModal');
     const createBrandBtn = document.getElementById('createBrandBtn');
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.closest('.btn-edit')) {
             // Check permission
             if (typeof canEditBrands !== 'undefined' && !canEditBrands) {
-                Swal.fire('Permission Denied', 'You do not have permission to edit brands.', 'warning');
+                Swal.fire('Permission Denied', 'You do not have permission to edit_brands.', 'warning');
                 return;
             }
             
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target.closest('.btn-delete')) {
             // Check permission
             if (typeof canDeleteBrands !== 'undefined' && !canDeleteBrands) {
-                Swal.fire('Permission Denied', 'You do not have permission to delete brands.', 'warning');
+                Swal.fire('Permission Denied', 'You do not have permission to delete_brands.', 'warning');
                 return;
             }
             

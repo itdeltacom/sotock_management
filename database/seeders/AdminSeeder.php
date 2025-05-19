@@ -262,8 +262,8 @@ class AdminSeeder extends Seeder
             'view contract reports',
             'view maintenance reports',
             'view customer reports',
+            
             //clients 
-
             'manage clients',
             'create clients',
             'edit clients',
@@ -275,6 +275,77 @@ class AdminSeeder extends Seeder
             'delete client documents',
             'verify client identity',
             'manage client notes',
+            
+            // Stock Management - Products
+            'manage products',
+            'view products',
+            'create products',
+            'edit products',
+            'delete products',
+            
+            // Stock Management - Suppliers
+            'manage suppliers',
+            'view suppliers',
+            'create suppliers',
+            'edit suppliers',
+            'delete suppliers',
+            
+            // Stock Management - Warehouses
+            'manage warehouses',
+            'view warehouses',
+            'create warehouses',
+            'edit warehouses',
+            'delete warehouses',
+            
+            // Stock Management - Purchase Orders
+            'manage purchase-orders',
+            'view purchase-orders',
+            'create purchase-orders',
+            'edit purchase-orders',
+            'delete purchase-orders',
+            
+            // Stock Management - Sales Orders
+            'manage sales-orders',
+            'view sales-orders',
+            'create sales-orders',
+            'edit sales-orders',
+            'delete sales-orders',
+            
+            // Stock Management - Stock Receptions
+            'manage stock-receptions',
+            'view stock-receptions',
+            'create stock-receptions',
+            'process stock-receptions',
+            'delete stock-receptions',
+            
+            // Stock Management - Stock Deliveries
+            'manage stock-deliveries',
+            'view stock-deliveries',
+            'create stock-deliveries',
+            'process stock-deliveries',
+            'delete stock-deliveries',
+            
+            // Stock Management - Inventory
+            'manage inventory',
+            'view inventory',
+            
+            // Stock Management - Stock Movements
+            'manage stock-movements',
+            'view stock-movements',
+            
+            // Stock Management - Stock Transfers
+            'manage stock-transfers',
+            'view stock-transfers',
+            'create stock-transfers',
+            'process stock-transfers',
+            'delete stock-transfers',
+            
+            // Stock Management - Stock Adjustments
+            'manage stock-adjustments',
+            'view stock-adjustments',
+            'create stock-adjustments',
+            'process stock-adjustments',
+            'delete stock-adjustments',
         ];
 
         foreach ($permissions as $permission) {
@@ -344,6 +415,14 @@ class AdminSeeder extends Seeder
             'view due maintenance',
             'view overdue maintenance',
             'view maintenance reports',
+            // Stock Management permissions for Admin
+            'view products',
+            'view suppliers',
+            'view warehouses',
+            'view purchase-orders',
+            'view sales-orders',
+            'view inventory',
+            'view stock-movements',
         ]);
 
         $managerRole = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'admin']);
@@ -529,6 +608,105 @@ class AdminSeeder extends Seeder
             'manage client notes',
         ]);
 
+        // Create Stock Manager role
+        $stockManagerRole = Role::firstOrCreate(['name' => 'Stock Manager', 'guard_name' => 'admin']);
+        $stockManagerRole->syncPermissions([
+            'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
+            // Product Management
+            'manage products',
+            'view products',
+            'create products',
+            'edit products',
+            'delete products',
+            // Supplier Management
+            'manage suppliers',
+            'view suppliers',
+            'create suppliers',
+            'edit suppliers',
+            'delete suppliers',
+            // Warehouse Management
+            'manage warehouses',
+            'view warehouses',
+            'create warehouses',
+            'edit warehouses',
+            'delete warehouses',
+            // Purchase Orders
+            'manage purchase-orders',
+            'view purchase-orders',
+            'create purchase-orders',
+            'edit purchase-orders',
+            'delete purchase-orders',
+            // Sales Orders
+            'manage sales-orders',
+            'view sales-orders',
+            'create sales-orders',
+            'edit sales-orders',
+            'delete sales-orders',
+            // Stock Receptions
+            'manage stock-receptions',
+            'view stock-receptions',
+            'create stock-receptions',
+            'process stock-receptions',
+            'delete stock-receptions',
+            // Stock Deliveries
+            'manage stock-deliveries',
+            'view stock-deliveries',
+            'create stock-deliveries',
+            'process stock-deliveries',
+            'delete stock-deliveries',
+            // Inventory
+            'manage inventory',
+            'view inventory',
+            // Stock Movements
+            'manage stock-movements',
+            'view stock-movements',
+            // Stock Transfers
+            'manage stock-transfers',
+            'view stock-transfers',
+            'create stock-transfers',
+            'process stock-transfers',
+            'delete stock-transfers',
+            // Stock Adjustments
+            'manage stock-adjustments',
+            'view stock-adjustments',
+            'create stock-adjustments',
+            'process stock-adjustments',
+            'delete stock-adjustments',
+            // Reports
+            'view reports',
+            'generate reports',
+            'export reports',
+        ]);
+
+        // Create inventory clerk role
+        $inventoryClerkRole = Role::firstOrCreate(['name' => 'Inventory Clerk', 'guard_name' => 'admin']);
+        $inventoryClerkRole->syncPermissions([
+            'access dashboard',
+            'view profile',
+            'edit profile',
+            'change password',
+            'view products',
+            'view suppliers',
+            'view warehouses',
+            'view purchase-orders',
+            'view sales-orders',
+            'view stock-receptions',
+            'create stock-receptions',
+            'process stock-receptions',
+            'view stock-deliveries',
+            'create stock-deliveries',
+            'process stock-deliveries',
+            'view inventory',
+            'view stock-movements',
+            'view stock-transfers',
+            'create stock-transfers',
+            'view stock-adjustments',
+            'create stock-adjustments',
+        ]);
+
         // Create super admin
         $superAdmin = Admin::firstOrCreate([
             'email' => 'superadmin@example.com'
@@ -612,5 +790,29 @@ class AdminSeeder extends Seeder
             'is_active' => true,
         ]);
         $contractManager->assignRole($contractManagerRole);
+
+        // Create stock manager
+        $stockManager = Admin::firstOrCreate([
+            'email' => 'stock@example.com'
+        ], [
+            'name' => 'Stock Manager',
+            'password' => Hash::make('password'),
+            'position' => 'Stock Manager',
+            'department' => 'Inventory',
+            'is_active' => true,
+        ]);
+        $stockManager->assignRole($stockManagerRole);
+
+        // Create inventory clerk
+        $inventoryClerk = Admin::firstOrCreate([
+            'email' => 'inventory@example.com'
+        ], [
+            'name' => 'Inventory Clerk',
+            'password' => Hash::make('password'),
+            'position' => 'Inventory Clerk',
+            'department' => 'Warehouse',
+            'is_active' => true,
+        ]);
+        $inventoryClerk->assignRole($inventoryClerkRole);
     }
 }

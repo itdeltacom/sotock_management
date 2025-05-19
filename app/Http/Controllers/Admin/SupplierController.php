@@ -4,38 +4,31 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Supplier;
-use App\Models\PurchaseOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 use Exception;
-use Carbon\Carbon;
 
 class SupplierController extends Controller
 {
     /**
-     * Create a new controller instance.
-     */
-    public function __construct()
-    {
-        $this->middleware('auth:admin');
-        $this->middleware('permission:view_suppliers', ['only' => ['index', 'show', 'data']]);
-        $this->middleware('permission:create_suppliers', ['only' => ['create', 'store']]);
-        $this->middleware('permission:edit_suppliers', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:delete_suppliers', ['only' => ['destroy']]);
-    }
-
-    /**
-     * Display a listing of suppliers.
+     * Display a listing of the resource.
      *
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response
      */
     public function index()
     {
         try {
-            return view('admin.suppliers.index');
+            if (!auth()->guard('admin')->user()->can('view suppliers')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $totalSuppliers = Supplier::count();
+            $activeSuppliers = Supplier::where('active', true)->count();
+
+            return view('admin.suppliers.index', compact('totalSuppliers', 'activeSuppliers'));
         } catch (Exception $e) {
             Log::error('Error displaying suppliers: ' . $e->getMessage());
             return redirect()->route('admin.dashboard')->with('error', 'An error occurred while accessing suppliers.');
@@ -45,129 +38,126 @@ class SupplierController extends Controller
     /**
      * Get suppliers data for DataTables.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function data(Request $request)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('view suppliers')) {
+                return response()->json([
+                    'success' => false, 
+                    'error' => 'You do not have permission to view suppliers.'
+                ], 403);
+            }
+
             $query = Supplier::query();
             
             // Apply filters if provided
-            if ($request->has('status') && $request->status !== 'all') {
-                $active = $request->status === 'active';
-                $query->where('active', $active);
+            if ($request->has('active') && $request->active !== '') {
+                $query->where('active', $request->active);
             }
             
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('code', 'like', "%{$search}%")
+                      ->orWhere('contact_person', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                });
+            }
+
             $suppliers = $query->get();
-            
+
             return DataTables::of($suppliers)
-                ->addColumn('status_label', function (Supplier $supplier) {
-                    return $supplier->active 
-                        ? '<span class="badge bg-success">Active</span>' 
-                        : '<span class="badge bg-danger">Inactive</span>';
+                ->addColumn('orders_count', function (Supplier $supplier) {
+                    return $supplier->purchaseOrders()->count();
                 })
                 ->addColumn('total_purchases', function (Supplier $supplier) {
                     $total = $supplier->getTotalPurchases();
-                    return number_format($total, 2) . ' MAD';
-                })
-                ->addColumn('last_purchase', function (Supplier $supplier) {
-                    $lastPurchase = $supplier->purchaseOrders()
-                        ->where('status', '!=', 'cancelled')
-                        ->orderBy('order_date', 'desc')
-                        ->first();
-                    
-                    return $lastPurchase ? $lastPurchase->order_date->format('Y-m-d') : '-';
+                    return number_format($total, 2);
                 })
                 ->addColumn('action', function (Supplier $supplier) {
                     $actions = '';
-                    
-                    // View button
-                    if (Auth::guard('admin')->user()->can('view_suppliers')) {
-                        $actions .= '<a href="' . route('admin.suppliers.show', $supplier->id) . '" class="btn btn-sm btn-info me-1">
+
+                    if (Auth::guard('admin')->user()->can('view suppliers')) {
+                        $actions .= '<button type="button" class="btn btn-sm btn-info btn-view me-1" data-id="' . $supplier->id . '">
                             <i class="fas fa-eye"></i>
-                        </a> ';
+                        </button> ';
                     }
-                    
-                    // Edit button
-                    if (Auth::guard('admin')->user()->can('edit_suppliers')) {
-                        $actions .= '<a href="' . route('admin.suppliers.edit', $supplier->id) . '" class="btn btn-sm btn-primary me-1">
+
+                    if (Auth::guard('admin')->user()->can('edit suppliers')) {
+                        $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="' . $supplier->id . '">
                             <i class="fas fa-edit"></i>
-                        </a> ';
+                        </button> ';
                     }
-                    
-                    // Delete button
-                    if (Auth::guard('admin')->user()->can('delete_suppliers')) {
-                        $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $supplier->id . '">
+
+                    if (Auth::guard('admin')->user()->can('delete suppliers')) {
+                        $disabledClass = ($supplier->purchaseOrders()->count() > 0) ? 'disabled' : '';
+                        $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete ' . $disabledClass . '" data-id="' . $supplier->id . '" ' . $disabledClass . '>
                             <i class="fas fa-trash"></i>
                         </button>';
                     }
-                    
+
                     return $actions;
                 })
-                ->rawColumns(['status_label', 'action'])
+                ->rawColumns(['action'])
                 ->make(true);
         } catch (Exception $e) {
             Log::error('Error getting supplier data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve suppliers data.'
+                'error' => 'Failed to retrieve suppliers data: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Show the form for creating a new supplier.
+     * Store a newly created resource in storage.
      *
-     * @return \Illuminate\View\View
-     */
-    public function create()
-    {
-        try {
-            return view('admin.suppliers.create');
-        } catch (Exception $e) {
-            Log::error('Error displaying supplier create form: ' . $e->getMessage());
-            return redirect()->route('admin.suppliers.index')->with('error', 'An error occurred while accessing the create form.');
-        }
-    }
-
-    /**
-     * Store a newly created supplier.
-     *
-     * @param Request $request
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
         try {
-            // Validate input
+            if (!auth()->guard('admin')->user()->can('create suppliers')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to create suppliers.'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
+                'code' => 'required|string|max:50|unique:suppliers',
                 'name' => 'required|string|max:255',
-                'code' => 'nullable|string|max:50|unique:suppliers',
                 'contact_person' => 'nullable|string|max:100',
-                'email' => 'nullable|email|max:100',
+                'email' => 'nullable|email|max:255',
                 'phone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:255',
                 'city' => 'nullable|string|max:100',
                 'country' => 'nullable|string|max:100',
                 'tax_id' => 'nullable|string|max:50',
-                'notes' => 'nullable|string',
                 'active' => 'boolean',
+                'notes' => 'nullable|string'
             ]);
-            
+
             if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
-            
-            // Set default active status if not provided
+
             $data = $request->all();
+            
             if (!isset($data['active'])) {
                 $data['active'] = true;
             }
-            
-            // Create the supplier
+
             $supplier = Supplier::create($data);
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -176,117 +166,139 @@ class SupplierController extends Controller
                     ->withProperties(['supplier_id' => $supplier->id, 'supplier_name' => $supplier->name])
                     ->log('Created supplier');
             }
-            
-            return redirect()->route('admin.suppliers.index')->with('success', 'Supplier created successfully.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Supplier created successfully.',
+                'supplier' => $supplier
+            ]);
         } catch (Exception $e) {
             Log::error('Error creating supplier: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to create supplier: ' . $e->getMessage())->withInput();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create supplier: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Display the specified supplier.
+     * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response
      */
     public function show($id)
     {
         try {
-            $supplier = Supplier::findOrFail($id);
-            
-            // Get purchase orders summary
-            $purchaseOrdersCount = $supplier->purchaseOrders()->count();
-            $totalPurchases = $supplier->getTotalPurchases();
-            
-            // Get recent purchase orders
-            $recentPurchaseOrders = $supplier->purchaseOrders()
-                ->orderBy('order_date', 'desc')
-                ->limit(10)
-                ->get();
-            
-            // Get purchase history by month
-            $purchaseHistory = PurchaseOrder::where('supplier_id', $supplier->id)
-                ->where('status', '!=', 'cancelled')
-                ->whereYear('order_date', date('Y'))
-                ->selectRaw('MONTH(order_date) as month, SUM(total_amount) as total')
-                ->groupBy('month')
-                ->orderBy('month')
-                ->get()
-                ->keyBy('month');
-                
-            // Fill in months with no purchases
-            $monthlyData = [];
-            for ($i = 1; $i <= 12; $i++) {
-                $monthlyData[$i] = isset($purchaseHistory[$i]) ? $purchaseHistory[$i]->total : 0;
+            if (!auth()->guard('admin')->user()->can('view suppliers')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view suppliers.'
+                ], 403);
             }
-            
-            return view('admin.suppliers.show', compact('supplier', 'purchaseOrdersCount', 'totalPurchases', 'recentPurchaseOrders', 'monthlyData'));
+
+            $supplier = Supplier::withCount('purchaseOrders')->findOrFail($id);
+            $supplier->total_purchases = $supplier->getTotalPurchases();
+            $supplier->recent_orders = $supplier->purchaseOrders()
+                ->with('warehouse')
+                ->latest()
+                ->take(5)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'supplier' => $supplier
+            ]);
         } catch (Exception $e) {
-            Log::error('Error displaying supplier: ' . $e->getMessage());
-            return redirect()->route('admin.suppliers.index')->with('error', 'An error occurred while accessing the supplier.');
+            Log::error('Error retrieving supplier details: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve supplier details: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Show the form for editing the specified supplier.
+     * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response
      */
     public function edit($id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('edit suppliers')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit suppliers.'
+                ], 403);
+            }
+
             $supplier = Supplier::findOrFail($id);
-            
-            return view('admin.suppliers.edit', compact('supplier'));
+
+            return response()->json([
+                'success' => true,
+                'supplier' => $supplier
+            ]);
         } catch (Exception $e) {
-            Log::error('Error displaying supplier edit form: ' . $e->getMessage());
-            return redirect()->route('admin.suppliers.index')->with('error', 'An error occurred while accessing the edit form.');
+            Log::error('Error retrieving supplier for edit: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve supplier for editing: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Update the specified supplier.
+     * Update the specified resource in storage.
      *
-     * @param  Request  $request
+     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('edit suppliers')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit suppliers.'
+                ], 403);
+            }
+
             $supplier = Supplier::findOrFail($id);
-            
-            // Validate input
+
             $validator = Validator::make($request->all(), [
+                'code' => 'required|string|max:50|unique:suppliers,code,' . $id,
                 'name' => 'required|string|max:255',
-                'code' => 'nullable|string|max:50|unique:suppliers,code,' . $id,
                 'contact_person' => 'nullable|string|max:100',
-                'email' => 'nullable|email|max:100',
+                'email' => 'nullable|email|max:255',
                 'phone' => 'nullable|string|max:20',
                 'address' => 'nullable|string|max:255',
                 'city' => 'nullable|string|max:100',
                 'country' => 'nullable|string|max:100',
                 'tax_id' => 'nullable|string|max:50',
-                'notes' => 'nullable|string',
                 'active' => 'boolean',
+                'notes' => 'nullable|string'
             ]);
-            
+
             if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
+
+            $data = $request->except('_method');
             
-            // Store old values for logging
             $oldValues = [
-                'name' => $supplier->name,
                 'code' => $supplier->code,
+                'name' => $supplier->name,
                 'active' => $supplier->active
             ];
-            
-            // Update the supplier
-            $supplier->update($request->all());
-            
+
+            $supplier->update($data);
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -296,50 +308,62 @@ class SupplierController extends Controller
                         'supplier_id' => $supplier->id,
                         'old_values' => $oldValues,
                         'new_values' => [
-                            'name' => $supplier->name,
                             'code' => $supplier->code,
+                            'name' => $supplier->name,
                             'active' => $supplier->active
                         ]
                     ])
                     ->log('Updated supplier');
             }
-            
-            return redirect()->route('admin.suppliers.index')->with('success', 'Supplier updated successfully.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Supplier updated successfully.',
+                'supplier' => $supplier
+            ]);
         } catch (Exception $e) {
             Log::error('Error updating supplier: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update supplier: ' . $e->getMessage())->withInput();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update supplier: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Remove the specified supplier.
+     * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
         try {
-            $supplier = Supplier::withCount('purchaseOrders')->findOrFail($id);
-            
-            // Check if supplier has purchase orders
-            if ($supplier->purchase_orders_count > 0) {
+            if (!auth()->guard('admin')->user()->can('delete suppliers')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cannot delete supplier with associated purchase orders.'
+                    'error' => 'You do not have permission to delete suppliers.'
+                ], 403);
+            }
+
+            $supplier = Supplier::findOrFail($id);
+
+            // Check if supplier has purchase orders
+            if ($supplier->purchaseOrders()->count() > 0) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Cannot delete supplier with purchase orders. Please deactivate it instead.'
                 ], 422);
             }
-            
-            // Store supplier data for logging
+
             $supplierData = [
                 'id' => $supplier->id,
-                'name' => $supplier->name,
-                'code' => $supplier->code
+                'code' => $supplier->code,
+                'name' => $supplier->name
             ];
-            
-            // Soft delete the supplier
+
             $supplier->delete();
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -347,7 +371,7 @@ class SupplierController extends Controller
                     ->withProperties($supplierData)
                     ->log('Deleted supplier');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Supplier deleted successfully.'
@@ -357,6 +381,32 @@ class SupplierController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to delete supplier: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all suppliers for select dropdown.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getSuppliersList()
+    {
+        try {
+            $suppliers = Supplier::where('active', true)
+                ->select('id', 'name', 'code', 'contact_person', 'email', 'phone')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'suppliers' => $suppliers
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error retrieving suppliers list: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve suppliers list: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -11,20 +11,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 use Exception;
+use Voku\Helper\ASCII;
 
 class ProductBrandController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     */
-    public function __construct()
-    {
-        $this->middleware('auth:admin');
-    }
-
     /**
      * Display a listing of brands.
      *
@@ -34,22 +27,22 @@ class ProductBrandController extends Controller
     {
         try {
             // User must have permission to access brands
-            if (!auth()->guard('admin')->user()->can('view_brands')) {
+            if (!auth()->guard('admin')->user()->can('view brands')) {
                 abort(403, 'Unauthorized action.');
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return view('admin.brands.index', [
                     'tableExists' => false,
-                    'errorMessage' => 'The product_brands table does not exist in the database.'
+                    'errorMessage' => 'The product brands table does not exist in the database.'
                 ]);
             }
 
             // Get total active brands count
             $activeBrands = 0;
             $totalBrands = 0;
-            
+
             try {
                 $totalBrands = ProductBrand::count();
                 $activeBrands = ProductBrand::where('active', true)->count();
@@ -77,7 +70,7 @@ class ProductBrandController extends Controller
     {
         try {
             // User must have permission to access brands
-            if (!auth()->guard('admin')->user()->can('view_brands')) {
+            if (!auth()->guard('admin')->user()->can('view brands')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'You do not have permission to view brands.'
@@ -85,10 +78,10 @@ class ProductBrandController extends Controller
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'The product_brands table does not exist in the database.'
+                    'error' => 'The product brands table does not exist in the database.'
                 ], 500);
             }
 
@@ -100,11 +93,11 @@ class ProductBrandController extends Controller
             } else {
                 $brands = ProductBrand::all();
                 // Add a dummy products_count
-                $brands->each(function($brand) {
+                $brands->each(function ($brand) {
                     $brand->products_count = 0;
                 });
             }
-            
+
             return DataTables::of($brands)
                 ->addColumn('logo_image', function (ProductBrand $brand) {
                     if ($brand->logo) {
@@ -114,29 +107,29 @@ class ProductBrandController extends Controller
                 })
                 ->addColumn('action', function (ProductBrand $brand) {
                     $actions = '';
-                    
+
                     // View button
-                    if (Auth::guard('admin')->user()->can('view_brands')) {
+                    if (Auth::guard('admin')->user()->can('view brands')) {
                         $actions .= '<button type="button" class="btn btn-sm btn-info btn-view me-1" data-id="' . $brand->id . '">
                             <i class="fas fa-eye"></i>
                         </button> ';
                     }
-                    
+
                     // Edit button
-                    if (Auth::guard('admin')->user()->can('edit_brands')) {
+                    if (Auth::guard('admin')->user()->can('edit brands')) {
                         $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="' . $brand->id . '">
                             <i class="fas fa-edit"></i>
                         </button> ';
                     }
-                    
+
                     // Delete button
-                    if (Auth::guard('admin')->user()->can('delete_brands')) {
+                    if (Auth::guard('admin')->user()->can('delete brands')) {
                         $disabledClass = $brand->products_count > 0 ? 'disabled' : '';
                         $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete ' . $disabledClass . '" data-id="' . $brand->id . '" ' . $disabledClass . '>
                             <i class="fas fa-trash"></i>
                         </button>';
                     }
-                    
+
                     return $actions;
                 })
                 ->rawColumns(['logo_image', 'action'])
@@ -151,6 +144,34 @@ class ProductBrandController extends Controller
     }
 
     /**
+     * Generate a unique slug from the name.
+     *
+     * @param string $name
+     * @param int|null $excludeId
+     * @return string
+     */
+    protected function generateUniqueSlug($name, $excludeId = null)
+    {
+        // Transliterate accented characters using voku/portable-ascii
+        $cleanName = ASCII::to_ascii($name);
+        // Generate base slug
+        $slug = Str::slug($cleanName);
+
+        // Ensure uniqueness
+        $baseSlug = $slug;
+        $counter = 1;
+
+        while (ProductBrand::where('slug', $slug)
+            ->where('id', '!=', $excludeId)
+            ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
      * Store a newly created brand.
      *
      * @param Request $request
@@ -160,7 +181,7 @@ class ProductBrandController extends Controller
     {
         try {
             // User must have permission to create brands
-            if (!auth()->guard('admin')->user()->can('create_brands')) {
+            if (!auth()->guard('admin')->user()->can('create brands')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'You do not have permission to create brands.'
@@ -168,54 +189,60 @@ class ProductBrandController extends Controller
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'The product_brands table does not exist in the database.'
+                    'error' => 'The brands table does not exist in the database.'
                 ], 500);
             }
-            
+
             // Validate input
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:100|unique:product_brands',
-                'code' => 'nullable|string|max:50|unique:product_brands',
+                'name' => 'required|string|max:100|unique:brands',
+                'meta_title' => 'nullable|string|max:100',
+                'meta_description' => 'nullable|string|max:255',
+                'meta_keywords' => 'nullable|string|max:255',
+                'code' => 'nullable|string|max:50|unique:brands',
                 'website' => 'nullable|url|max:255',
                 'description' => 'nullable|string|max:500',
                 'logo' => 'nullable|image|max:2048',
                 'active' => 'boolean',
             ]);
-            
+
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
+
             $data = $request->except(['logo']);
-            
+
+            // Generate slug from name
+            $data['slug'] = $this->generateUniqueSlug($data['name']);
+
             // Handle logo upload
             if ($request->hasFile('logo')) {
                 $data['logo'] = $request->file('logo')->store('brand-logos', 'public');
             }
-            
+
             // Set default status if not provided
             if (!isset($data['active'])) {
                 $data['active'] = true;
             }
-            
+
             // Create the brand
             $brand = ProductBrand::create($data);
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
                     ->performedOn($brand)
-                    ->withProperties(['brand_id' => $brand->id, 'brand_name' => $brand->name])
+                    ->withProperties(['brand_id' => $brand->id, 'brand_name' => $brand->name, 'slug' => $brand->slug])
                     ->log('Created product brand');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Brand created successfully.',
@@ -233,14 +260,14 @@ class ProductBrandController extends Controller
     /**
      * Display the specified brand.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
         try {
             // User must have permission to view brands
-            if (!auth()->guard('admin')->user()->can('view_brands')) {
+            if (!auth()->guard('admin')->user()->can('view brands')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'You do not have permission to view brands.'
@@ -248,18 +275,18 @@ class ProductBrandController extends Controller
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'The product_brands table does not exist in the database.'
+                    'error' => 'The brands table does not exist in the database.'
                 ], 500);
             }
-            
+
             // Check if products table exists
             $productsTableExists = Schema::hasTable('products');
-            
+
             if ($productsTableExists) {
-                $brand = ProductBrand::with(['products' => function($query) {
+                $brand = ProductBrand::with(['products' => function ($query) {
                     $query->where('active', true)->limit(10);
                 }])->withCount('products')->findOrFail($id);
             } else {
@@ -267,10 +294,10 @@ class ProductBrandController extends Controller
                 $brand->products = collect([]);
                 $brand->products_count = 0;
             }
-            
+
             // Add full logo URL
             $brand->logo_url = $brand->logo ? asset('storage/' . $brand->logo) : null;
-            
+
             return response()->json([
                 'success' => true,
                 'brand' => $brand
@@ -287,14 +314,14 @@ class ProductBrandController extends Controller
     /**
      * Show the form for editing the specified brand.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function edit($id)
     {
         try {
             // User must have permission to edit brands
-            if (!auth()->guard('admin')->user()->can('edit_brands')) {
+            if (!auth()->guard('admin')->user()->can('edit brands')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'You do not have permission to edit brands.'
@@ -302,18 +329,18 @@ class ProductBrandController extends Controller
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'The product_brands table does not exist in the database.'
+                    'error' => 'The brands table does not exist in the database.'
                 ], 500);
             }
-            
+
             $brand = ProductBrand::findOrFail($id);
-            
+
             // Add full logo URL
             $brand->logo_url = $brand->logo ? asset('storage/' . $brand->logo) : null;
-            
+
             return response()->json([
                 'success' => true,
                 'brand' => $brand
@@ -330,15 +357,15 @@ class ProductBrandController extends Controller
     /**
      * Update the specified brand.
      *
-     * @param  Request  $request
-     * @param  int  $id
+     * @param Request $request
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
         try {
             // User must have permission to edit brands
-            if (!auth()->guard('admin')->user()->can('edit_brands')) {
+            if (!auth()->guard('admin')->user()->can('edit brands')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'You do not have permission to edit brands.'
@@ -346,54 +373,61 @@ class ProductBrandController extends Controller
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'The product_brands table does not exist in the database.'
+                    'error' => 'The brands table does not exist in the database.'
                 ], 500);
             }
-            
+
             $brand = ProductBrand::findOrFail($id);
-            
+
             // Validate input
             $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:100|unique:product_brands,name,' . $id,
-                'code' => 'nullable|string|max:50|unique:product_brands,code,' . $id,
+                'name' => 'required|string|max:100|unique:brands,name,' . $id,
+                'meta_title' => 'nullable|string|max:100',
+                'meta_description' => 'nullable|string|max:255',
+                'meta_keywords' => 'nullable|string|max:255',
+                'code' => 'nullable|string|max:50|unique:brands,code,' . $id,
                 'website' => 'nullable|url|max:255',
                 'description' => 'nullable|string|max:500',
                 'logo' => 'nullable|image|max:2048',
                 'active' => 'boolean',
             ]);
-            
+
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
+
             $data = $request->except(['logo', '_method']);
-            
+
+            // Generate slug from name
+            $data['slug'] = $this->generateUniqueSlug($data['name'], $id);
+
             // Handle logo upload
             if ($request->hasFile('logo')) {
                 // Delete old logo if exists
                 if ($brand->logo) {
                     Storage::disk('public')->delete($brand->logo);
                 }
-                
+
                 $data['logo'] = $request->file('logo')->store('brand-logos', 'public');
             }
-            
+
             // Store old values for logging
             $oldValues = [
                 'name' => $brand->name,
+                'slug' => $brand->slug,
                 'code' => $brand->code,
                 'active' => $brand->active
             ];
-            
+
             // Update the brand
             $brand->update($data);
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -404,13 +438,14 @@ class ProductBrandController extends Controller
                         'old_values' => $oldValues,
                         'new_values' => [
                             'name' => $brand->name,
+                            'slug' => $brand->slug,
                             'code' => $brand->code,
                             'active' => $brand->active
                         ]
                     ])
                     ->log('Updated product brand');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Brand updated successfully.',
@@ -428,14 +463,14 @@ class ProductBrandController extends Controller
     /**
      * Remove the specified brand.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
         try {
             // User must have permission to delete brands
-            if (!auth()->guard('admin')->user()->can('delete_brands')) {
+            if (!auth()->guard('admin')->user()->can('delete brands')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'You do not have permission to delete brands.'
@@ -443,19 +478,19 @@ class ProductBrandController extends Controller
             }
 
             // Check if the table exists
-            if (!Schema::hasTable('product_brands')) {
+            if (!Schema::hasTable('brands')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'The product_brands table does not exist in the database.'
+                    'error' => 'The brands table does not exist in the database.'
                 ], 500);
             }
-            
+
             // Check if products table exists
             $productsTableExists = Schema::hasTable('products');
-            
+
             if ($productsTableExists) {
                 $brand = ProductBrand::withCount('products')->findOrFail($id);
-                
+
                 // Check if brand has products
                 if ($brand->products_count > 0) {
                     return response()->json([
@@ -466,22 +501,23 @@ class ProductBrandController extends Controller
             } else {
                 $brand = ProductBrand::findOrFail($id);
             }
-            
+
             // Store brand data for logging
             $brandData = [
                 'id' => $brand->id,
                 'name' => $brand->name,
+                'slug' => $brand->slug,
                 'code' => $brand->code
             ];
-            
+
             // Delete logo if exists
             if ($brand->logo) {
                 Storage::disk('public')->delete($brand->logo);
             }
-            
+
             // Delete the brand
             $brand->delete();
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -489,7 +525,7 @@ class ProductBrandController extends Controller
                     ->withProperties($brandData)
                     ->log('Deleted product brand');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Brand deleted successfully.'

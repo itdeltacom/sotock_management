@@ -148,7 +148,7 @@ Ziehier wat onder meer drie Fransche bladen zeiden van dat gewrocht:
 
 La Liberté van 18 December 1868: "'t Is een heldendicht in proza,
 waarin het bloed zoo rijkelijk vloeit als het bier. Men zou zeggen
-een kermis rondom eenen brandstapel".
+een kermis rondom eenen_brandstapel".
 
 Le Constitutionnel, 9 December 1868, wijdde drie groote kolommen
 aan Uilenspiegel, waarin de recensent het boek met Goethe's Faust
@@ -2689,7 +2689,7 @@ Door den monnik als beeldschenner aangeklaagd, werd hij zonder genade
 op de pijnbank gelegd, en veroordeeld om levend te worden verbrand.
 
 Op de pijnbank had men hem de voetzolen geroosterd en onderwege,
-van het gevang naar den brandstapel, met den san benito op het hoofd,
+van het gevang naar den_brandstapel, met den san benito op het hoofd,
 riep hij gedurig:
 
 --Snijdt mijne voeten af! Snijdt mijne voeten af!
@@ -2993,7 +2993,7 @@ biechtvaders van hen die zich vooraf bekeerd hadden, kregen telkenmale
 twaalf stuivers voor hunne moeite.
 
 Te Leuven zag hij de beulen dertig Lutheranen tegelijk verbranden
-en den brandstapel met schietpoeder aansteken. Te Limburg zag hij
+en den_brandstapel met schietpoeder aansteken. Te Limburg zag hij
 een gansche familie, mannen en vrouwen, dochteren en zonen, ter
 strafplaatse leiden. Allen zongen psalmen. Alleen de oude vader
 schreeuwde, terwijl hij verbrandde.
@@ -5004,7 +5004,7 @@ De zwarte man sprak:
 zijne plichten en drijft handel in de heilige zaken.
 
 --Stil! zei Soetkin, spreek niet zoo luide, gij zoudt ons gedrieën
-op den brandstapel brengen!
+op den_brandstapel brengen!
 
 --Dus, vervolgde Klaas, Judocus heeft aan dezen braven bode gezegd,
 aangezien hij strijden ging onder de troepen van Frederik van Saksen,
@@ -7613,7 +7613,7 @@ te kleppen.
 
 De uitzinnige Katelijne stond vooraan in het volk.
 
-Naar Klaas en den brandstapel kijkend, sprak zij:
+Naar Klaas en den_brandstapel kijkend, sprak zij:
 
 --Het vuur! Het vuur! Maakt een gat: de ziel wil er uit.
 
@@ -7629,7 +7629,7 @@ en gilde:
 --De rook!
 
 De drie bedroefden zagen een groote zwarte rookwolk dwarrelend omhoog
-stijgen. 't Was de rook van den brandstapel, waarop Klaas aan eenen
+stijgen. 't Was de rook van den_brandstapel, waarop Klaas aan eenen
 staak was gebonden en dien de scherprechter aan drie kanten aangestoken
 had, in naam des Vaders, des Zoons en des Heiligen Geestes.
 
@@ -7642,7 +7642,7 @@ uit,--en de doodklok klepte, en ander gerucht hoorde men niet.
 
 Soetkin werd eensklaps bleek als de dood, zij huiverde over gansch
 heur lichaam en wees naar den hemel. Een lange, smalle vlam was uit
-den brandstapel opgestegen en verhief zich bijwijlen boven de daken
+den_brandstapel opgestegen en verhief zich bijwijlen boven de daken
 van de lage huizen. De vlam was bitter smertelijk voor Klaas, want al
 naar gelang van de grillen des winds, knaagde zij aan zijne beenen,
 verschroeidde en verbrandde zij zijn haar en zijnen baard.
@@ -7679,7 +7679,7 @@ zijn lichaam dat zich wrong en kronkelde door de smerte des vuurs,
 noch zijn gezicht dat ineentrok, zijn hoofd dat hij langs alle kanten
 keerde en draaide en tegen den staak sloeg. Het volk ging voort met
 roepen en fluiten, de vrouwen en kinderen smeten nog steenen, toen
-plotseling heel de brandstapel ontgloeide, en allen, te midden van
+plotseling heel de_brandstapel ontgloeide, en allen, te midden van
 rook en van vlammen, Klaas hoorden zuchten:
 
 --Soetkin! Thijl!
@@ -7690,7 +7690,7 @@ En uit Katelijne's woning kwam een schellen, hertverscheurenden
 kreet. En toen hoorde men niets meer dan de uitzinnige, die
 schuddebollend sprak: "De ziel wil er uit".
 
-Klaas was dood. De brandstapel viel ineen aan den voet van den staak,
+Klaas was dood. De_brandstapel viel ineen aan den voet van den staak,
 aan denwelken het arme, verkoolde lichaam bij den hals bleef hangen.
 
 En de doodklep klepte.
@@ -7770,22 +7770,22 @@ Eensklaps sloeg de wind met geweld de deur open en de kamer werd
 met stof vervuld, en Uilenspiegel en Soetkin hoorden in de verte een
 akelig ravengekras.
 
-Zij kwamen samen buiten en gingen naar den brandstapel.
+Zij kwamen samen buiten en gingen naar den_brandstapel.
 
 Het was stikdonker, behalve wanneer de gure Noordenwind de wolken in
 den hemel als herten voortjoeg en de bleeke maan heur zilveren licht
 ter aarde zond.
 
-Een stadsserjant stond op wacht bij den brandstapel. Soetkin en
+Een stadsserjant stond op wacht bij den_brandstapel. Soetkin en
 Uilenspiegel hoorden den klank zijner stappen op den harden grond en
 het gekras eener raaf, die zekere raven bijriep, want het werd in de
 verte beantwoord door andere raven.
 
-Als Uilenspiegel en Soetkin bij den brandstapel waren, viel de raaf
+Als Uilenspiegel en Soetkin bij den_brandstapel waren, viel de raaf
 op Klaas' schouderen neer, en zij hoorden heur pikken in het lijk,
 en andere raven vlogen weldra bij.
 
-Uilenspiegel wilde op den brandstapel springen om de raven te verjagen;
+Uilenspiegel wilde op den_brandstapel springen om de raven te verjagen;
 de serjant sprak tot hem:
 
 --Tooveraar, 't is nuttelooze moeite die gij doen gaat, weet dat de
@@ -8259,7 +8259,7 @@ met zalve bestreken, naar den Onze-Lieve-Vrouwetoren. Daar zag ik de
 sylphen de gebeden der menschen overgeven aan de engelen, dewelke naar
 het hoogste der hemelen vlogen om ze naar den troon Gods te dragen. En
 heel het hemelrijk was met fonkelende sterren bezaaid. Eensklaps
-verhief zich van op een brandstapel een zwarte gedaante, die omtrent
+verhief zich van op een_brandstapel een zwarte gedaante, die omtrent
 mij op den toren kwam zitten. Ik herkende Klaas gelijk hij was in
 zijn leven, met zijne kooldragerskleeren.--Wat doet gij hier op
 Onze-Lieve-Vrouwetoren? vroeg hij mij,--Maar gij zelf, antwoordde
@@ -8385,11 +8385,11 @@ werden. Telkens dat een arme onschuldige de pijne des waters
 verduren zal, die de menschen opzwelt lijk blazen; of de pijne der
 keersen, die hunne voetzolen en okselen verbranden; of de pijne
 der radbraking, die de ledematen plettert; of de pijne der olie;
-telkens dat een vrije ziel op den brandstapel den laatsten snik
+telkens dat een vrije ziel op den_brandstapel den laatsten snik
 zal geven, moet hij op zijne beurt dien dood, die smerten verduren,
 opdat hij leere hoeveel kwaad een onrechtveerdig man doen kan, die
 over millioenen gebiedt; hij verga in de gevangenissen, hij sterve
-op de brandstapels, zuchte in ballingschap, ver van het Vaderland;
+op de_brandstapels, zuchte in ballingschap, ver van het Vaderland;
 hij worde geschavotteerd, ontpoorterd, gegeeseld, gebrandmerkt; hij
 weze rijk, opdat de bedezetters hem alles ontnemen; de afgunstige
 klage hem aan en de verbeurdverklaring brenge hem ten onder. Gij zult
@@ -8996,7 +8996,7 @@ En hij toog henen.
 
 LXXXV.
 
-De lichamen der slachtoffers walmden op de brandstapels. Aan Klaas
+De lichamen der slachtoffers walmden op de_brandstapels. Aan Klaas
 en Soetkin denkend, weende Uilenspiegel eenzaam in stilte.
 
 Op een avond ging hij bij Katelijne, om heur hulp en raad te vragen.
@@ -12143,7 +12143,7 @@ en de vorsten, hadden zij gehoopt te genieten van de rijke vrucht
 van hun arbeid. Zij bedriegen zich: de metser bouwt voor den brand;
 de ambachtsman werkt voor den dief. De koning erft.
 
-Bloed en tranen! De dood maait op de brandstapels, op de boomen,
+Bloed en tranen! De dood maait op de_brandstapels, op de boomen,
 die langsheen de groote wegen tot galgen dienen, in de gapende
 kuilen, in dewelke de arme meidekens levend worden geworpen, in de
 kerkers der gevangenissen, in de kransen van brandende takkebossen,
@@ -14798,7 +14798,7 @@ Zeeland en Noord-Holland, waarvan de prins stadhouder is; en verder
 nog, op zee, Edzard, graaf van Emden en van Oost-Friesland.
 
 --Laas! sprak Lamme, ik word het wel gewaar: wij dwalen rond tusschen
-rad, galg en brandstapel, stervend van honger, stikkend van dorst,
+rad, galg en_brandstapel, stervend van honger, stikkend van dorst,
 zonder hoop ergens ruste te vinden.
 
 --'t Is maar een begin, antwoordde Uilenspiegel. Ge moet toch bekennen,
@@ -16049,7 +16049,7 @@ XXX.
 
 Doch de provoost, de rosse Spelle, met zijne roode roede gewapend,
 reed op zijn mager peerd van de eene naar de andere stad, en overal
-deed hij schavotten oprichten, brandstapels aansteken, putten delven
+deed hij schavotten oprichten,_brandstapels aansteken, putten delven
 om arme vrouwen en meidekens levend te begraven.
 
 En de koning erfde.
@@ -17563,7 +17563,7 @@ van de meidekens.
 
 Vervolgens sprak zij tot Uilenspiegel:
 
---Men gaat naar den brandstapel met eene vetkeers in de hand; wilt
+--Men gaat naar den_brandstapel met eene vetkeers in de hand; wilt
 gij er reeds eene hebben?
 
 --Laat ons drinken! zei Uilenspiegel.
@@ -19432,7 +19432,7 @@ goederen erfde, wel dien laatsten maaltijd mocht betalen.
 En hij grijnslachte.
 
 's Anderen daags, bij zonsopgang, toen men hem naar het schavot bracht,
-zag hij Uilenspiegel omtrent den brandstapel staan; en hij riep,
+zag hij Uilenspiegel omtrent den_brandstapel staan; en hij riep,
 met den vinger naar hem wijzend:
 
 --Die dààr, die moordenaar van grijsaards, moet insgelijks sterven;
@@ -20259,7 +20259,7 @@ des Rijks. Geef mij uw zweerd af, messire Joost.
 --Heer baljuw, zeide Joost Damman, met grooten hoogmoed en
 adellijke fierheid, als gij mij aanhoudt, overtreedt gij de wetten
 van Vlaanderen, want gij zelf zijt geen rechter. Nu, gij weet, dat
-alleen valsche munters, struikroovers, brandstichters, verkrachters
+alleen valsche munters, struikroovers,_brandstichters, verkrachters
 van vrouwen en meidekens, soldeniers die hunnen hoofdman ontliepen,
 tooveraars die de wateren vergiftigden, monniken en begijnen die hunne
 kloosters ontliepen, mitsgaders gebannenen, zonder lastgeving van
@@ -22592,7 +22592,7 @@ Heeren, voelde hij geen de minste vreugd in zijn hert.
 
 Maar Uilenspiegel, Lamme en Nele zongen als lijsters, waagden bestendig
 hun leven; God schiep den dag en zij gingen er door, en zij vonden
-meer genoegen in het uitdooven van eenen brandstapel, dan de zwarte
+meer genoegen in het uitdooven van eenen_brandstapel, dan de zwarte
 koning vreugde smaakte in het verbranden van gansch eene stad.
 
 In dien tijd ook was Willem de Zwijger, Prins van Oranje, gedwongen
@@ -22647,7 +22647,7 @@ vloot, de bakermat der vrijheid.... Vive le Geus!
 weerklinken! Men slijpt de wapenen, men zet de zweerden aan op den
 steen. Allen bewegen zich, trillen als de snaren eener harp bij den
 warmen ademtocht, adem van de zielen, die stijgt uit de putten, uit
-de brandstapels, uit de bloedige lijken der slachtofferen. Allen:
+de_brandstapels, uit de bloedige lijken der slachtofferen. Allen:
 Henegouwen, Brabant, Luxemburg, Limburg, Namen, Luik, de vrije,
 vurige stede, allen! Het bloed kiemt en rijst. De oogst is rijp voor
 de zeis.... Vive le Geus!
@@ -24372,7 +24372,7 @@ Toen Lamme dit hoorde, riep hij uit:
 
 --Wat, die smerige paap, wiens mond een rioolgat was, vol drek en vol
 modder, en die steeds dorstte naar het bloed der hervormden! Wat! die
-verdediger der brandstapels en der plakkaten! Ha! 't was die gemeene
+verdediger der_brandstapels en der plakkaten! Ha! 't was die gemeene
 schavuit!
 
 Kalleken sprak:

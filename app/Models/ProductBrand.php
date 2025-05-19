@@ -10,28 +10,46 @@ class ProductBrand extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'brands';
+    /**
+     * The attributes that are mass 
+     * assignable.
+     *
+     * @var array
+     */
     protected $fillable = [
         'name',
         'slug',
+        'code',
+        'website',
         'logo',
         'description',
         'meta_title',
         'meta_description',
         'meta_keywords',
-        'is_active',
+        'active',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
     protected $casts = [
-        'is_active' => 'boolean',
+        'active' => 'boolean',
     ];
 
-    // Relationships
+    /**
+     * Relationships
+     */
     public function products()
     {
         return $this->hasMany(Product::class, 'brand_id');
     }
 
-    // Helpers
+    /**
+     * Helpers
+     */
     public function getRouteKeyName()
     {
         return 'slug';
@@ -39,6 +57,6 @@ class ProductBrand extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('active', true);
     }
 }

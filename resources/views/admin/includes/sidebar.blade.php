@@ -68,7 +68,8 @@
                     </li>
                 @endcan
 
-                @can('manage brands')
+                <!-- Product_brands -->
+                @canany(['view brands', 'create brands', 'edit brands', 'delete brands'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.brands.*') ? 'active' : '' }}"
                             href="{{ route('admin.brands.index') }}">
@@ -76,10 +77,10 @@
                                 class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                                 <i class="ni ni-badge text-dark text-sm opacity-10"></i>
                             </div>
-                            <span class="nav-link-text ms-1">Brands</span>
+                            <span class="nav-link-text ms-1">Product brands</span>
                         </a>
                     </li>
-                @endcan
+                @endcanany
 
                 @can('manage categories')
                     <li class="nav-item">
@@ -95,6 +96,129 @@
                 @endcan
             @endcanany
 
+            <!-- Stock Management Section -->
+            @canany(['manage products', 'view products', 'manage inventory', 'view inventory'])
+                <li class="nav-item mt-3">
+                    <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Stock Management</h6>
+                </li>
+
+                @canany(['view products', 'manage products'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}"
+                            href="{{ route('admin.products.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-box-2 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Products</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view warehouses', 'manage warehouses'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.warehouses.*') ? 'active' : '' }}"
+                            href="{{ route('admin.warehouses.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-building text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Warehouses</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view suppliers', 'manage suppliers'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.suppliers.*') ? 'active' : '' }}"
+                            href="{{ route('admin.suppliers.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-shop text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Suppliers</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view purchase-orders', 'manage purchase-orders'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.purchase-orders.*') ? 'active' : '' }}"
+                            href="{{ route('admin.purchase-orders.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-cart text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Purchase Orders</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view sales-orders', 'manage sales-orders'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.sales-orders.*') ? 'active' : '' }}"
+                            href="{{ route('admin.sales-orders.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-tag text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Sales Orders</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view stock', 'manage stock'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}"
+                            href="{{ route('admin.inventory.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-app text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Inventory</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view stock-movements', 'manage stock-movements'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.stock-movements.*') ? 'active' : '' }}"
+                            href="{{ route('admin.stock-movements.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-curved-next text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Stock Movements</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view stock-transfers', 'manage stock-transfers'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.stock-transfers.*') ? 'active' : '' }}"
+                            href="{{ route('admin.stock-transfers.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-spaceship text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Stock Transfers</span>
+                        </a>
+                    </li>
+                @endcanany
+
+                @canany(['view stock-adjustments', 'manage stock-adjustments'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.stock-adjustments.*') ? 'active' : '' }}"
+                            href="{{ route('admin.stock-adjustments.index') }}">
+                            <div
+                                class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
+                                <i class="ni ni-settings-gear-65 text-dark text-sm opacity-10"></i>
+                            </div>
+                            <span class="nav-link-text ms-1">Stock Adjustments</span>
+                        </a>
+                    </li>
+                @endcanany
+            @endcanany
             <!-- Contract Management Section -->
             @canany(['manage contracts', 'view contracts'])
                 <li class="nav-item mt-3">

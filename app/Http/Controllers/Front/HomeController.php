@@ -41,7 +41,7 @@ class HomeController extends Controller
             ->get()
             ->pluck('transmission');
             
-        // Get available brands with at least one car
+        // Get available_brands with at least one car
         $brands = Brand::where('is_active', true)
             ->whereHas('cars', function ($query) {
                 $query->where('is_available', true);

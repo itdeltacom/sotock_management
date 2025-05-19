@@ -12,13 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_categories', function (Blueprint $table) {
-               $table->id();
-            $table->string('name');
-            $table->string('code')->unique();
-            $table->text('description')->nullable();
-            $table->unsignedBigInteger('parent_id')->nullable();
-            $table->foreign('parent_id')->references('id')->on('product_categories')->onDelete('set null');
-            $table->timestamps();
+          $table->id();
+    $table->string('name', 100);
+    $table->string('slug')->unique();
+    $table->string('code', 50)->nullable()->unique();
+    $table->string('website', 255)->nullable();
+    $table->string('logo')->nullable();
+    $table->text('description')->nullable();
+    $table->string('meta_title')->nullable();
+    $table->text('meta_description')->nullable();
+    $table->text('meta_keywords')->nullable();
+    $table->foreignId('parent_id')->nullable()->constrained('product_categories')->onDelete('restrict');
+    $table->boolean('active')->default(true);
+    $table->timestamps();
+    $table->softDeletes();
         });
     }
 

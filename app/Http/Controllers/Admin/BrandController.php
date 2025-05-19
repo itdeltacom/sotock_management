@@ -14,7 +14,7 @@ use Yajra\DataTables\Facades\DataTables;
 class BrandController extends Controller
 {
     /**
-     * Display a listing of the brands.
+     * Display a listing of the_brands.
      */
     public function index()
     {
@@ -33,14 +33,14 @@ class BrandController extends Controller
                 $actions = '';
                 
                 // Only show edit button if user has permission
-                if (Auth::guard('admin')->user()->can('edit brands')) {
+                if (Auth::guard('admin')->user()->can('edit_brands')) {
                     $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="'.$brand->id.'">
                         <i class="fas fa-edit"></i>
                     </button> ';
                 }
                 
                 // Only show delete button if user has permission
-                if (Auth::guard('admin')->user()->can('delete brands')) {
+                if (Auth::guard('admin')->user()->can('delete_brands')) {
                     $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="'.$brand->id.'" data-name="'.$brand->name.'">
                         <i class="fas fa-trash"></i>
                     </button>';
@@ -70,10 +70,10 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         // Check permission
-        if (!Auth::guard('admin')->user()->can('create brands')) {
+        if (!Auth::guard('admin')->user()->can('create_brands')) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to create brands.'
+                'message' => 'You do not have permission to create_brands.'
             ], 403);
         }
         
@@ -137,10 +137,10 @@ class BrandController extends Controller
     public function update(Request $request, Brand $brand)
     {
         // Check permission
-        if (!Auth::guard('admin')->user()->can('edit brands')) {
+        if (!Auth::guard('admin')->user()->can('edit_brands')) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to edit brands.'
+                'message' => 'You do not have permission to edit_brands.'
             ], 403);
         }
         
@@ -198,10 +198,10 @@ class BrandController extends Controller
     public function destroy(Brand $brand)
     {
         // Check permission
-        if (!Auth::guard('admin')->user()->can('delete brands')) {
+        if (!Auth::guard('admin')->user()->can('delete_brands')) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to delete brands.'
+                'message' => 'You do not have permission to delete_brands.'
             ], 403);
         }
         

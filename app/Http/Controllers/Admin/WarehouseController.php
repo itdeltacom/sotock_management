@@ -4,12 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Warehouse;
-use App\Models\Product;
 use App\Models\ProductWarehouseStock;
-use App\Models\StockMovement;
+use App\Services\Warehouse\WarehouseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,27 +15,29 @@ use Exception;
 
 class WarehouseController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     */
-    public function __construct()
+    protected $warehouseService;
+
+    public function __construct(WarehouseService $warehouseService)
     {
-        $this->middleware('auth:admin');
-        $this->middleware('permission:view_warehouses', ['only' => ['index', 'show', 'data', 'stock', 'stockData']]);
-        $this->middleware('permission:create_warehouses', ['only' => ['create', 'store']]);
-        $this->middleware('permission:edit_warehouses', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:delete_warehouses', ['only' => ['destroy']]);
+        $this->warehouseService = $warehouseService;
     }
 
     /**
-     * Display a listing of warehouses.
+     * Display a listing of the resource.
      *
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response
      */
     public function index()
     {
         try {
-            return view('admin.warehouses.index');
+            if (!auth()->guard('admin')->user()->can('view warehouses')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $totalWarehouses = Warehouse::count();
+            $activeWarehouses = Warehouse::where('active', true)->count();
+
+            return view('admin.warehouses.index', compact('totalWarehouses', 'activeWarehouses'));
         } catch (Exception $e) {
             Log::error('Error displaying warehouses: ' . $e->getMessage());
             return redirect()->route('admin.dashboard')->with('error', 'An error occurred while accessing warehouses.');
@@ -47,119 +47,122 @@ class WarehouseController extends Controller
     /**
      * Get warehouses data for DataTables.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function data(Request $request)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('view warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view warehouses.'
+                ], 403);
+            }
+
             $query = Warehouse::query();
             
             // Apply filters if provided
-            if ($request->has('status') && $request->status !== 'all') {
-                $active = $request->status === 'active';
-                $query->where('active', $active);
+            if ($request->has('active') && $request->active !== '') {
+                $query->where('active', $request->active);
             }
             
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('code', 'like', "%{$search}%")
+                      ->orWhere('location', 'like', "%{$search}%");
+                });
+            }
+
             $warehouses = $query->get();
-            
+
             return DataTables::of($warehouses)
-                ->addColumn('status_label', function (Warehouse $warehouse) {
-                    return $warehouse->active 
-                        ? '<span class="badge bg-success">Active</span>' 
-                        : '<span class="badge bg-danger">Inactive</span>';
-                })
                 ->addColumn('products_count', function (Warehouse $warehouse) {
                     return $warehouse->productStock()->count();
                 })
-                ->addColumn('total_value', function (Warehouse $warehouse) {
-                    $totalValue = $warehouse->productStock()
-                        ->sum(DB::raw('available_quantity * cmup'));
-                    return number_format($totalValue, 2) . ' MAD';
+                ->addColumn('stock_value', function (Warehouse $warehouse) {
+                    $value = $warehouse->productStock()
+                        ->selectRaw('SUM(available_quantity * cmup) as total_value')
+                        ->first()
+                        ->total_value ?? 0;
+                    
+                    return number_format($value, 2);
                 })
                 ->addColumn('action', function (Warehouse $warehouse) {
                     $actions = '';
-                    
-                    // View button
-                    if (Auth::guard('admin')->user()->can('view_warehouses')) {
-                        $actions .= '<a href="' . route('admin.warehouses.show', $warehouse->id) . '" class="btn btn-sm btn-info me-1">
+
+                    if (Auth::guard('admin')->user()->can('view warehouses')) {
+                        $actions .= '<button type="button" class="btn btn-sm btn-info btn-view me-1" data-id="' . $warehouse->id . '">
                             <i class="fas fa-eye"></i>
-                        </a> ';
+                        </button> ';
                     }
-                    
-                    // Edit button
-                    if (Auth::guard('admin')->user()->can('edit_warehouses')) {
-                        $actions .= '<a href="' . route('admin.warehouses.edit', $warehouse->id) . '" class="btn btn-sm btn-primary me-1">
+
+                    if (Auth::guard('admin')->user()->can('edit warehouses')) {
+                        $actions .= '<button type="button" class="btn btn-sm btn-primary btn-edit me-1" data-id="' . $warehouse->id . '">
                             <i class="fas fa-edit"></i>
-                        </a> ';
+                        </button> ';
                     }
-                    
-                    // Delete button
-                    if (Auth::guard('admin')->user()->can('delete_warehouses')) {
-                        $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $warehouse->id . '">
+
+                    if (Auth::guard('admin')->user()->can('delete warehouses')) {
+                        $disabledClass = ($warehouse->productStock()->count() > 0) ? 'disabled' : '';
+                        $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete ' . $disabledClass . '" data-id="' . $warehouse->id . '" ' . $disabledClass . '>
                             <i class="fas fa-trash"></i>
                         </button>';
                     }
-                    
+
                     return $actions;
                 })
-                ->rawColumns(['status_label', 'action'])
+                ->rawColumns(['action'])
                 ->make(true);
         } catch (Exception $e) {
             Log::error('Error getting warehouse data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve warehouses data.'
+                'error' => 'Failed to retrieve warehouses data: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Show the form for creating a new warehouse.
+     * Store a newly created resource in storage.
      *
-     * @return \Illuminate\View\View
-     */
-    public function create()
-    {
-        try {
-            return view('admin.warehouses.create');
-        } catch (Exception $e) {
-            Log::error('Error displaying warehouse create form: ' . $e->getMessage());
-            return redirect()->route('admin.warehouses.index')->with('error', 'An error occurred while accessing the create form.');
-        }
-    }
-
-    /**
-     * Store a newly created warehouse.
-     *
-     * @param Request $request
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
         try {
-            // Validate input
+            if (!auth()->guard('admin')->user()->can('create warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to create warehouses.'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
+                'code' => 'required|string|max:50|unique:warehouses',
                 'name' => 'required|string|max:255',
-                'code' => 'nullable|string|max:50|unique:warehouses',
                 'location' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
                 'active' => 'boolean',
             ]);
-            
+
             if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
-            
-            // Set default active status if not provided
+
             $data = $request->all();
+            
             if (!isset($data['active'])) {
                 $data['active'] = true;
             }
-            
-            // Create the warehouse
+
             $warehouse = Warehouse::create($data);
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -168,107 +171,143 @@ class WarehouseController extends Controller
                     ->withProperties(['warehouse_id' => $warehouse->id, 'warehouse_name' => $warehouse->name])
                     ->log('Created warehouse');
             }
-            
-            return redirect()->route('admin.warehouses.index')->with('success', 'Warehouse created successfully.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Warehouse created successfully.',
+                'warehouse' => $warehouse
+            ]);
         } catch (Exception $e) {
             Log::error('Error creating warehouse: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to create warehouse: ' . $e->getMessage())->withInput();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create warehouse: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Display the specified warehouse.
+     * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response
      */
     public function show($id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('view warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view warehouses.'
+                ], 403);
+            }
+
             $warehouse = Warehouse::findOrFail($id);
             
             // Get warehouse statistics
-            $totalProducts = $warehouse->productStock()->count();
-            $totalQuantity = $warehouse->productStock()->sum('available_quantity');
-            $reservedQuantity = $warehouse->productStock()->sum('reserved_quantity');
-            $totalValue = $warehouse->productStock()->sum(DB::raw('available_quantity * cmup'));
+            $stockData = $this->warehouseService->getWarehouseStock($warehouse);
             
-            // Get recent stock movements
+            // Get recent movements
             $recentMovements = $warehouse->stockMovements()
-                ->with(['product', 'createdBy'])
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
+                ->with(['product'])
+                ->latest()
+                ->take(5)
                 ->get();
             
-            // Get low stock products
-            $lowStockProducts = $warehouse->productStock()
-                ->with('product')
-                ->whereRaw('available_quantity < min_stock')
-                ->where('min_stock', '>', 0)
-                ->orderByRaw('(min_stock - available_quantity) / min_stock DESC')
-                ->limit(10)
-                ->get();
-            
-            return view('admin.warehouses.show', compact('warehouse', 'totalProducts', 'totalQuantity', 'reservedQuantity', 'totalValue', 'recentMovements', 'lowStockProducts'));
+            return response()->json([
+                'success' => true,
+                'warehouse' => $warehouse,
+                'stockData' => [
+                    'total_products' => $stockData['total_products'],
+                    'total_quantity' => $stockData['total_quantity'],
+                    'total_value' => $stockData['total_value'],
+                ],
+                'recentMovements' => $recentMovements
+            ]);
         } catch (Exception $e) {
-            Log::error('Error displaying warehouse: ' . $e->getMessage());
-            return redirect()->route('admin.warehouses.index')->with('error', 'An error occurred while accessing the warehouse.');
+            Log::error('Error retrieving warehouse details: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve warehouse details: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Show the form for editing the specified warehouse.
+     * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\View\View
+     * @return \Illuminate\Http\Response
      */
     public function edit($id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('edit warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit warehouses.'
+                ], 403);
+            }
+
             $warehouse = Warehouse::findOrFail($id);
-            
-            return view('admin.warehouses.edit', compact('warehouse'));
+
+            return response()->json([
+                'success' => true,
+                'warehouse' => $warehouse
+            ]);
         } catch (Exception $e) {
-            Log::error('Error displaying warehouse edit form: ' . $e->getMessage());
-            return redirect()->route('admin.warehouses.index')->with('error', 'An error occurred while accessing the edit form.');
+            Log::error('Error retrieving warehouse for edit: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve warehouse for editing: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Update the specified warehouse.
+     * Update the specified resource in storage.
      *
-     * @param  Request  $request
+     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('edit warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit warehouses.'
+                ], 403);
+            }
+
             $warehouse = Warehouse::findOrFail($id);
-            
-            // Validate input
+
             $validator = Validator::make($request->all(), [
+                'code' => 'required|string|max:50|unique:warehouses,code,' . $id,
                 'name' => 'required|string|max:255',
-                'code' => 'nullable|string|max:50|unique:warehouses,code,' . $id,
                 'location' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
                 'active' => 'boolean',
             ]);
-            
+
             if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
+
+            $data = $request->except('_method');
             
-            // Store old values for logging
             $oldValues = [
-                'name' => $warehouse->name,
                 'code' => $warehouse->code,
+                'name' => $warehouse->name,
                 'active' => $warehouse->active
             ];
-            
-            // Update the warehouse
-            $warehouse->update($request->all());
-            
+
+            $warehouse->update($data);
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -278,66 +317,62 @@ class WarehouseController extends Controller
                         'warehouse_id' => $warehouse->id,
                         'old_values' => $oldValues,
                         'new_values' => [
-                            'name' => $warehouse->name,
                             'code' => $warehouse->code,
+                            'name' => $warehouse->name,
                             'active' => $warehouse->active
                         ]
                     ])
                     ->log('Updated warehouse');
             }
-            
-            return redirect()->route('admin.warehouses.index')->with('success', 'Warehouse updated successfully.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Warehouse updated successfully.',
+                'warehouse' => $warehouse
+            ]);
         } catch (Exception $e) {
             Log::error('Error updating warehouse: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update warehouse: ' . $e->getMessage())->withInput();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update warehouse: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Remove the specified warehouse.
+     * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
         try {
-            $warehouse = Warehouse::withCount(['productStock', 'stockPackages'])->findOrFail($id);
-            
+            if (!auth()->guard('admin')->user()->can('delete warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to delete warehouses.'
+                ], 403);
+            }
+
+            $warehouse = Warehouse::findOrFail($id);
+
             // Check if warehouse has stock
-            if ($warehouse->product_stock_count > 0 || $warehouse->stock_packages_count > 0) {
+            if ($warehouse->productStock()->count() > 0) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cannot delete warehouse with existing stock. Please transfer all stock first.'
+                    'error' => 'Cannot delete warehouse with stock. Please transfer all stock first.'
                 ], 422);
             }
-            
-            // Check if warehouse is used in any active purchase/sales order
-            $pendingPurchaseOrders = $warehouse->purchaseOrders()
-                ->whereIn('status', ['draft', 'confirmed', 'partially_received'])
-                ->count();
-                
-            $pendingSalesOrders = $warehouse->salesOrders()
-                ->whereIn('status', ['draft', 'confirmed', 'partially_delivered'])
-                ->count();
-                
-            if ($pendingPurchaseOrders > 0 || $pendingSalesOrders > 0) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Cannot delete warehouse with pending purchase or sales orders.'
-                ], 422);
-            }
-            
-            // Store warehouse data for logging
+
             $warehouseData = [
                 'id' => $warehouse->id,
-                'name' => $warehouse->name,
-                'code' => $warehouse->code
+                'code' => $warehouse->code,
+                'name' => $warehouse->name
             ];
-            
-            // Delete the warehouse
+
             $warehouse->delete();
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
@@ -345,7 +380,7 @@ class WarehouseController extends Controller
                     ->withProperties($warehouseData)
                     ->log('Deleted warehouse');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Warehouse deleted successfully.'
@@ -360,107 +395,64 @@ class WarehouseController extends Controller
     }
 
     /**
-     * Display warehouse stock.
+     * Get warehouse stock information.
      *
-     * @return \Illuminate\View\View
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
      */
-    public function stock()
+    public function getStockInfo($id)
     {
         try {
-            $warehouses = Warehouse::where('active', true)->get();
+            if (!auth()->guard('admin')->user()->can('view warehouses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view warehouse stock.'
+                ], 403);
+            }
+
+            $warehouse = Warehouse::findOrFail($id);
+            $stockData = $this->warehouseService->getWarehouseStock($warehouse);
             
-            return view('admin.warehouses.stock', compact('warehouses'));
+            return response()->json([
+                'success' => true,
+                'warehouse' => [
+                    'id' => $warehouse->id,
+                    'name' => $warehouse->name,
+                    'code' => $warehouse->code
+                ],
+                'stock_info' => $stockData
+            ]);
         } catch (Exception $e) {
-            Log::error('Error displaying warehouse stock: ' . $e->getMessage());
-            return redirect()->route('admin.dashboard')->with('error', 'An error occurred while accessing warehouse stock.');
+            Log::error('Error retrieving warehouse stock info: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve warehouse stock information: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Get warehouse stock data for DataTables.
+     * Get all warehouses for select dropdown.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\Response
      */
-    public function stockData(Request $request)
+    public function getWarehousesList()
     {
         try {
-            $query = ProductWarehouseStock::with(['product', 'warehouse']);
-            
-            // Apply warehouse filter
-            if ($request->has('warehouse_id') && $request->warehouse_id) {
-                $query->where('warehouse_id', $request->warehouse_id);
-            }
-            
-            // Apply product filter
-            if ($request->has('product_id') && $request->product_id) {
-                $query->where('product_id', $request->product_id);
-            }
-            
-            // Apply stock level filter
-            if ($request->has('stock_level')) {
-                switch ($request->stock_level) {
-                    case 'low':
-                        $query->whereRaw('available_quantity < min_stock')
-                            ->where('min_stock', '>', 0);
-                        break;
-                    case 'out':
-                        $query->where('available_quantity', 0);
-                        break;
-                    case 'over':
-                        $query->whereRaw('available_quantity > max_stock')
-                            ->where('max_stock', '>', 0);
-                        break;
-                }
-            }
-            
-            $stockItems = $query->get();
-            
-            return DataTables::of($stockItems)
-                ->addColumn('product_code', function (ProductWarehouseStock $item) {
-                    return $item->product->code;
-                })
-                ->addColumn('product_name', function (ProductWarehouseStock $item) {
-                    return $item->product->name;
-                })
-                ->addColumn('warehouse_name', function (ProductWarehouseStock $item) {
-                    return $item->warehouse->name;
-                })
-                ->addColumn('total_quantity', function (ProductWarehouseStock $item) {
-                    return $item->getTotalQuantity();
-                })
-                ->addColumn('stock_value', function (ProductWarehouseStock $item) {
-                    return number_format($item->available_quantity * $item->cmup, 2) . ' MAD';
-                })
-                ->addColumn('stock_status', function (ProductWarehouseStock $item) {
-                    if ($item->isLowStock()) {
-                        return '<span class="badge bg-warning">Low Stock</span>';
-                    } elseif ($item->available_quantity == 0) {
-                        return '<span class="badge bg-danger">Out of Stock</span>';
-                    } elseif ($item->isOverStock()) {
-                        return '<span class="badge bg-info">Over Stock</span>';
-                    } else {
-                        return '<span class="badge bg-success">Normal</span>';
-                    }
-                })
-                ->addColumn('action', function (ProductWarehouseStock $item) {
-                    $actions = '';
-                    
-                    if (Auth::guard('admin')->user()->can('view_products')) {
-                        $actions .= '<a href="' . route('admin.products.show', $item->product_id) . '" class="btn btn-sm btn-info me-1">
-                            <i class="fas fa-eye"></i> View Product
-                        </a> ';
-                    }
-                    
-                    return $actions;
-                })
-                ->rawColumns(['stock_status', 'action'])
-                ->make(true);
+            $warehouses = Warehouse::where('active', true)
+                ->select('id', 'name', 'code', 'location')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'warehouses' => $warehouses
+            ]);
         } catch (Exception $e) {
-            Log::error('Error getting warehouse stock data: ' . $e->getMessage());
+            Log::error('Error retrieving warehouses list: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve warehouse stock data.'
+                'error' => 'Failed to retrieve warehouses list: ' . $e->getMessage()
             ], 500);
         }
     }

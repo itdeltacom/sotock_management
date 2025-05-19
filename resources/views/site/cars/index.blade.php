@@ -42,11 +42,11 @@
                                     </select>
                                 </div>
 
-                                <!-- Brands Filter -->
+                                <!--_brands Filter -->
                                 <div class="mb-4">
                                     <label class="form-label">Brands</label>
                                     <select class="form-select filter-input" name="brand_id">
-                                        <option value="">All Brands</option>
+                                        <option value="">All_brands</option>
                                         @foreach($brands as $brand)
                                             <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
                                                 {{ $brand->name }}

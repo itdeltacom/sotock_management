@@ -4,54 +4,49 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
-use App\Models\PurchaseOrderItem;
-use App\Models\Supplier;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Services\Purchase\PurchaseOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 use Exception;
-use Carbon\Carbon;
 
 class PurchaseOrderController extends Controller
 {
     protected $purchaseOrderService;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @param PurchaseOrderService $purchaseOrderService
-     */
     public function __construct(PurchaseOrderService $purchaseOrderService)
     {
-        $this->middleware('auth:admin');
-        $this->middleware('permission:view_purchase_orders', ['only' => ['index', 'show', 'data']]);
-        $this->middleware('permission:create_purchase_orders', ['only' => ['create', 'store']]);
-        $this->middleware('permission:edit_purchase_orders', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:delete_purchase_orders', ['only' => ['destroy']]);
-        $this->middleware('permission:confirm_purchase_orders', ['only' => ['confirm']]);
-        $this->middleware('permission:cancel_purchase_orders', ['only' => ['cancel']]);
-
         $this->purchaseOrderService = $purchaseOrderService;
     }
 
     /**
-     * Display a listing of purchase orders.
+     * Display a listing of the purchase orders.
      *
      * @return \Illuminate\View\View
      */
     public function index()
     {
         try {
-            $suppliers = Supplier::where('active', true)->orderBy('name')->get();
-            $warehouses = Warehouse::where('active', true)->orderBy('name')->get();
-            
-            return view('admin.purchase-orders.index', compact('suppliers', 'warehouses'));
+            if (!auth()->guard('admin')->user()->can('view purchase-orders')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $suppliers = Supplier::where('active', true)->get();
+            $warehouses = Warehouse::where('active', true)->get();
+            $statuses = [
+                PurchaseOrder::STATUS_DRAFT => 'Draft',
+                PurchaseOrder::STATUS_CONFIRMED => 'Confirmed',
+                PurchaseOrder::STATUS_PARTIALLY_RECEIVED => 'Partially Received',
+                PurchaseOrder::STATUS_RECEIVED => 'Received',
+                PurchaseOrder::STATUS_CANCELLED => 'Cancelled'
+            ];
+
+            return view('admin.purchase-orders.index', compact('suppliers', 'warehouses', 'statuses'));
         } catch (Exception $e) {
             Log::error('Error displaying purchase orders: ' . $e->getMessage());
             return redirect()->route('admin.dashboard')->with('error', 'An error occurred while accessing purchase orders.');
@@ -61,92 +56,98 @@ class PurchaseOrderController extends Controller
     /**
      * Get purchase orders data for DataTables.
      *
-     * @param Request $request
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function data(Request $request)
     {
         try {
-            // Apply filters
+            if (!auth()->guard('admin')->user()->can('view purchase-orders')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to view purchase orders.'
+                ], 403);
+            }
+
             $filters = [
-                'supplier_id' => $request->supplier_id,
-                'warehouse_id' => $request->warehouse_id,
-                'status' => $request->status != 'all' ? $request->status : null,
-                'reference_no' => $request->reference_no,
-                'date_from' => $request->date_from,
-                'date_to' => $request->date_to
+                'reference_no' => $request->input('reference_no'),
+                'supplier_id' => $request->input('supplier_id'),
+                'warehouse_id' => $request->input('warehouse_id'),
+                'status' => $request->input('status'),
+                'date_from' => $request->input('date_from'),
+                'date_to' => $request->input('date_to'),
+                'order_by' => $request->input('order_by', 'created_at'),
+                'order_dir' => $request->input('order_dir', 'desc'),
+                'per_page' => $request->input('length', 15)
             ];
-            
-            // Get orders from service
+
             $purchaseOrders = $this->purchaseOrderService->getOrders($filters);
-            
+
             return DataTables::of($purchaseOrders)
-                ->editColumn('order_date', function (PurchaseOrder $order) {
-                    return $order->order_date->format('Y-m-d');
+                ->addColumn('supplier_name', function (PurchaseOrder $po) {
+                    return $po->supplier ? $po->supplier->name : '-';
                 })
-                ->editColumn('expected_delivery_date', function (PurchaseOrder $order) {
-                    return $order->expected_delivery_date ? $order->expected_delivery_date->format('Y-m-d') : '-';
+                ->addColumn('warehouse_name', function (PurchaseOrder $po) {
+                    return $po->warehouse ? $po->warehouse->name : '-';
                 })
-                ->editColumn('total_amount', function (PurchaseOrder $order) {
-                    return number_format($order->total_amount, 2) . ' MAD';
+                ->addColumn('created_by_name', function (PurchaseOrder $po) {
+                    return $po->createdBy ? $po->createdBy->name : '-';
                 })
-                ->addColumn('supplier_name', function (PurchaseOrder $order) {
-                    return $order->supplier->name;
-                })
-                ->addColumn('warehouse_name', function (PurchaseOrder $order) {
-                    return $order->warehouse->name;
-                })
-                ->addColumn('items_count', function (PurchaseOrder $order) {
-                    return $order->items->count();
-                })
-                ->addColumn('status_label', function (PurchaseOrder $order) {
-                    $statusMap = [
-                        'draft' => '<span class="badge bg-secondary">Draft</span>',
-                        'confirmed' => '<span class="badge bg-primary">Confirmed</span>',
-                        'partially_received' => '<span class="badge bg-info">Partially Received</span>',
-                        'received' => '<span class="badge bg-success">Received</span>',
-                        'cancelled' => '<span class="badge bg-danger">Cancelled</span>'
+                ->addColumn('status_label', function (PurchaseOrder $po) {
+                    $statusClasses = [
+                        PurchaseOrder::STATUS_DRAFT => 'bg-secondary',
+                        PurchaseOrder::STATUS_CONFIRMED => 'bg-info',
+                        PurchaseOrder::STATUS_PARTIALLY_RECEIVED => 'bg-warning',
+                        PurchaseOrder::STATUS_RECEIVED => 'bg-success',
+                        PurchaseOrder::STATUS_CANCELLED => 'bg-danger'
                     ];
-                    return $statusMap[$order->status] ?? '<span class="badge bg-secondary">Unknown</span>';
+
+                    $class = $statusClasses[$po->status] ?? 'bg-secondary';
+                    return '<span class="badge ' . $class . '">' . ucfirst($po->status) . '</span>';
                 })
-                ->addColumn('action', function (PurchaseOrder $order) {
+                ->addColumn('action', function (PurchaseOrder $po) {
                     $actions = '';
-                    
-                    // View button
-                    if (Auth::guard('admin')->user()->can('view_purchase_orders')) {
-                        $actions .= '<a href="' . route('admin.purchase-orders.show', $order->id) . '" class="btn btn-sm btn-info me-1">
+
+                    if (Auth::guard('admin')->user()->can('view purchase-orders')) {
+                        $actions .= '<a href="' . route('admin.purchase-orders.show', $po->id) . '" class="btn btn-sm btn-info me-1">
                             <i class="fas fa-eye"></i>
-                        </a> ';
+                        </a>';
                     }
-                    
-                    // Edit button
-                    if (Auth::guard('admin')->user()->can('edit_purchase_orders') && $order->canBeEdited()) {
-                        $actions .= '<a href="' . route('admin.purchase-orders.edit', $order->id) . '" class="btn btn-sm btn-primary me-1">
-                            <i class="fas fa-edit"></i>
-                        </a> ';
+
+                    if (Auth::guard('admin')->user()->can('edit purchase-orders')) {
+                        if ($po->canBeEdited()) {
+                            $actions .= '<a href="' . route('admin.purchase-orders.edit', $po->id) . '" class="btn btn-sm btn-primary me-1">
+                                <i class="fas fa-edit"></i>
+                            </a>';
+                        }
+
+                        if ($po->status === PurchaseOrder::STATUS_DRAFT) {
+                            $actions .= '<button type="button" class="btn btn-sm btn-success me-1 btn-confirm" data-id="' . $po->id . '">
+                                <i class="fas fa-check"></i>
+                            </button>';
+                        }
+
+                        if ($po->canBeCancelled()) {
+                            $actions .= '<button type="button" class="btn btn-sm btn-warning me-1 btn-cancel" data-id="' . $po->id . '">
+                                <i class="fas fa-ban"></i>
+                            </button>';
+                        }
                     }
-                    
-                    // Confirm button
-                    if (Auth::guard('admin')->user()->can('confirm_purchase_orders') && $order->status == 'draft') {
-                        $actions .= '<button type="button" class="btn btn-sm btn-success btn-confirm me-1" data-id="' . $order->id . '">
-                            <i class="fas fa-check"></i>
-                        </button> ';
+
+                    if (Auth::guard('admin')->user()->can('delete purchase-orders')) {
+                        if ($po->status === PurchaseOrder::STATUS_DRAFT) {
+                            $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $po->id . '">
+                                <i class="fas fa-trash"></i>
+                            </button>';
+                        }
                     }
-                    
-                    // Cancel button
-                    if (Auth::guard('admin')->user()->can('cancel_purchase_orders') && $order->canBeCancelled()) {
-                        $actions .= '<button type="button" class="btn btn-sm btn-warning btn-cancel me-1" data-id="' . $order->id . '">
-                            <i class="fas fa-times"></i>
-                        </button> ';
+
+                    if (Auth::guard('admin')->user()->can('manage stock-receptions') && $po->canBeReceived()) {
+                        $actions .= '<a href="' . route('admin.purchase-orders.receptions.create', $po->id) . '" class="btn btn-sm btn-secondary ms-1">
+                            <i class="fas fa-truck-loading"></i>
+                        </a>';
                     }
-                    
-                    // Delete button
-                    if (Auth::guard('admin')->user()->can('delete_purchase_orders') && $order->canBeEdited()) {
-                        $actions .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $order->id . '">
-                            <i class="fas fa-trash"></i>
-                        </button>';
-                    }
-                    
+
                     return $actions;
                 })
                 ->rawColumns(['status_label', 'action'])
@@ -155,7 +156,7 @@ class PurchaseOrderController extends Controller
             Log::error('Error getting purchase orders data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to retrieve purchase orders data.'
+                'error' => 'Failed to retrieve purchase orders data: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -168,86 +169,83 @@ class PurchaseOrderController extends Controller
     public function create()
     {
         try {
-            $suppliers = Supplier::where('active', true)->orderBy('name')->get();
-            $warehouses = Warehouse::where('active', true)->orderBy('name')->get();
-            $products = Product::where('active', true)->orderBy('name')->get();
-            
-            // Generate reference number
-            $reference = PurchaseOrder::generateReferenceNumber();
-            
-            return view('admin.purchase-orders.create', compact('suppliers', 'warehouses', 'products', 'reference'));
+            if (!auth()->guard('admin')->user()->can('create purchase-orders')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $suppliers = Supplier::where('active', true)->get();
+            $warehouses = Warehouse::where('active', true)->get();
+            $products = Product::where('active', true)->get();
+
+            $refNo = PurchaseOrder::generateReferenceNumber();
+
+            return view('admin.purchase-orders.create', compact('suppliers', 'warehouses', 'products', 'refNo'));
         } catch (Exception $e) {
-            Log::error('Error displaying purchase order create form: ' . $e->getMessage());
-            return redirect()->route('admin.purchase-orders.index')->with('error', 'An error occurred while accessing the create form.');
+            Log::error('Error displaying purchase order creation form: ' . $e->getMessage());
+            return redirect()->route('admin.purchase-orders.index')->with('error', 'An error occurred while loading the purchase order form.');
         }
     }
 
     /**
-     * Store a newly created purchase order.
+     * Store a newly created purchase order in storage.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\Response
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
         try {
-            // Validate basic info
+            if (!auth()->guard('admin')->user()->can('create purchase-orders')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to create purchase orders.'
+                ], 403);
+            }
+
             $validator = Validator::make($request->all(), [
-                'reference_no' => 'required|string|max:50|unique:purchase_orders',
                 'supplier_id' => 'required|exists:suppliers,id',
                 'warehouse_id' => 'required|exists:warehouses,id',
                 'order_date' => 'required|date',
                 'expected_delivery_date' => 'nullable|date|after_or_equal:order_date',
-                'notes' => 'nullable|string',
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
-                'items.*.quantity' => 'required|numeric|min:0.01',
+                'items.*.quantity' => 'required|numeric|min:0.001',
                 'items.*.unit_price' => 'required|numeric|min:0',
                 'items.*.tax_rate' => 'nullable|numeric|min:0',
                 'items.*.discount_rate' => 'nullable|numeric|min:0',
+                'notes' => 'nullable|string'
             ]);
-            
+
             if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
-            
-            // Prepare data
-            $data = $request->except('items');
-            $data['items'] = [];
-            
-            // Format items
-            foreach ($request->items as $item) {
-                $data['items'][] = [
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'tax_rate' => $item['tax_rate'] ?? 0,
-                    'discount_rate' => $item['discount_rate'] ?? 0,
-                    'notes' => $item['notes'] ?? null,
-                ];
-            }
-            
-            // Create the purchase order
-            $purchaseOrder = $this->purchaseOrderService->createOrder($data);
-            
+
+            $purchaseOrder = $this->purchaseOrderService->createOrder($request->all());
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
                     ->performedOn($purchaseOrder)
-                    ->withProperties([
-                        'purchase_order_id' => $purchaseOrder->id,
-                        'reference_no' => $purchaseOrder->reference_no,
-                        'supplier_id' => $purchaseOrder->supplier_id
-                    ])
+                    ->withProperties(['purchase_order_id' => $purchaseOrder->id, 'reference_no' => $purchaseOrder->reference_no])
                     ->log('Created purchase order');
             }
-            
-            return redirect()->route('admin.purchase-orders.show', $purchaseOrder->id)
-                ->with('success', 'Purchase order created successfully.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Purchase order created successfully.',
+                'purchase_order' => $purchaseOrder,
+                'redirect_url' => route('admin.purchase-orders.show', $purchaseOrder->id)
+            ]);
         } catch (Exception $e) {
             Log::error('Error creating purchase order: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to create purchase order: ' . $e->getMessage())->withInput();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create purchase order: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -260,9 +258,16 @@ class PurchaseOrderController extends Controller
     public function show($id)
     {
         try {
-            $purchaseOrder = PurchaseOrder::with(['items.product', 'supplier', 'warehouse', 'receptions'])->findOrFail($id);
-            
-            return view('admin.purchase-orders.show', compact('purchaseOrder'));
+            if (!auth()->guard('admin')->user()->can('view purchase-orders')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $purchaseOrder = PurchaseOrder::with(['supplier', 'warehouse', 'createdBy', 'items.product', 'receptions.items'])
+                ->findOrFail($id);
+
+            $totalReceivedItems = $purchaseOrder->getTotalReceivedItems();
+
+            return view('admin.purchase-orders.show', compact('purchaseOrder', 'totalReceivedItems'));
         } catch (Exception $e) {
             Log::error('Error displaying purchase order: ' . $e->getMessage());
             return redirect()->route('admin.purchase-orders.index')->with('error', 'An error occurred while accessing the purchase order.');
@@ -278,104 +283,104 @@ class PurchaseOrderController extends Controller
     public function edit($id)
     {
         try {
-            $purchaseOrder = PurchaseOrder::with(['items.product'])->findOrFail($id);
-            
-            // Check if order can be edited
+            if (!auth()->guard('admin')->user()->can('edit purchase-orders')) {
+                abort(403, 'Unauthorized action.');
+            }
+
+            $purchaseOrder = PurchaseOrder::with(['supplier', 'warehouse', 'items.product'])
+                ->findOrFail($id);
+
             if (!$purchaseOrder->canBeEdited()) {
                 return redirect()->route('admin.purchase-orders.show', $id)
                     ->with('error', 'This purchase order cannot be edited anymore.');
             }
-            
-            $suppliers = Supplier::where('active', true)->orderBy('name')->get();
-            $warehouses = Warehouse::where('active', true)->orderBy('name')->get();
-            $products = Product::where('active', true)->orderBy('name')->get();
-            
+
+            $suppliers = Supplier::where('active', true)->get();
+            $warehouses = Warehouse::where('active', true)->get();
+            $products = Product::where('active', true)->get();
+
             return view('admin.purchase-orders.edit', compact('purchaseOrder', 'suppliers', 'warehouses', 'products'));
         } catch (Exception $e) {
             Log::error('Error displaying purchase order edit form: ' . $e->getMessage());
-            return redirect()->route('admin.purchase-orders.index')->with('error', 'An error occurred while accessing the edit form.');
+            return redirect()->route('admin.purchase-orders.index')->with('error', 'An error occurred while loading the edit form.');
         }
     }
 
     /**
-     * Update the specified purchase order.
+     * Update the specified purchase order in storage.
      *
-     * @param  Request  $request
+     * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
         try {
-            $purchaseOrder = PurchaseOrder::findOrFail($id);
-            
-            // Check if order can be edited
-            if (!$purchaseOrder->canBeEdited()) {
-                return redirect()->route('admin.purchase-orders.show', $id)
-                    ->with('error', 'This purchase order cannot be edited anymore.');
+            if (!auth()->guard('admin')->user()->can('edit purchase-orders')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to edit purchase orders.'
+                ], 403);
             }
-            
-            // Validate basic info
+
+            $purchaseOrder = PurchaseOrder::findOrFail($id);
+
+            if (!$purchaseOrder->canBeEdited()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'This purchase order cannot be edited anymore.'
+                ], 422);
+            }
+
             $validator = Validator::make($request->all(), [
                 'supplier_id' => 'required|exists:suppliers,id',
                 'warehouse_id' => 'required|exists:warehouses,id',
                 'order_date' => 'required|date',
                 'expected_delivery_date' => 'nullable|date|after_or_equal:order_date',
-                'notes' => 'nullable|string',
                 'items' => 'required|array|min:1',
                 'items.*.product_id' => 'required|exists:products,id',
-                'items.*.quantity' => 'required|numeric|min:0.01',
+                'items.*.quantity' => 'required|numeric|min:0.001',
                 'items.*.unit_price' => 'required|numeric|min:0',
                 'items.*.tax_rate' => 'nullable|numeric|min:0',
                 'items.*.discount_rate' => 'nullable|numeric|min:0',
+                'notes' => 'nullable|string'
             ]);
-            
+
             if ($validator->fails()) {
-                return redirect()->back()->withErrors($validator)->withInput();
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
-            
-            // Prepare data
-            $data = $request->except(['_method', '_token', 'items']);
-            $data['items'] = [];
-            
-            // Format items
-            foreach ($request->items as $item) {
-                $data['items'][] = [
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'tax_rate' => $item['tax_rate'] ?? 0,
-                    'discount_rate' => $item['discount_rate'] ?? 0,
-                    'notes' => $item['notes'] ?? null,
-                ];
-            }
-            
-            // Update the purchase order
-            $updatedOrder = $this->purchaseOrderService->updateOrder($purchaseOrder, $data);
-            
+
+            $updatedPurchaseOrder = $this->purchaseOrderService->updateOrder($purchaseOrder, $request->all());
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
-                    ->performedOn($updatedOrder)
-                    ->withProperties([
-                        'purchase_order_id' => $updatedOrder->id,
-                        'reference_no' => $updatedOrder->reference_no,
-                        'supplier_id' => $updatedOrder->supplier_id
-                    ])
+                    ->performedOn($purchaseOrder)
+                    ->withProperties(['purchase_order_id' => $purchaseOrder->id, 'reference_no' => $purchaseOrder->reference_no])
                     ->log('Updated purchase order');
             }
-            
-            return redirect()->route('admin.purchase-orders.show', $updatedOrder->id)
-                ->with('success', 'Purchase order updated successfully.');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Purchase order updated successfully.',
+                'purchase_order' => $updatedPurchaseOrder,
+                'redirect_url' => route('admin.purchase-orders.show', $updatedPurchaseOrder->id)
+            ]);
         } catch (Exception $e) {
             Log::error('Error updating purchase order: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update purchase order: ' . $e->getMessage())->withInput();
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update purchase order: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Confirm the purchase order.
+     * Confirm the specified purchase order.
      *
      * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
@@ -383,35 +388,37 @@ class PurchaseOrderController extends Controller
     public function confirm($id)
     {
         try {
-            $purchaseOrder = PurchaseOrder::findOrFail($id);
-            
-            // Check if order can be confirmed
-            if ($purchaseOrder->status != 'draft') {
+            if (!auth()->guard('admin')->user()->can('edit purchase-orders')) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Only draft orders can be confirmed.'
+                    'error' => 'You do not have permission to confirm purchase orders.'
+                ], 403);
+            }
+
+            $purchaseOrder = PurchaseOrder::findOrFail($id);
+
+            if (!$purchaseOrder->canBeEdited()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'This purchase order cannot be confirmed.'
                 ], 422);
             }
-            
-            // Confirm order
-            $confirmedOrder = $this->purchaseOrderService->confirmOrder($purchaseOrder);
-            
+
+            $confirmedPurchaseOrder = $this->purchaseOrderService->confirmOrder($purchaseOrder);
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
-                    ->performedOn($confirmedOrder)
-                    ->withProperties([
-                        'purchase_order_id' => $confirmedOrder->id,
-                        'reference_no' => $confirmedOrder->reference_no
-                    ])
+                    ->performedOn($purchaseOrder)
+                    ->withProperties(['purchase_order_id' => $purchaseOrder->id, 'reference_no' => $purchaseOrder->reference_no])
                     ->log('Confirmed purchase order');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Purchase order confirmed successfully.',
-                'order' => $confirmedOrder
+                'purchase_order' => $confirmedPurchaseOrder
             ]);
         } catch (Exception $e) {
             Log::error('Error confirming purchase order: ' . $e->getMessage());
@@ -423,7 +430,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Cancel the purchase order.
+     * Cancel the specified purchase order.
      *
      * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
@@ -431,35 +438,37 @@ class PurchaseOrderController extends Controller
     public function cancel($id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('edit purchase-orders')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to cancel purchase orders.'
+                ], 403);
+            }
+
             $purchaseOrder = PurchaseOrder::findOrFail($id);
-            
-            // Check if order can be cancelled
+
             if (!$purchaseOrder->canBeCancelled()) {
                 return response()->json([
                     'success' => false,
                     'error' => 'This purchase order cannot be cancelled.'
                 ], 422);
             }
-            
-            // Cancel order
-            $cancelledOrder = $this->purchaseOrderService->cancelOrder($purchaseOrder);
-            
+
+            $cancelledPurchaseOrder = $this->purchaseOrderService->cancelOrder($purchaseOrder);
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
-                    ->performedOn($cancelledOrder)
-                    ->withProperties([
-                        'purchase_order_id' => $cancelledOrder->id,
-                        'reference_no' => $cancelledOrder->reference_no
-                    ])
+                    ->performedOn($purchaseOrder)
+                    ->withProperties(['purchase_order_id' => $purchaseOrder->id, 'reference_no' => $purchaseOrder->reference_no])
                     ->log('Cancelled purchase order');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Purchase order cancelled successfully.',
-                'order' => $cancelledOrder
+                'purchase_order' => $cancelledPurchaseOrder
             ]);
         } catch (Exception $e) {
             Log::error('Error cancelling purchase order: ' . $e->getMessage());
@@ -471,7 +480,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Remove the specified purchase order.
+     * Remove the specified purchase order from storage.
      *
      * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
@@ -479,34 +488,37 @@ class PurchaseOrderController extends Controller
     public function destroy($id)
     {
         try {
+            if (!auth()->guard('admin')->user()->can('delete purchase-orders')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'You do not have permission to delete purchase orders.'
+                ], 403);
+            }
+
             $purchaseOrder = PurchaseOrder::findOrFail($id);
-            
-            // Check if order can be deleted
-            if (!$purchaseOrder->canBeEdited()) {
+
+            if ($purchaseOrder->status !== PurchaseOrder::STATUS_DRAFT) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Only draft purchase orders can be deleted.'
                 ], 422);
             }
-            
-            // Store order data for logging
-            $orderData = [
-                'id' => $purchaseOrder->id,
-                'reference_no' => $purchaseOrder->reference_no,
-                'supplier_id' => $purchaseOrder->supplier_id
-            ];
-            
-            // Delete the order (will cascade to items)
+
+            // Store reference for logging
+            $reference = $purchaseOrder->reference_no;
+            $purchaseOrderId = $purchaseOrder->id;
+
+            $purchaseOrder->items()->delete();
             $purchaseOrder->delete();
-            
+
             // Log activity
             if (method_exists(app(), 'activity')) {
                 activity()
                     ->causedBy(Auth::guard('admin')->user())
-                    ->withProperties($orderData)
+                    ->withProperties(['purchase_order_id' => $purchaseOrderId, 'reference_no' => $reference])
                     ->log('Deleted purchase order');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Purchase order deleted successfully.'
