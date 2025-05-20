@@ -476,6 +476,11 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
+            console.log("DOM ready");
+
+            // Global variable to track if filters have been applied
+            window.filtersApplied = false;
+
             // Initialize Select2 for categories
             $('#categories').select2({
                 theme: 'bootstrap-5',
@@ -483,16 +488,36 @@
                 allowClear: true
             });
 
-            // Initialize DataTable for products
+            // Add this: missing hidden field for view product modal ID
+            if (!$('#view-product-modal-id').length) {
+                $('body').append('<input type="hidden" id="view-product-modal-id">');
+            }
+
+            // Initialize DataTable for products with debugging
             var table = $('#products-table').DataTable({
                 processing: true,
                 serverSide: true,
                 ajax: {
                     url: "{{ route('admin.products.data') }}",
                     data: function (d) {
-                        d.category_id = $('#filter-category').val();
-                        d.brand_id = $('#filter-brand').val();
-                        d.active = $('#filter-status').val();
+                        // Only apply filters if they've been explicitly set
+                        if (window.filtersApplied) {
+                            d.category_id = $('#filter-category').val();
+                            d.brand_id = $('#filter-brand').val();
+                            d.active = $('#filter-status').val();
+                        }
+                    },
+                    dataSrc: function (json) {
+                        console.log("DataTable received data:", json);
+                        if (json.data && json.data.length > 0) {
+                            return json.data;
+                        }
+                        return [];
+                    },
+                    error: function (xhr, error, thrown) {
+                        console.log("DataTable error:", error);
+                        console.log("Error details:", thrown);
+                        console.log("Response:", xhr.responseText);
                     }
                 },
                 columns: [
@@ -531,16 +556,34 @@
                         className: 'text-end'
                     }
                 ],
-                order: [[1, 'asc']]
+                order: [[1, 'asc']],
+                drawCallback: function () {
+                    console.log("Table draw complete");
+                    // Check if table is empty
+                    if ($('#products-table tbody tr').length === 0 ||
+                        $('#products-table tbody tr td').first().hasClass('dataTables_empty')) {
+                        console.log("Table appears empty after drawing");
+                    }
+                }
             });
 
-            // Apply filters
+            // Force refresh table after setup to ensure data loads
+            setTimeout(function () {
+                console.log("Forcing table reload");
+                table.ajax.reload();
+            }, 500);
+
+            // Apply filters - set flag and reload table
             $('#btn-apply-filters').click(function () {
+                console.log("Applying filters");
+                window.filtersApplied = true;
                 table.ajax.reload();
             });
 
-            // Reset filters
+            // Reset filters - clear inputs, reset flag, reload table
             $('#btn-reset-filters').click(function () {
+                console.log("Resetting filters");
+                window.filtersApplied = false;
                 $('#filter-category').val('');
                 $('#filter-brand').val('');
                 $('#filter-status').val('');
@@ -620,8 +663,19 @@
                                 $('#attributes-container').empty();
                                 attributeCount = 0;
 
-                                if (typeof product.attributes === 'object') {
-                                    $.each(product.attributes, function (key, value) {
+                                // Fix: Handle both JSON string and object
+                                let attributesObj = product.attributes;
+                                if (typeof attributesObj === 'string') {
+                                    try {
+                                        attributesObj = JSON.parse(attributesObj);
+                                    } catch (e) {
+                                        console.error("Error parsing attributes JSON:", e);
+                                        attributesObj = {};
+                                    }
+                                }
+
+                                if (typeof attributesObj === 'object' && attributesObj !== null) {
+                                    $.each(attributesObj, function (key, value) {
                                         const html = `
                                                 <div class="row mb-2 attribute-row">
                                                     <div class="col-md-5">
@@ -668,7 +722,9 @@
             $('#btn-edit-view').click(function () {
                 var productId = $('#view-product-modal-id').val();
                 $('#viewProductModal').modal('hide');
-                $('.btn-edit[data-id="' + productId + '"]').click();
+                setTimeout(function () {
+                    $('.btn-edit[data-id="' + productId + '"]').click();
+                }, 500);
             });
 
             // Handle view button click
@@ -689,8 +745,8 @@
                             $('#view-unit').text(product.unit);
                             $('#view-brand').text(product.brand ? product.brand.name : 'N/A');
                             $('#view-categories').text(product.categories_list || 'None');
-                            $('#view-total-stock').text(product.total_stock);
-                            $('#view-average-cost').text(product.average_cost.toFixed(2));
+                            $('#view-total-stock').text(product.total_stock || 0);
+                            $('#view-average-cost').text((product.average_cost || 0).toFixed(2));
 
                             if (product.description) {
                                 $('#view-description').text(product.description);
@@ -700,8 +756,19 @@
 
                             // Display attributes
                             let attributesHtml = '';
-                            if (product.attributes && Object.keys(product.attributes).length > 0) {
-                                $.each(product.attributes, function (key, value) {
+                            // Fix: Handle both JSON string and object for attributes
+                            let attributesObj = product.attributes;
+                            if (typeof attributesObj === 'string') {
+                                try {
+                                    attributesObj = JSON.parse(attributesObj);
+                                } catch (e) {
+                                    console.error("Error parsing attributes JSON:", e);
+                                    attributesObj = {};
+                                }
+                            }
+
+                            if (typeof attributesObj === 'object' && attributesObj !== null && Object.keys(attributesObj).length > 0) {
+                                $.each(attributesObj, function (key, value) {
                                     attributesHtml += `<span class="attribute-badge">${key}: ${value}</span>`;
                                 });
                             } else {
@@ -748,7 +815,7 @@
 
                             // Generate table rows
                             let tableHtml = '';
-                            if (stockInfo.warehouses.length > 0) {
+                            if (stockInfo.warehouses && stockInfo.warehouses.length > 0) {
                                 $.each(stockInfo.warehouses, function (index, warehouse) {
                                     tableHtml += `
                                             <tr>
@@ -931,14 +998,14 @@
             function showToast(type, message) {
                 var bgClass = 'bg-' + (type === 'success' ? 'success' : 'danger');
                 var html = `
-                    <div class="position-fixed top-1 end-1 z-index-2">
-                        <div class="toast fade p-2 mt-2 ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true">
-                            <div class="toast-body text-white">
-                                ${message}
+                        <div class="position-fixed top-1 end-1 z-index-2">
+                            <div class="toast fade p-2 mt-2 ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true">
+                                <div class="toast-body text-white">
+                                    ${message}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
 
                 $('body').append(html);
                 $('.toast').toast({

@@ -9,7 +9,7 @@ class ProductWarehouseStock extends Model
 {
     use HasFactory;
 
-    protected $table = 'product_warehouse_stock';
+    protected $table = 'product_warehouse_stocks';
 
     protected $fillable = [
         'product_id',
